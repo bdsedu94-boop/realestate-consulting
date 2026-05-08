@@ -1,6 +1,7 @@
 const express = require('express');
 const Database = require('better-sqlite3');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -40,6 +41,24 @@ db.exec(`
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
+
+// ─── 인증 ─────────────────────────────────────────────────────
+const APP_PASSWORD = process.env.APP_PASSWORD || '1500cjdeka@@';
+const AUTH_TOKEN = crypto.createHash('sha256').update(APP_PASSWORD).digest('hex');
+
+app.post('/api/login', (req, res) => {
+  if (req.body.password === APP_PASSWORD) {
+    return res.json({ ok: true, token: AUTH_TOKEN });
+  }
+  res.status(401).json({ error: '비밀번호가 틀렸습니다.' });
+});
+
+app.use('/api', (req, res, next) => {
+  if (req.path === '/login') return next();
+  const token = (req.headers.authorization || '').replace('Bearer ', '');
+  if (token !== AUTH_TOKEN) return res.status(401).json({ error: '인증이 필요합니다.' });
+  next();
+});
 
 // ─── 유틸 ──────────────────────────────────────────────────────
 const parseStudent = s => ({ ...s, flags: JSON.parse(s.flags || '[]') });
