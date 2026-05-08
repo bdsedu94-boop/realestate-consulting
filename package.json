@@ -1,0 +1,13 @@
+{
+  "name": "consulting-tool",
+  "version": "1.0.0",
+  "description": "수강생 경매 투자 방향성 컨설팅",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "better-sqlite3": "^9.4.3"
+  }
+}
