@@ -1,10 +1,15 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DB_FILE = path.join(__dirname, 'db.json');
+
+/* ── 인증 ── */
+const APP_PASSWORD = process.env.APP_PASSWORD || '1500cjdeka@@';
+const AUTH_TOKEN = crypto.createHash('sha256').update(APP_PASSWORD).digest('hex');
 
 /* ── DB 읽기/쓰기 ── */
 function readDB() {
@@ -24,6 +29,22 @@ function writeDB(data) {
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+/* ── 로그인 ── */
+app.post('/api/login', (req, res) => {
+  if (req.body.password === APP_PASSWORD) {
+    return res.json({ ok: true, token: AUTH_TOKEN });
+  }
+  res.status(401).json({ error: '비밀번호가 틀렸습니다.' });
+});
+
+/* ── 인증 미들웨어 ── */
+app.use('/api', (req, res, next) => {
+  if (req.path === '/login') return next();
+  const token = (req.headers.authorization || '').replace('Bearer ', '');
+  if (token !== AUTH_TOKEN) return res.status(401).json({ error: '인증이 필요합니다.' });
+  next();
+});
 
 /* ── 수강생 목록 조회 ── */
 app.get('/api/students', (req, res) => {
