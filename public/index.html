@@ -12,9 +12,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Malgun Gothic','Apple SD Goth
 .stat{border-radius:10px;padding:0.8rem 1rem}
 .stat .slb{font-size:11px;margin-bottom:4px;font-weight:500}
 .stat .sval{font-size:22px;font-weight:700}
-.cards{display:grid;gap:14px;grid-template-columns:repeat(2,1fr)}
+.cards{display:grid;gap:14px;grid-template-columns:1fr}
 .card{background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:12px;padding:1.1rem 1.25rem;position:relative}
-.card-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.card-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;padding-right:52px}
 .av{width:42px;height:42px;border-radius:50%;background:#f0ede6;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#5f5e5a;flex-shrink:0;text-align:center;line-height:1.2}
 .rg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:9px}
 .rbox{border-radius:8px;padding:6px 7px}
@@ -24,9 +24,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Malgun Gothic','Apple SD Goth
 .bid-row{background:#f7f6f2;border-radius:8px;padding:8px 10px;margin-bottom:8px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .bid-row .bl{font-size:10px;color:#888;margin-bottom:2px}
 .bid-row .bv{font-size:12px;font-weight:700;color:#1a1a1a}
-.type-chip{display:inline-flex;align-items:center;border-radius:8px;margin:3px 4px 0 0;overflow:hidden;border:0.5px solid rgba(0,0,0,0.1)}
-.tc-label{padding:4px 9px;background:#fff;color:#1a1a1a;font-size:11px;font-weight:500}
-.tc-range{padding:4px 8px;background:#1a1a1a;color:#fff;font-size:10px;font-weight:600}
 .dir-box{padding:7px 10px;border-radius:8px;font-size:11px;font-weight:700}
 .sbadge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:8px;font-weight:600;margin-bottom:5px}
 .s-완료{background:#eaf3de;color:#27500a}
@@ -34,8 +31,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Malgun Gothic','Apple SD Goth
 .s-대기{background:#f0ede6;color:#5f5e5a}
 .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:500}
 .flg{display:inline-block;font-size:10px;padding:2px 7px;border-radius:8px;margin:2px 2px 0 0;background:#faeeda;color:#633806;font-weight:500}
-.wbg{display:inline-block;font-size:10px;padding:2px 7px;border-radius:8px;margin:2px 2px 0 0;background:#fcebeb;color:#791f1f;font-weight:500}
 .note-text{font-size:11px;color:#888;margin-top:6px}
+.ltv-info{background:#f7f6f2;border-radius:7px;padding:6px 10px;margin-bottom:8px;font-size:11px;color:#888;display:flex;align-items:center;gap:5px}
+.ltv-info strong{color:#1a1a1a;font-weight:600}
 .consult-note{font-size:11px;color:#0c447c;background:#e6f1fb;border-radius:6px;padding:4px 8px;margin-top:6px}
 .consult-date{font-size:10px;color:#aaa;margin-top:4px}
 .bv-badge{font-size:10px;padding:2px 8px;border-radius:8px;background:#eaf3de;color:#27500a;font-weight:600;margin-left:6px;vertical-align:middle}
@@ -56,6 +54,7 @@ button:hover{background:#f0ede6}
 .sync-ok .sync-dot{background:#27500a}
 .sync-syncing .sync-dot{background:#633806;animation:pulse 1s infinite}
 .sync-error .sync-dot{background:#791f1f}
+.sync-offline .sync-dot{background:#aaa}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .view-tabs{display:flex;gap:6px;margin-bottom:1.25rem}
 .vtab{padding:7px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:0.5px solid rgba(0,0,0,0.12);background:#fff;color:#888;transition:all 0.15s}
@@ -95,27 +94,9 @@ button:hover{background:#f0ede6}
 .lay-btn{border:none;border-radius:0;padding:6px 11px;font-size:12px;cursor:pointer;background:#fff;color:#1a1a1a;border-right:1px solid rgba(0,0,0,0.1)}
 .lay-btn:last-child{border-right:none}
 .lay-btn.on{background:#1a1a1a;color:#fff}
-.login-overlay{position:fixed;inset:0;background:#f7f6f2;z-index:9999;display:flex;align-items:center;justify-content:center}
-.login-box{background:#fff;border-radius:16px;padding:2.5rem;width:min(380px,90vw);box-shadow:0 4px 24px rgba(0,0,0,0.08);text-align:center}
-.login-box h2{font-size:20px;margin-bottom:8px}
-.login-box p{font-size:13px;color:#888;margin-bottom:1.5rem}
-.login-box input{width:100%;padding:12px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:15px;margin-bottom:12px;text-align:center;font-family:inherit}
-.login-box .btn-login{width:100%;padding:12px;border:none;border-radius:8px;background:#1a1a1a;color:#fff;font-size:14px;font-weight:600;cursor:pointer}
-.login-box .btn-login:hover{background:#333}
-.login-err{color:#791f1f;font-size:12px;margin-bottom:8px;display:none}
-.logout-btn{font-size:11px;padding:4px 10px;color:#888;border-color:rgba(0,0,0,0.1)}
 </style>
 </head>
 <body>
-<div class="login-overlay" id="loginOverlay">
-  <div class="login-box">
-    <h2>수강생 컨설팅 도구</h2>
-    <p>비밀번호를 입력해주세요</p>
-    <div class="login-err" id="loginErr">비밀번호가 틀렸습니다.</div>
-    <input type="password" id="loginPw" placeholder="비밀번호" onkeydown="if(event.key==='Enter')doLogin()">
-    <button class="btn-login" onclick="doLogin()">로그인</button>
-  </div>
-</div>
 <div class="wrap">
 
   <div class="top-bar">
@@ -123,7 +104,7 @@ button:hover{background:#f0ede6}
       <h1 style="font-size:22px;font-weight:800">수강생 투자 방향성 컨설팅 <span class="bv-badge">v3</span></h1>
       <p style="font-size:12px;color:#888;margin-top:4px">실시간 팀 공유 · SQLite DB · 상담상태관리 · 기수별 분석</p>
       <div class="ctrls">
-        <select id="fC" onchange="loadStudents()"><option value="">전체 기수</option></select>
+        <select id="fC" onchange="loadStudents()"><option value="">전체 기수</option><option value="45기">45기</option><option value="46기">46기</option><option value="47기">47기</option></select>
         <select id="fH" onchange="loadStudents()">
           <option value="">전체 유형</option>
           <option value="생애최초">생애최초</option>
@@ -139,12 +120,9 @@ button:hover{background:#f0ede6}
         </select>
         <input type="text" id="fQ" placeholder="🔍 이름 검색" oninput="debounceLoad()" style="width:120px">
         <button onclick="toggleForm()">+ 수강생 추가</button>
-        <div class="lay-btn-group">
-          <button class="lay-btn" id="lay1" onclick="setLayout(1)" title="1열">▬</button>
-          <button class="lay-btn on" id="lay2" onclick="setLayout(2)" title="2열">▬▬</button>
-          <button class="lay-btn" id="lay3" onclick="setLayout(3)" title="3열">▬▬▬</button>
-        </div>
-        <button class="logout-btn" onclick="doLogout()">로그아웃</button>
+        <button onclick="document.getElementById('xlsxInput').click()" style="background:#1a6b8a;color:#fff">📤 Excel 업로드</button>
+        <input type="file" id="xlsxInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(this)">
+        <button onclick="exportCSV()" style="background:#27500a;color:#fff">📥 CSV 내보내기</button>
       </div>
     </div>
   </div>
@@ -178,7 +156,7 @@ button:hover{background:#f0ede6}
         </select></div>
       <div><label class="fl">투자 시드 (만원)</label><input id="fS" type="number" placeholder="예: 3000" style="width:100%"></div>
       <div><label class="fl">신용대출 가능 금액 (만원)</label><input id="fCr" type="number" placeholder="없거나 모르면 0" style="width:100%"></div>
-      <div><label class="fl">주담대 가능</label>
+      <div><label class="fl">대출 가능</label>
         <select id="fL" style="width:100%">
           <option value="unknown">모름/미확인</option>
           <option value="Y">가능</option>
@@ -238,7 +216,7 @@ button:hover{background:#f0ede6}
         </select></div>
       <div><label class="fl">투자 시드 (만원)</label><input id="em-s" type="number" style="width:100%"></div>
       <div><label class="fl">신용대출 가능 금액 (만원)</label><input id="em-cr" type="number" style="width:100%"></div>
-      <div><label class="fl">주담대 가능</label>
+      <div><label class="fl">대출 가능</label>
         <select id="em-l" style="width:100%">
           <option value="unknown">모름/미확인</option>
           <option value="Y">가능</option>
@@ -273,75 +251,82 @@ button:hover{background:#f0ede6}
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 /* ── 투자 유형 ── */
-const COND={비규제_소액빌라:'수도권 비규제 빌라/APT',지방_단타:'지방 단타 APT',비규제_중간:'수도권 비규제 APT',비규제_고액:'수도권 비규제 APT',우량_지방:'우량 지방 APT',서울_진입:'서울·수도권 빌라/APT',다주택_소액:'비규제 소액빌라 (조건부)'};
-
 /* ── 초기 데이터 ── */
 const BASE=[
-  {cohort:'45기',name:'김재구',housing_type:'1주택',seed_amount:5000,credit_amount:0,loan_available:'unknown',transfer_available:'unknown',flags:['기대출'],note:'기대출 많음 — 추가대출 확인',status:'완료',consult_date:'2025.04',consult_note:''},
-  {cohort:'45기',name:'정미애',housing_type:'무주택',seed_amount:5000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
-  {cohort:'45기',name:'황태웅',housing_type:'1주택',seed_amount:2000,credit_amount:3000,loan_available:'Y',transfer_available:'N',flags:[],note:'공시가 2억이하 조건',status:'완료',consult_date:'2025.04',consult_note:''},
-  {cohort:'45기',name:'박정미',housing_type:'생애최초',seed_amount:20000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:['전문가확인'],note:'세무사 무주택 확인 선행',status:'재상담',consult_date:'2025.04',consult_note:'세무사 확인 후 재상담 예정'},
+  {cohort:'45기',name:'주지선',housing_type:'무주택',seed_amount:5000,credit_amount:0,loan_available:'N',transfer_available:'Y',flags:['명의활용','올현금'],note:'인천 거주 · 아들 명의로 진행 · 경락잔금대출 미활용',status:'대기',consult_date:'',consult_note:''},
+  {cohort:'45기',name:'김재구',housing_type:'1주택',seed_amount:10000,credit_amount:0,loan_available:'unknown',transfer_available:'unknown',flags:['기대출'],note:'기대출 많음 — 추가대출 확인',status:'완료',consult_date:'2025.04',consult_note:''},
+  {cohort:'45기',name:'정미애',housing_type:'무주택',seed_amount:10000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
+  {cohort:'45기',name:'황태웅',housing_type:'1주택',seed_amount:3000,credit_amount:3000,loan_available:'Y',transfer_available:'N',flags:[],note:'공시가 2억이하 조건',status:'완료',consult_date:'2025.04',consult_note:''},
+  {cohort:'45기',name:'박정미',housing_type:'생애최초',seed_amount:20000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:['전문가확인'],note:'',status:'재상담',consult_date:'2025.04',consult_note:''},
   {cohort:'45기',name:'전희연',housing_type:'1주택',seed_amount:5000,credit_amount:0,loan_available:'Y',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
-  {cohort:'45기',name:'김길학',housing_type:'생애최초',seed_amount:1000,credit_amount:0,loan_available:'unknown',transfer_available:'unknown',flags:[],note:'투자금 적음',status:'완료',consult_date:'2025.04',consult_note:''},
-  {cohort:'45기',name:'안진희',housing_type:'1주택',seed_amount:25000,credit_amount:0,loan_available:'unknown',transfer_available:'N',flags:['명의활용'],note:'진희님 명의로 진행',status:'완료',consult_date:'2025.04',consult_note:''},
-  {cohort:'45기',name:'황희자',housing_type:'1주택',seed_amount:500,credit_amount:8000,loan_available:'Y',transfer_available:'Y',flags:[],note:'딸 교직원 대출 합산',status:'완료',consult_date:'2025.04',consult_note:''},
+  {cohort:'45기',name:'김길학',housing_type:'생애최초',seed_amount:3000,credit_amount:0,loan_available:'unknown',transfer_available:'unknown',flags:[],note:'투자금 적음',status:'완료',consult_date:'2025.04',consult_note:''},
+  {cohort:'45기',name:'안진희',housing_type:'1주택',seed_amount:10000,credit_amount:0,loan_available:'unknown',transfer_available:'N',flags:['명의활용'],note:'진희님 명의로 진행',status:'완료',consult_date:'2025.04',consult_note:''},
+  {cohort:'45기',name:'황희자',housing_type:'1주택',seed_amount:5000,credit_amount:8000,loan_available:'Y',transfer_available:'Y',flags:[],note:'딸 교직원 대출 합산',status:'완료',consult_date:'2025.04',consult_note:''},
   {cohort:'45기',name:'박덕희',housing_type:'1주택',seed_amount:3000,credit_amount:0,loan_available:'Y',transfer_available:'unknown',flags:[],note:'제주도 물건 관심',status:'완료',consult_date:'2025.04',consult_note:''},
   {cohort:'45기',name:'심슬기',housing_type:'무주택',seed_amount:3000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'행복주택 추가구매 확인',status:'완료',consult_date:'2025.04',consult_note:''},
-  {cohort:'45기',name:'박미연',housing_type:'1주택',seed_amount:1000,credit_amount:0,loan_available:'Y',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
-  {cohort:'45기',name:'차지연',housing_type:'무주택',seed_amount:4000,credit_amount:0,loan_available:'Y',transfer_available:'N',flags:['기대출'],note:'기대출 많음',status:'완료',consult_date:'2025.04',consult_note:''},
-  {cohort:'45기',name:'박라온',housing_type:'1주택',seed_amount:1000,credit_amount:0,loan_available:'unknown',transfer_available:'unknown',flags:[],note:'6월 재상담 예정',status:'재상담',consult_date:'2025.04',consult_note:'6월에 다시 이야기하기로'},
-  {cohort:'45기',name:'민혜원',housing_type:'무주택',seed_amount:1000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
+  {cohort:'45기',name:'박미연',housing_type:'1주택',seed_amount:3000,credit_amount:0,loan_available:'Y',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
+  {cohort:'45기',name:'차지연',housing_type:'무주택',seed_amount:5000,credit_amount:0,loan_available:'Y',transfer_available:'N',flags:['기대출'],note:'기대출 많음',status:'완료',consult_date:'2025.04',consult_note:''},
+  {cohort:'45기',name:'박라온',housing_type:'1주택',seed_amount:3000,credit_amount:0,loan_available:'unknown',transfer_available:'unknown',flags:[],note:'6월 재상담 예정',status:'재상담',consult_date:'2025.04',consult_note:'6월에 다시 이야기하기로'},
+  {cohort:'45기',name:'민혜원',housing_type:'무주택',seed_amount:3000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
   {cohort:'45기',name:'서명조',housing_type:'1주택',seed_amount:15000,credit_amount:0,loan_available:'Y',transfer_available:'N',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
-  {cohort:'45기',name:'최정임',housing_type:'생애최초',seed_amount:1000,credit_amount:0,loan_available:'Y',transfer_available:'unknown',flags:[],note:'생애최초 대출 유리',status:'완료',consult_date:'2025.04',consult_note:''},
-  {cohort:'45기',name:'김성아',housing_type:'1주택',seed_amount:1000,credit_amount:0,loan_available:'unknown',transfer_available:'N',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
+  {cohort:'45기',name:'최정임',housing_type:'생애최초',seed_amount:3000,credit_amount:0,loan_available:'Y',transfer_available:'unknown',flags:[],note:'생애최초 대출 유리',status:'완료',consult_date:'2025.04',consult_note:''},
+  {cohort:'45기',name:'김성아',housing_type:'1주택',seed_amount:3000,credit_amount:0,loan_available:'unknown',transfer_available:'N',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
   {cohort:'45기',name:'성현경',housing_type:'생애최초',seed_amount:9000,credit_amount:0,loan_available:'Y',transfer_available:'Y',flags:['기대출'],note:'소득·기대출 확인 필요',status:'재상담',consult_date:'2025.04',consult_note:'소득 및 기대출 확인 후 재상담'},
-  {cohort:'45기',name:'전은정',housing_type:'1주택',seed_amount:1000,credit_amount:0,loan_available:'Y',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
-  {cohort:'45기',name:'이선영',housing_type:'생애최초',seed_amount:6000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:['명의활용'],note:'남편 명의 활용',status:'완료',consult_date:'2025.04',consult_note:''},
+  {cohort:'45기',name:'전은정',housing_type:'1주택',seed_amount:3000,credit_amount:0,loan_available:'Y',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
+  {cohort:'45기',name:'이선영',housing_type:'생애최초',seed_amount:10000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:['명의활용'],note:'남편 명의 활용',status:'완료',consult_date:'2025.04',consult_note:''},
   {cohort:'45기',name:'최진영',housing_type:'생애최초',seed_amount:5000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'생애최초 최대 레버리지',status:'완료',consult_date:'2025.04',consult_note:''},
-  {cohort:'45기',name:'이재일',housing_type:'1주택',seed_amount:12000,credit_amount:0,loan_available:'Y',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
-  {cohort:'45기',name:'김향교',housing_type:'무주택',seed_amount:7500,credit_amount:0,loan_available:'Y',transfer_available:'N',flags:[],note:'추후 상담 예정',status:'재상담',consult_date:'',consult_note:'전입불가 대출 조건 확인 후 재상담'},
-  {cohort:'45기',name:'김수희',housing_type:'생애최초',seed_amount:8000,credit_amount:0,loan_available:'unknown',transfer_available:'N',flags:[],note:'전세금(2억) 회수 후 진행',status:'완료',consult_date:'2025.04',consult_note:''},
-  {cohort:'45기',name:'유린',housing_type:'1주택',seed_amount:1000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
+  {cohort:'45기',name:'이재일',housing_type:'1주택',seed_amount:15000,credit_amount:0,loan_available:'Y',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
+  {cohort:'45기',name:'김향교',housing_type:'무주택',seed_amount:10000,credit_amount:0,loan_available:'Y',transfer_available:'N',flags:[],note:'추후 상담 예정',status:'재상담',consult_date:'',consult_note:'전입불가 대출 조건 확인 후 재상담'},
+  {cohort:'45기',name:'김수희',housing_type:'생애최초',seed_amount:2500,credit_amount:0,loan_available:'unknown',transfer_available:'N',flags:[],note:'전세금(2억) 회수 후 진행',status:'완료',consult_date:'2025.04',consult_note:''},
+  {cohort:'45기',name:'유린',housing_type:'1주택',seed_amount:3000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
   {cohort:'45기',name:'김영란',housing_type:'다주택',seed_amount:20000,credit_amount:0,loan_available:'unknown',transfer_available:'N',flags:[],note:'수익률 낮아 소액 위주',status:'완료',consult_date:'2025.04',consult_note:''},
   {cohort:'46기',name:'최성주',housing_type:'다주택',seed_amount:3000,credit_amount:0,loan_available:'N',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
+  {cohort:'46기',name:'임경진',housing_type:'1주택',seed_amount:2000,credit_amount:6000,loan_available:'Y',transfer_available:'N',flags:[],note:'',status:'대기',consult_date:'',consult_note:''},
   {cohort:'46기',name:'채윤희',housing_type:'1주택',seed_amount:3000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
   {cohort:'46기',name:'김우기',housing_type:'1주택',seed_amount:10000,credit_amount:20000,loan_available:'Y',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
   {cohort:'46기',name:'유경화',housing_type:'1주택',seed_amount:1000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:['명의활용'],note:'남편 명의 예정 (개인회생중)',status:'재상담',consult_date:'2025.04',consult_note:'개인회생 중 명의 여부 확인 필요'},
-  {cohort:'46기',name:'흥우건',housing_type:'1주택',seed_amount:3000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
+  {cohort:'46기',name:'흥우건',housing_type:'1주택',seed_amount:4000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
   {cohort:'46기',name:'오윤희',housing_type:'1주택',seed_amount:1000,credit_amount:3000,loan_available:'Y',transfer_available:'Y',flags:[],note:'아산 APT 공시가 2억이하',status:'완료',consult_date:'2025.04',consult_note:''},
   {cohort:'46기',name:'정영철',housing_type:'1주택',seed_amount:3000,credit_amount:0,loan_available:'unknown',transfer_available:'N',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
   {cohort:'46기',name:'심재헌',housing_type:'무주택',seed_amount:3000,credit_amount:0,loan_available:'Y',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
   {cohort:'46기',name:'김영민',housing_type:'1주택',seed_amount:1000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
-  {cohort:'46기',name:'서유미',housing_type:'1주택',seed_amount:15000,credit_amount:0,loan_available:'N',transfer_available:'N',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
+  {cohort:'46기',name:'서유미',housing_type:'1주택',seed_amount:3000,credit_amount:1000,loan_available:'N',transfer_available:'N',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
   {cohort:'46기',name:'성순주',housing_type:'무주택',seed_amount:50000,credit_amount:0,loan_available:'unknown',transfer_available:'N',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
   {cohort:'46기',name:'서주연',housing_type:'무주택',seed_amount:1000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
   {cohort:'46기',name:'윤태주',housing_type:'1주택',seed_amount:500,credit_amount:2000,loan_available:'Y',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
   {cohort:'46기',name:'설선희',housing_type:'무주택',seed_amount:2700,credit_amount:0,loan_available:'unknown',transfer_available:'N',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
   {cohort:'46기',name:'권효숙',housing_type:'1주택',seed_amount:5000,credit_amount:0,loan_available:'Y',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
-  {cohort:'46기',name:'노은주',housing_type:'다주택',seed_amount:3000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'오피스텔 장기임대 매도 예정',status:'완료',consult_date:'2025.04',consult_note:''},
-  {cohort:'46기',name:'민주연',housing_type:'1주택',seed_amount:2000,credit_amount:0,loan_available:'Y',transfer_available:'N',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
+  {cohort:'46기',name:'노은주',housing_type:'다주택',seed_amount:7000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'오피스텔 장기임대 매도 예정',status:'완료',consult_date:'2025.04',consult_note:''},
+  {cohort:'46기',name:'민주연',housing_type:'1주택',seed_amount:5000,credit_amount:0,loan_available:'Y',transfer_available:'N',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
   {cohort:'46기',name:'장지윤',housing_type:'1주택',seed_amount:2000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
   {cohort:'46기',name:'김현주',housing_type:'1주택',seed_amount:2000,credit_amount:0,loan_available:'unknown',transfer_available:'N',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
   {cohort:'46기',name:'이현정',housing_type:'1주택',seed_amount:3000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'',status:'완료',consult_date:'2025.04',consult_note:''},
+  // ── 47기 ──
+  {cohort:'47기',name:'권혜영',housing_type:'1주택',seed_amount:2000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'안동 거주 · 상가/카페 창업 관심',status:'대기',consult_date:'',consult_note:''},
+  {cohort:'47기',name:'우채빈',housing_type:'무주택',seed_amount:2500,credit_amount:0,loan_available:'Y',transfer_available:'Y',flags:[],note:'역삼동 거주 · 빌라/다세대 단타 희망',status:'대기',consult_date:'',consult_note:''},
+  {cohort:'47기',name:'유영미',housing_type:'1주택',seed_amount:500,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'인천 거주 · 유현미(언니)와 함께 수강',status:'대기',consult_date:'',consult_note:''},
+  {cohort:'47기',name:'유현미',housing_type:'무주택',seed_amount:500,credit_amount:4000,loan_available:'Y',transfer_available:'Y',flags:[],note:'인천 거주 · 유영미(동생)와 함께 수강',status:'대기',consult_date:'',consult_note:''},
+  {cohort:'47기',name:'표영애',housing_type:'1주택',seed_amount:3000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'남양주 거주',status:'대기',consult_date:'',consult_note:''},
+  {cohort:'47기',name:'김지현',housing_type:'다주택',seed_amount:3500,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'부산 거주 · 다주택→1주택 정리 중 · 재개발 관심',status:'대기',consult_date:'',consult_note:''},
+  {cohort:'47기',name:'박진희',housing_type:'1주택',seed_amount:3500,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'안양 거주 · 지방 물건 선호',status:'대기',consult_date:'',consult_note:''},
+  {cohort:'47기',name:'김가은',housing_type:'무주택',seed_amount:2000,credit_amount:0,loan_available:'Y',transfer_available:'Y',flags:[],note:'세종 거주 · 전세만기 27.05 · 실거주 vs 투자 고민',status:'대기',consult_date:'',consult_note:''},
+  {cohort:'47기',name:'윤소정',housing_type:'무주택',seed_amount:1500,credit_amount:0,loan_available:'Y',transfer_available:'Y',flags:[],note:'수유동 거주 · 서울 빌라 관심',status:'대기',consult_date:'',consult_note:''},
+  {cohort:'47기',name:'김영민',housing_type:'1주택',seed_amount:15000,credit_amount:5000,loan_available:'Y',transfer_available:'N',flags:[],note:'수원 거주 · 회사 비밀 유지',status:'대기',consult_date:'',consult_note:''},
+  {cohort:'47기',name:'이옥화',housing_type:'무주택',seed_amount:2000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'송파구 거주 · 은퇴 대비',status:'대기',consult_date:'',consult_note:''},
+  {cohort:'47기',name:'유승희',housing_type:'무주택',seed_amount:3000,credit_amount:0,loan_available:'unknown',transfer_available:'N',flags:[],note:'은평구 거주 · 해외 장기 거주 후 귀국',status:'대기',consult_date:'',consult_note:''},
+  {cohort:'47기',name:'이금희',housing_type:'1주택',seed_amount:4000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'구로구 거주',status:'대기',consult_date:'',consult_note:''},
+  {cohort:'47기',name:'박선순',housing_type:'1주택',seed_amount:10000,credit_amount:0,loan_available:'Y',transfer_available:'Y',flags:[],note:'시흥 거주 · 단타 후 임대 계획',status:'대기',consult_date:'',consult_note:''},
+  {cohort:'47기',name:'김진',housing_type:'무주택',seed_amount:2000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'전주 거주 · 경매 위해 직장 퇴직',status:'대기',consult_date:'',consult_note:''},
+  {cohort:'47기',name:'성은미',housing_type:'다주택',seed_amount:10000,credit_amount:0,loan_available:'unknown',transfer_available:'N',flags:[],note:'전주 거주 · 자영업/사업자 · 신용대출 확인 필요',status:'대기',consult_date:'',consult_note:''},
+  {cohort:'47기',name:'목은영',housing_type:'생애최초',seed_amount:5000,credit_amount:0,loan_available:'Y',transfer_available:'N',flags:[],note:'서울 거주 · 생애최초 무주택',status:'대기',consult_date:'',consult_note:''},
+  {cohort:'47기',name:'유호',housing_type:'무주택',seed_amount:7000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'제주 거주 · 매매사업자 희망',status:'대기',consult_date:'',consult_note:''},
+  {cohort:'47기',name:'이혜용',housing_type:'1주택',seed_amount:1500,credit_amount:2000,loan_available:'Y',transfer_available:'N',flags:[],note:'성북구 거주 · 무직 준비중',status:'대기',consult_date:'',consult_note:''},
 ];
 
-let students=[], editId=null, curView='card', curLayout=2, debounceTimer=null;
-let authToken=localStorage.getItem('authToken')||'';
-
-/* ── 인증 ── */
-async function doLogin(){
-  const pw=document.getElementById('loginPw').value;
-  const errEl=document.getElementById('loginErr');
-  try{
-    const res=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
-    const data=await res.json();
-    if(data.ok){authToken=data.token;localStorage.setItem('authToken',authToken);document.getElementById('loginOverlay').style.display='none';errEl.style.display='none';initData();}
-    else{errEl.textContent=data.error||'비밀번호가 틀렸습니다.';errEl.style.display='block';}
-  }catch(e){errEl.textContent='서버에 연결할 수 없습니다.';errEl.style.display='block';}
-}
-function doLogout(){authToken='';localStorage.removeItem('authToken');document.getElementById('loginOverlay').style.display='flex';document.getElementById('loginPw').value='';}
+let students=[], editId=null, curView='card', debounceTimer=null, previewMode=false;
 
 /* ── 동기화 상태 ── */
 function setSyncBar(cls,msg){document.getElementById('syncBar').className='sync-bar '+cls;document.getElementById('syncMsg').textContent=msg;}
@@ -351,10 +336,8 @@ function debounceLoad(){clearTimeout(debounceTimer);debounceTimer=setTimeout(loa
 /* ── API 호출 ── */
 async function api(url,method='GET',body=null){
   const opts={method,headers:{'Content-Type':'application/json'}};
-  if(authToken)opts.headers['Authorization']='Bearer '+authToken;
   if(body)opts.body=JSON.stringify(body);
   const res=await fetch(url,opts);
-  if(res.status===401){authToken='';localStorage.removeItem('authToken');document.getElementById('loginOverlay').style.display='flex';throw new Error('인증이 필요합니다.');}
   const text=await res.text();
   try{
     const json=JSON.parse(text);
@@ -368,23 +351,40 @@ async function api(url,method='GET',body=null){
 
 /* ── 수강생 로드 ── */
 async function loadStudents(){
+  const c=document.getElementById('fC').value,h=document.getElementById('fH').value;
+  const st=document.getElementById('fSt').value,q=document.getElementById('fQ').value.trim();
+
+  if(previewMode){
+    // 미리보기 모드: 클라이언트 필터링
+    let list=BASE.map((d,i)=>({...d,id:i+1}));
+    if(c) list=list.filter(s=>s.cohort===c);
+    if(h) list=list.filter(s=>s.housing_type===h);
+    if(st) list=list.filter(s=>s.status===st);
+    if(q) list=list.filter(s=>s.name&&s.name.includes(q));
+    students=list;
+    render();
+    return;
+  }
+
   setSyncBar('sync-syncing','불러오는 중...');
   try{
     const params=new URLSearchParams();
-    const c=document.getElementById('fC').value,h=document.getElementById('fH').value;
-    const st=document.getElementById('fSt').value,q=document.getElementById('fQ').value.trim();
     if(c)params.set('cohort',c);if(h)params.set('housing_type',h);
     if(st)params.set('status',st);if(q)params.set('search',q);
     students=await api('/api/students?'+params);
     setSyncBar('sync-ok','마지막 동기화: '+timeStr());
     await loadCohorts();
     render();
-  }catch(e){setSyncBar('sync-error','⚠ 오류: '+e.message);}
+  }catch(e){
+    if(!previewMode) setSyncBar('sync-error','⚠ 오류: '+e.message);
+  }
 }
 
 async function loadCohorts(){
   try{
-    const cohorts=await api('/api/cohorts');
+    const cohorts = previewMode
+      ? [...new Set(BASE.map(s=>s.cohort))].sort()
+      : await api('/api/cohorts');
     const sel=document.getElementById('fC'),cur=sel.value;
     sel.innerHTML='<option value="">전체 기수</option>'+cohorts.map(c=>`<option value="${c}">${c}</option>`).join('');
     if(cohorts.includes(cur))sel.value=cur;
@@ -393,14 +393,33 @@ async function loadCohorts(){
 
 /* ── 첫 실행 시 초기 데이터 시드 ── */
 async function initData(){
-  if(!authToken){document.getElementById('loginOverlay').style.display='flex';return;}
-  document.getElementById('loginOverlay').style.display='none';
-  setSyncBar('sync-syncing','초기화 중...');
+  setSyncBar('sync-syncing','서버에 연결 중...');
   try{
-    const result=await api('/api/seed','POST',{students:BASE});
-    if(result.inserted) console.log(`초기 데이터 ${result.inserted}명 로드됨`);
-  }catch(e){console.error('시드 오류:',e);}
-  await loadStudents();
+    // 먼저 기존 데이터 확인
+    const existing = await api('/api/students');
+    if(Array.isArray(existing) && existing.length > 0){
+      // 이미 데이터 있음 → 바로 표시
+      students = existing;
+      setSyncBar('sync-ok','마지막 동기화: '+timeStr());
+      await loadCohorts();
+      render();
+    } else {
+      // 데이터 없음 → 초기 데이터 시드 시도
+      try{
+        await api('/api/seed','POST',{students:BASE});
+      }catch(e){
+        console.log('초기 시드 생략 — 수동으로 수강생을 추가해주세요.');
+      }
+      await loadStudents();
+    }
+  }catch(e){
+    // 서버 미연결 → 미리보기 모드
+    previewMode=true;
+    students=BASE.map((d,i)=>({...d,id:i+1}));
+    setSyncBar('sync-offline','📋 미리보기 모드 — Railway 배포 후 실시간 공유 시작');
+    await loadCohorts();
+    render();
+  }
 }
 
 /* ── 수강생 추가 ── */
@@ -463,55 +482,416 @@ async function saveEdit(){
   if(document.getElementById('em-f1').checked)flags.push('기대출');
   if(document.getElementById('em-f2').checked)flags.push('전문가확인');
   if(document.getElementById('em-f3').checked)flags.push('명의활용');
+  const updated={
+    cohort:document.getElementById('em-cohort').value.trim(),
+    name:document.getElementById('em-name').value.trim(),
+    housing_type:document.getElementById('em-h').value,
+    seed_amount:parseInt(document.getElementById('em-s').value)||0,
+    credit_amount:parseInt(document.getElementById('em-cr').value)||0,
+    loan_available:document.getElementById('em-l').value,
+    transfer_available:document.getElementById('em-t').value,
+    status:document.getElementById('em-status').value,
+    consult_date:document.getElementById('em-date').value.trim(),
+    note:document.getElementById('em-note').value.trim(),
+    consult_note:document.getElementById('em-cnote').value.trim(),
+    flags
+  };
+  if(previewMode){
+    // 미리보기 모드: 로컬 배열 직접 수정 후 즉시 재렌더
+    const idx=students.findIndex(s=>s.id===editId);
+    if(idx!==-1) students[idx]={...students[idx],...updated,id:editId};
+    closeEdit();render();return;
+  }
   try{
-    await api('/api/students/'+editId,'PUT',{
-      cohort:document.getElementById('em-cohort').value.trim(),
-      name:document.getElementById('em-name').value.trim(),
-      housing_type:document.getElementById('em-h').value,
-      seed_amount:parseInt(document.getElementById('em-s').value)||0,
-      credit_amount:parseInt(document.getElementById('em-cr').value)||0,
-      loan_available:document.getElementById('em-l').value,
-      transfer_available:document.getElementById('em-t').value,
-      status:document.getElementById('em-status').value,
-      consult_date:document.getElementById('em-date').value.trim(),
-      note:document.getElementById('em-note').value.trim(),
-      consult_note:document.getElementById('em-cnote').value.trim(),
-      flags
-    });
+    await api('/api/students/'+editId,'PUT',updated);
     closeEdit();await loadStudents();
   }catch(e){alert('수정 실패: '+e.message);}
 }
 
-/* ── 컨설팅 로직 ── */
+/* ── 상담 상태 원클릭 변경 ── */
+async function cycleStatus(id,cur){
+  const next=cur==='대기'?'완료':cur==='완료'?'재상담':'대기';
+  if(previewMode){
+    const idx=students.findIndex(st=>st.id===id);
+    if(idx!==-1)students[idx].status=next;
+    render();return;
+  }
+  try{
+    const stu=students.find(st=>st.id===id);
+    if(!stu)return;
+    await api('/api/students/'+id,'PUT',{...stu,status:next});
+    await loadStudents();
+  }catch(e){alert('상태 변경 실패: '+e.message);}
+}
+
+/* ── Excel 업로드 일괄 등록 ── */
+function mapLoanVal(v){
+  if(!v)return'unknown';
+  const s=String(v).trim();
+  if(s.includes('가능')||s==='Y'||s==='y')return'Y';
+  if(s.includes('불가')||s==='N'||s==='n')return'N';
+  return'unknown';
+}
+function mapTransferVal(v){
+  if(!v)return'unknown';
+  const s=String(v).trim();
+  if(s.includes('가능')||s==='Y'||s==='y')return'Y';
+  if(s.includes('불가')||s==='N'||s==='n')return'N';
+  return'unknown';
+}
+function mapHousing(v){
+  if(!v)return'무주택';
+  const s=String(v).trim();
+  if(s.includes('생애최초'))return'생애최초';
+  if(s.includes('다주택'))return'다주택';
+  if(s.includes('1주택')||s.includes('일시적'))return'1주택';
+  if(s.includes('무주택'))return'무주택';
+  return s;
+}
+async function importExcel(input){
+  const file=input.files[0]; input.value='';
+  if(!file)return;
+  try{
+    const data=await file.arrayBuffer();
+    const wb=XLSX.read(data,{type:'array'});
+    // 요약 시트 우선 사용, 없으면 첫 번째 시트
+    const sheetName=wb.SheetNames.includes('요약')||wb.SheetNames.includes('요약 ')?
+      wb.SheetNames.find(n=>n.trim()==='요약') : wb.SheetNames[0];
+    const ws=wb.Sheets[sheetName];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    if(rows.length<2){alert('데이터가 없습니다.');return;}
+
+    const header=rows[0].map(h=>String(h).trim());
+    const ci=name=>header.findIndex(h=>h.includes(name));
+
+    // 요약 시트 컬럼 매핑
+    const iCohort=ci('기수'), iName=ci('이름')||ci('성함'),
+          iHousing=ci('주택'), iSeed=ci('투자금'), iCredit=ci('신용대출'),
+          iLoan=ci('대출가능')||ci('대출여부'), iTransfer=ci('전입가능')||ci('전입 가능'),
+          iNote=ci('특이사항'), iMemo=ci('상담메모'), iFlag=ci('플래그'),
+          iStatus=ci('상담상태'), iDate=ci('상담일');
+
+    function mapLoan(v){
+      const s=String(v||'').trim();
+      if(s.includes('가능')||s==='Y')return'Y';
+      if(s.includes('불가')||s==='N')return'N';
+      return'unknown';
+    }
+    function mapTransfer(v){
+      const s=String(v||'').trim();
+      if(s.includes('가능')||s==='Y')return'Y';
+      if(s.includes('불가')||s==='N')return'N';
+      return'unknown';
+    }
+    function mapHousing(v){
+      const s=String(v||'').trim();
+      if(s.includes('생애최초'))return'생애최초';
+      if(s.includes('다주택'))return'다주택';
+      if(s.includes('1주택'))return'1주택';
+      if(s.includes('무주택'))return'무주택';
+      return s||'무주택';
+    }
+    function mapFlags(v){
+      if(!v)return[];
+      return String(v).split(/[,/]/).map(f=>f.trim()).filter(Boolean);
+    }
+
+    const newStudents=[];
+    for(let i=1;i<rows.length;i++){
+      const r=rows[i];
+      const name=String(r[iName]||'').trim();
+      if(!name)continue;
+      newStudents.push({
+        cohort:String(r[iCohort]||'').trim()||'미정',
+        name,
+        housing_type:mapHousing(r[iHousing]),
+        seed_amount:parseInt(String(r[iSeed]).replace(/[^0-9]/g,''))||0,
+        credit_amount:parseInt(String(r[iCredit]).replace(/[^0-9]/g,''))||0,
+        loan_available:mapLoan(r[iLoan]),
+        transfer_available:mapTransfer(r[iTransfer]),
+        note:String(r[iNote]||'').trim(),
+        consult_note:String(r[iMemo]||'').trim(),
+        flags:mapFlags(r[iFlag]),
+        status:String(r[iStatus]||'대기').trim()||'대기',
+        consult_date:String(r[iDate]||'').trim(),
+      });
+    }
+    if(!newStudents.length){alert('등록할 수강생이 없습니다.');return;}
+    const preview=newStudents.slice(0,5).map(s=>`${s.cohort} ${s.name}(${s.housing_type})`).join('\n');
+    if(!confirm(`${newStudents.length}명을 일괄 등록하시겠습니까?\n\n${preview}${newStudents.length>5?'\n...외 '+(newStudents.length-5)+'명':''}`))return;
+    if(previewMode){
+      const maxId=students.length?Math.max(...students.map(s=>s.id)):0;
+      newStudents.forEach((s,i)=>students.push({...s,id:maxId+i+1}));
+      await loadCohorts();render();
+      alert(`${newStudents.length}명 등록 완료! (시트: ${sheetName})`);
+    }else{
+      await api('/api/students/bulk','POST',{students:newStudents});
+      await loadStudents();
+      alert(`${newStudents.length}명 등록 완료! (시트: ${sheetName})`);
+    }
+  }catch(e){alert('Excel 파싱 오류: '+e.message);console.error(e);}
+}
+
+/* ── 방향성 텍스트 생성 ── */
+function formatBidNarrative(d){
+  const cr=d.credit_amount||0,total=d.seed_amount+cr;
+  const tY=d.transfer_available==='Y';
+  const isFirst=d.housing_type==='생애최초',noHouse=d.housing_type==='무주택'||isFirst;
+  const oneHouse=d.housing_type==='1주택',multi=!noHouse&&!oneHouse;
+  const CAP=50000;
+  const isOlhyun=(d.flags||[]).includes('올현금');
+  function fs(v){
+    v=Math.min(v,CAP);
+    if(v>=10000){const a=Math.floor(v/10000),r=v%10000;
+      if(!r)return a+'억원';
+      if(r%1000===0)return a+'억 '+(r/1000)+'천만원';
+      return a+'억 '+r.toLocaleString()+'만원';}
+    if(v%1000===0)return (v/1000)+'천만원';
+    return v.toLocaleString()+'만원';
+  }
+
+  // 올현금 플래그: 경락잔금대출 미활용 → 올현금 투자만
+  if(isOlhyun){
+    const area=tY?'수도권 규제·비규제':'수도권 비규제';
+    const regionOh=total<=15000?' (인천, 부천)':' (인천, 경기외곽)';
+    const lines=[];
+    lines.push(area+' 빌라 '+fs(total)+' 이하'+regionOh+' (올현금)');
+    lines.push('비수도권 APT '+fs(total)+' (올현금)');
+    return lines.map((l,i)=>(i+1)+'. '+l).join('\n');
+  }
+  const l60bid=Math.min(Math.round(total/0.4/100)*100,CAP);
+  const l80bid=Math.min(Math.round(total/0.2/100)*100,CAP);
+  const localMin=Math.max(8300,l60bid);
+  const hasLocal=l80bid>=8300;
+  const snr70=tY?Math.min(Math.round(total/0.3/100)*100,CAP):null;
+  const snrOk=snr70&&snr70*0.7>=5000;
+  // 인천·부천 추천: 실제 입찰가 기준 (LTV 가능시 입찰가, 불가시 시드)
+  const bidForRegion=snrOk&&snr70?snr70:total;
+  const region=bidForRegion<=15000?' (인천, 부천)':'';
+  const lines=[];
+  const needsCrCheck=cr===0; // 신용대출 금액 미확인 → 새 형식
+  // 전체 LTV 불가 케이스 (수도권 LTV 미달 + 비수도권 최소입찰가 미달)
+  const allFail=!snrOk&&!hasLocal;
+  if(allFail){
+    const areaF=tY?'수도권 규제·비규제':'수도권 비규제';
+    lines.push(needsCrCheck
+      ?areaF+'지역 현금+신용대출 활용해 올현금 입찰 가능 물건 (신용대출 가능금액 확인 필요)'
+      :areaF+' 빌라 시드+신용대출 합산 금액으로 입찰 검토'+region);
+    return lines.map((l,i)=>(i+1)+'. '+l).join('\n');
+  }
+  if(multi){
+    const regionMulti=total<=15000?' (인천, 부천)':'';
+    lines.push('수도권 비규제 빌라 '+fs(Math.min(total,50000))+' 이하 (조건부·공시가1억이하)'+regionMulti);
+  }else if(bigInv||noHouse){
+    const aptBid=tY&&snrOk?snr70:total;
+    const area=tY?'수도권 규제·비규제':'수도권 비규제';
+    if(aptBid>15000){
+      const aptRegion=aptBid>=30000?'':' (인천, 경기외곽)';
+      lines.push(area+' APT '+fs(Math.min(aptBid,50000))+' 이하'+aptRegion);
+    }else{
+      if(needsCrCheck&&(!snrOk||!tY)){
+        lines.push(area+'지역 현금+신용대출 활용해 올현금 입찰 가능 물건 (신용대출 가능금액 확인 필요)');
+      }else{
+        let lb;
+        if(!tY) lb=fs(total)+' 이하';
+        else if(!snrOk) lb=fs(total)+' + 신용대출 확인';
+        else lb=fs(aptBid)+' 이하';
+        lines.push(area+' 빌라 '+lb+' (인천, 부천)');
+      }
+    }
+  }else if(oneHouse){
+    const regionOne=total<=15000?' (인천, 부천)':'';
+    if(total>10000){
+      lines.push('수도권 비규제 APT '+fs(Math.min(total,50000))+' 이하'+regionOne);
+    }else if(needsCrCheck){
+      lines.push('수도권 비규제지역 현금+신용대출 활용해 올현금 입찰 가능 물건 (신용대출 가능금액 확인 필요)');
+    }else{
+      lines.push('수도권 비규제 빌라 '+fs(total)+' 이하'+regionOne);
+    }
+  }
+  if(hasLocal){
+    const note=multi?' (공시가 2억이하)':'';
+    const localPrefix=needsCrCheck&&!multi?'비수도권 APT 입찰가 기준: ':'비수도권 APT ';
+    lines.push(localMin===l80bid
+      ?localPrefix+fs(l80bid)+' 이하'+note
+      :localPrefix+fs(localMin)+' ~ '+fs(l80bid)+note);
+  }
+  return lines.map((l,i)=>(i+1)+'. '+l).join('\n');
+}
+
+function exportCSV(){
+  try{
+    const headers=['기수','이름','주택수','투자금(만원)','신용대출(만원)','합산(만원)','대출가능','전입가능','특이사항','상담메모','플래그','상담상태','상담일','이주임 확인완료','방향성'];
+    const rows=students.map(d=>{
+      const c=consult(d);
+      const cr=d.credit_amount||0;
+      return [
+        d.cohort, d.name, d.housing_type,
+        d.seed_amount, cr, d.seed_amount+cr,
+        d.loan_available==='Y'?'가능':d.loan_available==='N'?'불가':'미확인',
+        d.transfer_available==='Y'?'가능':d.transfer_available==='N'?'불가':'미기재',
+        d.note||'', d.consult_note||'',
+        (d.flags||[]).join('/'),
+        d.status||'대기', d.consult_date||'',
+        '', // 이주임 확인완료 (수동 입력)
+        formatBidNarrative(d) // 방향성 = 입찰 가능 금액대
+      ];
+    });
+    const csv=[headers,...rows].map(r=>r.map(v=>{
+      const s=String(v).replace(/"/g,'""');
+      return '"'+s+'"';
+    }).join(',')).join('\n');
+    const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='수강생_컨설팅_'+new Date().toISOString().slice(0,10)+'.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }catch(e){alert('CSV 내보내기 실패: '+e.message);}
+}
 function consult(d){
   const cr=d.credit_amount||0,total=d.seed_amount+cr;
   const lY=d.loan_available==='Y',tY=d.transfer_available==='Y',lN=d.loan_available==='N';
   const isFirst=d.housing_type==='생애최초',noHouse=d.housing_type==='무주택'||isFirst;
   const oneHouse=d.housing_type==='1주택'||d.housing_type==='일시적2주택';
-  const hasBig=(d.flags||[]).includes('기대출'),loanOk=!lN;
-  let reg,nreg,local,akeys,primary,dirLabel;
+  const hasBig=(d.flags||[]).includes('기대출');
+  // ── 지역별 가능 여부 (이미지 기준) ──────────────────────────────
+  let reg,nreg,local,primary,dirLabel;
+
+  // 수도권 규제지역 (서울 전역·경기 12곳)
   if(noHouse){
-    if(lY&&tY){reg={st:'O',lb:'가능',nt:''};nreg={st:'O',lb:'가능',nt:''};akeys=isFirst?['서울_진입','비규제_중간']:['비규제_중간','지방_단타'];primary=isFirst?'전국 가능 — 서울·수도권 규제 포함 (LTV 80%)':'전국 가능 — 수도권 규제 포함';dirLabel='서울·수도권 규제';}
-    else{reg={st:'T',lb:'조건부',nt:'신용대출/현금'};nreg={st:'T',lb:'조건부',nt:'신용대출/현금'};akeys=['비규제_소액빌라','지방_단타'];primary='수도권 비규제 빌라/APT + 지방 APT 병행';dirLabel='수도권 비규제';}
-    local={st:'O',lb:'가능',nt:''};
-  }else if(oneHouse){
-    reg={st:'X',lb:'불가',nt:''};
-    if(total>=10000){const nt=!tY&&d.seed_amount>=5000?'현금 매수 가능':'신용/현금 활용';nreg={st:'T',lb:'조건부',nt};akeys=['비규제_고액','우량_지방'];primary='수도권 비규제 APT 1순위';dirLabel='수도권 비규제';}
-    else if(total>=5000){const nt=!tY&&d.seed_amount>=5000?'현금 매수 가능':'신용/현금 활용';nreg={st:'T',lb:'조건부',nt};akeys=['비규제_소액빌라','지방_단타'];primary='수도권 비규제 or 지방 APT 병행';dirLabel='수도권 비규제';}
-    else{nreg={st:'T',lb:'조건부',nt:'신용/현금'};if(!tY){akeys=['지방_단타'];primary='비수도권 지방 APT 위주';dirLabel='지방';}else{akeys=['비규제_소액빌라','지방_단타'];primary='수도권 비규제 소액빌라 or 지방 APT';dirLabel='수도권 비규제/지방';}}
-    local={st:'O',lb:'가능',nt:''};
-  }else{
-    reg={st:'X',lb:'불가',nt:''};nreg={st:'T',lb:'조건부',nt:'현금+공시1억이하'};local={st:'T',lb:'조건부',nt:'공시가 2억이하'};
-    akeys=['다주택_소액'];primary='비규제 소액빌라(공시1억이하) or 비수도권';dirLabel='지방';
+    reg = tY ? {st:'O',lb:'가능',nt:''} : {st:'T',lb:'조건부',nt:'신용대출 또는 현금 활용'};
+  } else {
+    reg = {st:'X',lb:'불가',nt:''};
   }
-  let bid,range;
-  if(isFirst&&!hasBig&&!lN&&total>=1000){const bv=Math.round(total/0.2/100)*100;bid=fmt(bv)+' (생애최초 LTV 80%)';range=bv<10000?'5천~1억대':bv<20000?'1억~2억대':bv<30000?'2억~3억대':'3억~5억대';}
-  else if(total<1000){bid='신용대출 합산 필요';range='지방 소액물건';}
-  else if(lN&&total<3000){bid=fmt(d.seed_amount)+' (올현금)';range='비규제/비수도권 올현금';}
-  else if(!lN&&total<3000){bid='시드+신용 합산 (대출확인)';range='8천~1.3억';}
-  else if(loanOk){const bv=Math.round(total/0.3/100)*100;bid=fmt(bv)+' (LTV 70%'+(d.loan_available==='unknown'?'·확인필요':'')+')';range=total<4000?'1억~2억대':total<5000?'1억~3억대':total<7000?'1.5억~4억대':'2억~5억대';}
-  else{bid=fmt(d.seed_amount)+' (올현금)';range=noHouse&&d.seed_amount>=15000?'수도권 규제 올현금':'비규제/비수도권 올현금';}
-  return{reg,nreg,local,bid,range,primary,akeys,dirLabel};
+
+  // 수도권 비규제지역 (인천+경기 일부)
+  if(noHouse){
+    nreg = tY ? {st:'O',lb:'가능',nt:''} : {st:'T',lb:'조건부',nt:'신용대출 또는 현금 활용'};
+  } else if(oneHouse){
+    nreg = {st:'T',lb:'조건부',nt:'신용대출 또는 현금 활용'};
+  } else {
+    nreg = {st:'T',lb:'조건부',nt:'신용/현금 + 공시가 1억이하'};
+  }
+
+  // 비수도권 (지방 전역)
+  if(noHouse||oneHouse){
+    local = {st:'O',lb:'가능',nt:''};
+  } else {
+    local = {st:'T',lb:'조건부',nt:'공시가 2억이하'};
+  }
+
+  // 최종 투자 방향 요약
+  if(noHouse){
+    if(tY){
+      if(total>=15000){ primary='수도권 규제지역 빌라 올현금 or 비수도권 LTV 활용';dirLabel='서울·수도권 규제'; }
+      else { primary='전국 가능 — 수도권 규제 포함';dirLabel='서울·수도권 규제'; }
+    } else {
+      primary=total<=10000?'수도권 비규제 인천·부천 추천':'수도권 비규제 + 비수도권 우선';
+      dirLabel='수도권 비규제';
+    }
+  } else if(oneHouse){
+    const l80bid=Math.min(Math.round(total/0.2/100)*100,50000);
+    if(total>10000){ primary='수도권 비규제 APT 1순위';dirLabel='수도권 비규제'; }
+    else if(l80bid>=8300){ primary='수도권 비규제 인천·부천 추천';dirLabel='수도권 비규제'; }
+    else { primary='';dirLabel='지방'; }
+  } else {
+    primary='';dirLabel='지방'; // 다주택 지방 → 빈칸
+  }
+  let bid;
+  const CAP=50000;
+
+  // LTV 가능 여부 판단 (minLoan: 수도권 5천만원, 비수도권 3천만원)
+  function cLtv(downPct,ltvPct,minLoan){
+    if(minLoan===undefined)minLoan=5000;
+    const rawBid=Math.round(total/downPct/100)*100;
+    const loanAmt=rawBid*ltvPct;
+    const crSfx=cr>0?' · 시드+신용합산':'';
+    if(loanAmt<minLoan)
+      return{ok:false,bid:Math.min(total,CAP),label:'올현금'+(cr>0?' (시드+신용합산)':'')};
+    return{ok:true,bid:Math.min(rawBid,CAP),label:'LTV '+Math.round(ltvPct*100)+'%'+crSfx};
+  }
+
+  function fR(v){
+    const c=Math.min(v,CAP);
+    if(c>=CAP)return'5억대';if(c>=40000)return'4억~5억대';if(c>=30000)return'3억~4억대';
+    if(c>=20000)return'2억~3억대';if(c>=15000)return'1.5억~2억대';if(c>=10000)return'1억~1.5억대';
+    if(c>=7000)return'7천~1억대';if(c>=5000)return'5천~7천만원대';if(c>=3000)return'3천~5천만원대';
+    return fmt(c)+'대';
+  }
+
+  function olR(v){
+    const c=Math.min(v,CAP);
+    if(c>=30000)return'3억~5억대';if(c>=20000)return'2억~3억대';if(c>=15000)return'1.5억~2억대';
+    if(c>=10000)return'1억~1.5억대';if(c>=7000)return'7천~1억대';if(c>=5000)return'5천~7천만원대';
+    if(c>=3000)return'3천~5천만원대';return fmt(c)+'대';
+  }
+
+  // ── 입찰 가능 금액대: 수도권 규제 / 수도권 비규제 / 비수도권 각각 계산 ──
+  const bAmt=Math.min(total,CAP);
+  const bigInv=noHouse&&total>=15000;
+
+  // 수도권 규제 (서울 전역·경기 12곳)
+  function bidReg(){
+    if(!noHouse) return '불가';
+    if(bigInv) return fmt(bAmt)+' (올현금 추천)';
+    if(!tY) return fmt(bAmt)+' (신용/현금·조건부)';
+    const s=cLtv(0.3,0.7);
+    return s.ok?fmt(s.bid)+' ('+s.label+')':fmt(bAmt)+' (올현금)';
+  }
+
+  // 수도권 비규제 (인천+경기 일부)
+  function bidNreg(){
+    if(!noHouse&&!oneHouse){ // 다주택
+      return fmt(bAmt)+' (조건부·공시가1억이하)';
+    }
+    if(oneHouse){ // 1주택
+      return fmt(bAmt)+' (신용/현금·조건부)';
+    }
+    // 무주택/생애최초
+    if(bigInv) return fmt(bAmt)+' (올현금 추천)';
+    if(!tY) return fmt(bAmt)+' (신용/현금·조건부)';
+    const s=cLtv(0.3,0.7);
+    return s.ok?fmt(s.bid)+' ('+s.label+')':fmt(bAmt)+' (올현금)';
+  }
+
+  // 비수도권 지방APT (경락잔금대출: 최소 입찰가 8,300만원)
+  function bidLocal(){
+    if(total<1000) return '신용합산 필요';
+    const MIN_BID=8300; // 경락잔금대출 최소 입찰가
+    const MAX_STD=13000; // 표 기준: 소액투자자 최대 입찰가 기준(1억3천)
+    const l60bid=Math.min(Math.round(total/0.4/100)*100,CAP);
+    const l80bidRaw=Math.min(Math.round(total/0.2/100)*100,CAP);
+    // 80% LTV 최소입찰가(8300) 감당 가능하면 최대는 최소 1억3천 보장
+    const canAffordMin=total>=1660;
+    const l80bid=canAffordMin?Math.max(l80bidRaw,MAX_STD):l80bidRaw;
+    if(l80bid<MIN_BID) return fmt(bAmt)+' (올현금)';
+    const minBid=Math.max(MIN_BID,l60bid);
+    let txt=minBid===l80bid?fmt(l80bid)+' (LTV 80%)':fmt(minBid)+' ~ '+fmt(l80bid);
+    if(!noHouse&&!oneHouse) txt+=' · 공시가2억이하';
+    return txt;
+  }
+
+  bid='수도권 규제 '+bidReg()+' / 수도권 비규제 '+bidNreg()+' / 비수도권 '+bidLocal();
+  // LTV 기준 레이블
+  let ltvLabel;
+  if(lN)
+    ltvLabel=oneHouse?'수도권 비규제 신용/현금 · 비수도권 LTV 60~80% (신용대출 미활용)':noHouse?'수도권 LTV 70% · 비수도권 LTV 60~80% (신용대출 미활용)':'비수도권 LTV 60~80% (신용대출 미활용)';
+  else if(total<1000)
+    ltvLabel='신용대출 합산 필요';
+  else if(isFirst&&hasBig)
+    ltvLabel=tY?'수도권 LTV 70% · 비수도권 LTV 60~80% (기대출 확인 필요)':'수도권 올현금 (전입필요) · 비수도권 LTV 60~80% (기대출 확인 필요)';
+  else if(noHouse)
+    ltvLabel=tY
+      ?(total>=15000?'수도권 올현금 추천 (규제지역 빌라) · 비수도권 LTV 60~80%':'수도권 LTV 70% · 비수도권 LTV 60~80%')
+      :'수도권 올현금 (전입필요) · 비수도권 LTV 60~80%';
+  else if(oneHouse)
+    ltvLabel='수도권 비규제 신용/현금 · 비수도권 LTV 60~80%';
+  else
+    ltvLabel='비수도권 LTV 60~80% (수도권 불가)';
+
+  return{reg,nreg,local,bid,primary,dirLabel,ltvLabel};
 }
 
 /* ── 색상 ── */
@@ -538,9 +918,7 @@ function render(){
   document.getElementById('cards').innerHTML=students.map(d=>{
     const c=consult(d),cr=d.credit_amount||0,total=d.seed_amount+cr;
     const flags=d.flags||[],hc=HC[d.housing_type]||HC['1주택'];
-    const regs=[['수도권 규제',c.reg],['수도권 비규제',c.nreg],['비수도권',c.local]];
     const isM=d.housing_type==='다주택',dBg=isM?'#faeeda':'#eaf3de',dTx=isM?'#633806':'#27500a';
-    const chipsHtml=c.akeys.filter(k=>COND[k]).map(k=>`<span class="type-chip"><span class="tc-label">${COND[k]}</span><span class="tc-range">${c.range}</span></span>`).join('');
     const st=d.status||'대기';
     return `<div class="card">
       <button class="edit-btn" onclick='openEdit(${JSON.stringify(d)})' title="수정">✏</button>
@@ -548,27 +926,35 @@ function render(){
       <div class="card-head">
         <div class="av">${d.cohort}</div>
         <div style="flex:1;min-width:0">
-          <span class="sbadge ${STCLS[st]}">${STLBL[st]}</span>
-          <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:5px">
-            <span style="font-size:15px;font-weight:700">${d.name}</span>
-            ${flags.map(f=>`<span class="flg">${flb(f)}</span>`).join('')}
-            ${(d.loan_available==='unknown'||d.transfer_available==='unknown')?'<span class="wbg">정보확인</span>':''}
+          <div style="margin-bottom:4px">
+            <span class="sbadge ${STCLS[st]}" onclick="cycleStatus(${d.id},'${st}')" style="cursor:pointer" title="클릭: 상태 변경">${STLBL[st]}</span>
           </div>
-          <span class="tag" style="background:${hc.bg};color:${hc.tx}">${d.housing_type}</span>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span style="font-size:15px;font-weight:700">${d.name}</span>
+            <span class="tag" style="background:${hc.bg};color:${hc.tx}">${d.housing_type}</span>
+            <span style="font-size:11px;color:#aaa"><span style="${d.loan_available==='Y'?'color:#27500a;font-weight:600':d.loan_available==='N'?'color:#c0392b;font-weight:600':'color:#aaa'}">${ll(d.loan_available)}</span> · <span style="${d.transfer_available==='Y'?'color:#27500a;font-weight:600':d.transfer_available==='N'?'color:#c0392b;font-weight:600':'color:#aaa'}">${tl(d.transfer_available)}</span></span>
+            ${flags.filter(f=>f!=='전문가확인').map(f=>`<span class="flg">${flb(f)}</span>`).join('')}
+          </div>
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="font-size:14px;font-weight:700">${fmt(d.seed_amount)}</div>
           ${cr>0?`<div style="font-size:10px;color:#0c447c">+신용 ${fmt(cr)}</div><div style="font-size:12px;font-weight:700;color:#0c447c">합산 ${fmt(total)}</div>`:''}
-          <div style="font-size:10px;color:#aaa;margin-top:3px">${ll(d.loan_available)} · ${tl(d.transfer_available)}</div>
         </div>
       </div>
-      <div class="rg">${regs.map(([lb,r])=>`<div class="rbox" style="background:${SC[r.st].bg};color:${SC[r.st].tx}"><div class="rl">${lb}</div><div class="rv">${SM[r.st]} ${r.lb}</div>${r.nt?`<div class="rn">${r.nt}</div>`:''}</div>`).join('')}</div>
-      <div class="bid-row">
-        <div><div class="bl">입찰가능 금액</div><div class="bv">${c.bid}</div></div>
-        <div style="text-align:right"><div class="bl">추천 금액대</div><div class="bv">${c.range}</div></div>
+      <div class="rg">
+        ${[['수도권 규제',c.reg],['수도권 비규제',c.nreg],['비수도권',c.local]].map(([lb,r])=>
+          `<div class="rbox" style="background:${SC[r.st].bg};color:${SC[r.st].tx}">
+            <div class="rl">${lb}</div>
+            <div class="rv">${SM[r.st]} ${r.lb}</div>
+            ${r.nt?`<div class="rn">${r.nt}</div>`:''}
+          </div>`).join('')}
       </div>
-      <div style="margin-bottom:8px">${chipsHtml}</div>
-      <div class="dir-box" style="background:${dBg};color:${dTx}">→ ${c.primary}</div>
+      <div class="ltv-info">📊 LTV 기준 — <strong>${c.ltvLabel}</strong></div>
+      <div class="bid-row" style="display:block">
+        <div class="bl" style="margin-bottom:3px">입찰 가능 금액대</div>
+        <div class="bv">${c.bid}</div>
+      </div>
+      ${c.primary?`<div class="dir-box" style="background:${dBg};color:${dTx}">→ ${c.primary}</div>`:''}
       ${d.note?`<div class="note-text">※ ${d.note}</div>`:''}
       ${d.consult_note?`<div class="consult-note">💬 ${d.consult_note}</div>`:''}
       ${d.consult_date?`<div class="consult-date">상담일: ${d.consult_date}</div>`:''}
@@ -601,9 +987,7 @@ async function renderAnalytics(){
 
 function switchView(v){curView=v;document.getElementById('cardView').style.display=v==='card'?'block':'none';document.getElementById('anView').style.display=v==='an'?'block':'none';document.getElementById('tab-card').classList.toggle('on',v==='card');document.getElementById('tab-an').classList.toggle('on',v==='an');if(v==='an')renderAnalytics();}
 function toggleForm(){const f=document.getElementById('addForm');f.style.display=f.style.display==='block'?'none':'block';}
-function setLayout(n){curLayout=n;const cols={1:'1fr',2:'repeat(2,1fr)',3:'repeat(auto-fill,minmax(340px,1fr))'};document.getElementById('cards').style.gridTemplateColumns=cols[n];[1,2,3].forEach(i=>document.getElementById('lay'+i).classList.toggle('on',i===n));}
-
-setInterval(()=>loadStudents(),60000);
+setInterval(()=>{ if(!previewMode) loadStudents(); },60000);
 initData();
 </script>
 </body>
