@@ -680,8 +680,12 @@ function formatBidNarrative(d){
     return lines.map((l,i)=>(i+1)+'. '+l).join('\n');
   }
   if(multi){
-    const regionMulti=total<=15000?' (인천, 부천)':'';
-    lines.push('수도권 비규제 빌라 '+fs(Math.min(total,50000))+' 이하 (조건부·공시가1억이하)'+regionMulti);
+    if(needsCrCheck){
+      lines.push('수도권 비규제 빌라 현금+신용대출 활용해 올현금 입찰 가능 물건 (조건부·공시가1억이하)');
+    }else{
+      const regionMulti=total<=15000?' (인천, 부천)':'';
+      lines.push('수도권 비규제 빌라 '+fs(Math.min(total,50000))+' 이하 (조건부·공시가1억이하)'+regionMulti);
+    }
   }else if(noHouse){
     const aptBid=tY&&snrOk?snr70:total;
     // 현금+신용대출은 전입 없이도 규제지역 가능 → 항상 규제·비규제
