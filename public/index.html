@@ -94,27 +94,9 @@ button:hover{background:#f0ede6}
 .lay-btn{border:none;border-radius:0;padding:6px 11px;font-size:12px;cursor:pointer;background:#fff;color:#1a1a1a;border-right:1px solid rgba(0,0,0,0.1)}
 .lay-btn:last-child{border-right:none}
 .lay-btn.on{background:#1a1a1a;color:#fff}
-.login-overlay{position:fixed;inset:0;background:#f7f6f2;z-index:9999;display:flex;align-items:center;justify-content:center}
-.login-box{background:#fff;border-radius:16px;padding:2.5rem;width:min(380px,90vw);box-shadow:0 4px 24px rgba(0,0,0,0.08);text-align:center}
-.login-box h2{font-size:20px;margin-bottom:8px}
-.login-box p{font-size:13px;color:#888;margin-bottom:1.5rem}
-.login-box input{width:100%;padding:12px;border:1px solid rgba(0,0,0,0.15);border-radius:8px;font-size:15px;margin-bottom:12px;text-align:center;font-family:inherit}
-.login-box .btn-login{width:100%;padding:12px;border:none;border-radius:8px;background:#1a1a1a;color:#fff;font-size:14px;font-weight:600;cursor:pointer}
-.login-box .btn-login:hover{background:#333}
-.login-err{color:#791f1f;font-size:12px;margin-bottom:8px;display:none}
-.logout-btn{font-size:11px;padding:4px 10px;color:#888;border-color:rgba(0,0,0,0.1)}
 </style>
 </head>
 <body>
-<div class="login-overlay" id="loginOverlay">
-  <div class="login-box">
-    <h2>수강생 컨설팅 도구</h2>
-    <p>비밀번호를 입력해주세요</p>
-    <div class="login-err" id="loginErr">비밀번호가 틀렸습니다.</div>
-    <input type="password" id="loginPw" placeholder="비밀번호" onkeydown="if(event.key==='Enter')doLogin()">
-    <button class="btn-login" onclick="doLogin()">로그인</button>
-  </div>
-</div>
 <div class="wrap">
 
   <div class="top-bar">
@@ -141,7 +123,6 @@ button:hover{background:#f0ede6}
         <button onclick="document.getElementById('xlsxInput').click()" style="background:#1a6b8a;color:#fff">📤 Excel 업로드</button>
         <input type="file" id="xlsxInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(this)">
         <button onclick="exportCSV()" style="background:#27500a;color:#fff">📥 CSV 내보내기</button>
-        <button class="logout-btn" onclick="doLogout()">로그아웃</button>
       </div>
     </div>
   </div>
@@ -341,25 +322,11 @@ const BASE=[
   {cohort:'47기',name:'김진',housing_type:'무주택',seed_amount:2000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'전주 거주 · 경매 위해 직장 퇴직',status:'대기',consult_date:'',consult_note:''},
   {cohort:'47기',name:'성은미',housing_type:'다주택',seed_amount:10000,credit_amount:0,loan_available:'unknown',transfer_available:'N',flags:[],note:'전주 거주 · 자영업/사업자 · 신용대출 확인 필요',status:'대기',consult_date:'',consult_note:''},
   {cohort:'47기',name:'목은영',housing_type:'생애최초',seed_amount:5000,credit_amount:0,loan_available:'Y',transfer_available:'N',flags:[],note:'서울 거주 · 생애최초 무주택',status:'대기',consult_date:'',consult_note:''},
-  {cohort:'47기',name:'유호',housing_type:'무주택',seed_amount:7000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'제주 거주 · 매매사업자 희망',status:'대기',consult_date:'',consult_note:''},
+  {cohort:'47기',name:'유호',housing_type:'무주택',seed_amount:9000,credit_amount:0,loan_available:'unknown',transfer_available:'Y',flags:[],note:'제주 거주 · 매매사업자 희망',status:'대기',consult_date:'',consult_note:''},
   {cohort:'47기',name:'이혜용',housing_type:'1주택',seed_amount:1500,credit_amount:2000,loan_available:'Y',transfer_available:'N',flags:[],note:'성북구 거주 · 무직 준비중',status:'대기',consult_date:'',consult_note:''},
 ];
 
 let students=[], editId=null, curView='card', debounceTimer=null, previewMode=false;
-let authToken=localStorage.getItem('authToken')||'';
-
-/* ── 로그인/로그아웃 ── */
-async function doLogin(){
-  const pw=document.getElementById('loginPw').value;
-  const errEl=document.getElementById('loginErr');
-  try{
-    const res=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
-    const data=await res.json();
-    if(data.ok){authToken=data.token;localStorage.setItem('authToken',authToken);document.getElementById('loginOverlay').style.display='none';errEl.style.display='none';initData();}
-    else{errEl.style.display='block';}
-  }catch(e){errEl.textContent='서버에 연결할 수 없습니다.';errEl.style.display='block';}
-}
-function doLogout(){authToken='';localStorage.removeItem('authToken');document.getElementById('loginOverlay').style.display='flex';document.getElementById('loginPw').value='';}
 
 /* ── 동기화 상태 ── */
 function setSyncBar(cls,msg){document.getElementById('syncBar').className='sync-bar '+cls;document.getElementById('syncMsg').textContent=msg;}
@@ -368,10 +335,9 @@ function debounceLoad(){clearTimeout(debounceTimer);debounceTimer=setTimeout(loa
 
 /* ── API 호출 ── */
 async function api(url,method='GET',body=null){
-  const opts={method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+authToken}};
+  const opts={method,headers:{'Content-Type':'application/json'}};
   if(body)opts.body=JSON.stringify(body);
   const res=await fetch(url,opts);
-  if(res.status===401){authToken='';localStorage.removeItem('authToken');document.getElementById('loginOverlay').style.display='flex';throw new Error('인증이 필요합니다.');}
   const text=await res.text();
   try{
     const json=JSON.parse(text);
@@ -427,8 +393,6 @@ async function loadCohorts(){
 
 /* ── 첫 실행 시 초기 데이터 시드 ── */
 async function initData(){
-  if(!authToken){document.getElementById('loginOverlay').style.display='flex';return;}
-  document.getElementById('loginOverlay').style.display='none';
   setSyncBar('sync-syncing','서버에 연결 중...');
   try{
     // 먼저 기존 데이터 확인
@@ -709,7 +673,7 @@ function formatBidNarrative(d){
   // 전체 LTV 불가 케이스 (수도권 LTV 미달 + 비수도권 최소입찰가 미달)
   const allFail=!snrOk&&!hasLocal;
   if(allFail){
-    const areaF=tY?'수도권 규제·비규제':'수도권 비규제';
+    const areaF='수도권 규제·비규제'; // 현금+신용은 전입없이도 규제지역 가능
     lines.push(needsCrCheck
       ?areaF+'지역 현금+신용대출 활용해 올현금 입찰 가능 물건 (신용대출 가능금액 확인 필요)'
       :areaF+' 빌라 시드+신용대출 합산 금액으로 입찰 검토'+region);
@@ -720,7 +684,8 @@ function formatBidNarrative(d){
     lines.push('수도권 비규제 빌라 '+fs(Math.min(total,50000))+' 이하 (조건부·공시가1억이하)'+regionMulti);
   }else if(bigInv||noHouse){
     const aptBid=tY&&snrOk?snr70:total;
-    const area=tY?'수도권 규제·비규제':'수도권 비규제';
+    // 현금+신용대출은 전입 없이도 규제지역 가능 → 항상 규제·비규제
+    const area='수도권 규제·비규제';
     if(aptBid>15000){
       const aptRegion=aptBid>=30000?'':' (인천, 경기외곽)';
       lines.push(area+' APT '+fs(Math.min(aptBid,50000))+' 이하'+aptRegion);
