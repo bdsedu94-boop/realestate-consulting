@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3000;
 const DB_FILE = path.join(__dirname, 'db.json');
 
 /* ── 비밀번호 설정 (Railway 환경변수 SITE_PASSWORD로 변경 가능) ── */
-const SITE_PASSWORD = process.env.SITE_PASSWORD || 'consulting2025';
+const SITE_PASSWORD = process.env.SITE_PASSWORD || '1500cjdeka@@';
 const AUTH_TOKEN = 'consulting_auth_ok';
 
 /* ── 로그인 페이지 HTML ── */
