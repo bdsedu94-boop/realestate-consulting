@@ -682,7 +682,7 @@ function formatBidNarrative(d){
   if(multi){
     const regionMulti=total<=15000?' (인천, 부천)':'';
     lines.push('수도권 비규제 빌라 '+fs(Math.min(total,50000))+' 이하 (조건부·공시가1억이하)'+regionMulti);
-  }else if(bigInv||noHouse){
+  }else if(noHouse){
     const aptBid=tY&&snrOk?snr70:total;
     // 현금+신용대출은 전입 없이도 규제지역 가능 → 항상 규제·비규제
     const area='수도권 규제·비규제';
