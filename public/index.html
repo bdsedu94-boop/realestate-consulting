@@ -562,14 +562,28 @@ async function importExcel(input){
     if(rows.length<2){alert('데이터가 없습니다.');return;}
 
     const header=rows[0].map(h=>String(h).trim());
-    const ci=name=>header.findIndex(h=>h.includes(name));
+    // -1 반환 처리를 올바르게 하는 헬퍼
+    const ci=(...names)=>{
+      for(const name of names){
+        const idx=header.findIndex(h=>h.includes(name));
+        if(idx>=0) return idx;
+      }
+      return -1;
+    };
 
-    // 요약 시트 컬럼 매핑
-    const iCohort=ci('기수'), iName=ci('이름')||ci('성함'),
-          iHousing=ci('주택'), iSeed=ci('투자금'), iCredit=ci('신용대출'),
-          iLoan=ci('대출가능')||ci('대출여부'), iTransfer=ci('전입가능')||ci('전입 가능'),
-          iNote=ci('특이사항'), iMemo=ci('상담메모'), iFlag=ci('플래그'),
-          iStatus=ci('상담상태'), iDate=ci('상담일');
+    // 요약 시트 컬럼 매핑 (다양한 헤더명 지원)
+    const iCohort=ci('기수');
+    const iName=ci('이름','성함','성명');
+    const iHousing=ci('주택');
+    const iSeed=ci('투자금','투자 가능','시드');
+    const iCredit=ci('신용대출','신용 대출');
+    const iLoan=ci('대출가능','대출여부','대출 가능');
+    const iTransfer=ci('전입가능','전입 가능','전입여부');
+    const iNote=ci('특이사항');
+    const iMemo=ci('상담메모','상담 메모');
+    const iFlag=ci('플래그');
+    const iStatus=ci('상담상태','상담 상태');
+    const iDate=ci('상담일');
 
     function mapLoan(v){
       const s=String(v||'').trim();
