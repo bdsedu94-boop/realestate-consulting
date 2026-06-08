@@ -643,21 +643,23 @@ async function importExcel(input){
     }
     function parseSeed(v){
       if(!v||String(v).trim()==='')return 0;
-      const s=String(v).replace(/,/g,'');
+      const s=String(v).replace(/,/g,'').trim();
       const m1=s.match(/(\d+\.?\d*)억/);
       const m2=s.match(/(\d+)천만/);
-      const m3=s.match(/(\d+)만/);
+      const m3=s.match(/(\d+\.?\d*)만/);
       const m4=s.match(/^(\d+)$/);
       if(m1) return Math.round(parseFloat(m1[1])*10000);
       if(m2) return parseInt(m2[1])*1000;
-      if(m3) return parseInt(m3[1]);
+      if(m3) return Math.round(parseFloat(m3[1]));
       if(m4) return parseInt(m4[1]);
-      // 범위(예: 2~7천만) → 최댓값 사용
-      const mRange=s.match(/(\d+)~(\d+)(천만|만)/);
-      if(mRange){
-        const mult=mRange[3]==='천만'?1000:1;
-        return parseInt(mRange[2])*mult;
+      // 범위 처리: 2~7천만, 1500~2000 등 → 최댓값 사용
+      const mRange1=s.match(/\d+[~\-]\s*(\d+\.?\d*)(천만|만)/);
+      if(mRange1){
+        const mult=mRange1[2]==='천만'?1000:1;
+        return Math.round(parseFloat(mRange1[1])*mult);
       }
+      const mRange2=s.match(/\d+[~\-]\s*(\d+)/);
+      if(mRange2) return parseInt(mRange2[1]); // 단위 없는 숫자 범위 → 최댓값
       return 0;
     }
 
