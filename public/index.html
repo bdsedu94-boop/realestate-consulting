@@ -640,11 +640,12 @@ async function importExcel(input){
       if(s.includes('불가'))return{loan:'N',credit:0};
       if(s.includes('가능')){
         let cr=0;
-        const mCombo=s.match(/(\d+\.?\d*)억\s*(\d+\.?\d*)?(천만|만)?/);
+        const mCombo=s.match(/(\d+\.?\d*)억\s*(\d+\.?\d*)?\s*(천만|천|만)?/);
         if(mCombo&&mCombo[1]){
           cr=Math.round(parseFloat(mCombo[1])*10000);
           if(mCombo[2]){
-            const mult=mCombo[3]==='천만'?1000:1;
+            const unit=mCombo[3];
+            const mult=(unit==='천만'||unit==='천'||!unit)?1000:1;
             cr+=Math.round(parseFloat(mCombo[2])*mult);
           }
         }else{
@@ -674,11 +675,12 @@ async function importExcel(input){
       if(!v||String(v).trim()==='')return 0;
       const s=String(v).replace(/,/g,'').trim();
       // "1억 5천만원", "1억5천만" 등 억+천만/만 combo 우선 처리
-      const mCombo=s.match(/(\d+\.?\d*)억\s*(\d+\.?\d*)?(천만|만)?/);
+      const mCombo=s.match(/(\d+\.?\d*)억\s*(\d+\.?\d*)?\s*(천만|천|만)?/);
       if(mCombo&&mCombo[1]){
         let total=Math.round(parseFloat(mCombo[1])*10000);
         if(mCombo[2]){
-          const mult=mCombo[3]==='천만'?1000:1;
+          const unit=mCombo[3];
+          const mult=(unit==='천만'||unit==='천'||!unit)?1000:1;
           total+=Math.round(parseFloat(mCombo[2])*mult);
         }
         return total;
