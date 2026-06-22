@@ -639,14 +639,20 @@ async function importExcel(input){
       if(s.includes('잘 모르겠음')||s.includes('모르'))return{loan:'unknown',credit:0};
       if(s.includes('불가'))return{loan:'N',credit:0};
       if(s.includes('가능')){
-        // 금액 추출
         let cr=0;
-        const m1=s.match(/(\d+\.?\d*)억/);
-        const m2=s.match(/(\d+)천만/);
-        const m3=s.match(/(\d+)만/);
-        if(m1) cr=Math.round(parseFloat(m1[1])*10000);
-        else if(m2) cr=parseInt(m2[1])*1000;
-        else if(m3) cr=parseInt(m3[1]);
+        const mCombo=s.match(/(\d+\.?\d*)억\s*(\d+\.?\d*)?(천만|만)?/);
+        if(mCombo&&mCombo[1]){
+          cr=Math.round(parseFloat(mCombo[1])*10000);
+          if(mCombo[2]){
+            const mult=mCombo[3]==='천만'?1000:1;
+            cr+=Math.round(parseFloat(mCombo[2])*mult);
+          }
+        }else{
+          const m2=s.match(/(\d+)천만/);
+          const m3=s.match(/(\d+)만/);
+          if(m2) cr=parseInt(m2[1])*1000;
+          else if(m3) cr=parseInt(m3[1]);
+        }
         return{loan:'Y',credit:cr};
       }
       return{loan:'unknown',credit:0};
@@ -667,11 +673,19 @@ async function importExcel(input){
     function parseSeed(v){
       if(!v||String(v).trim()==='')return 0;
       const s=String(v).replace(/,/g,'').trim();
-      const m1=s.match(/(\d+\.?\d*)억/);
+      // "1억 5천만원", "1억5천만" 등 억+천만/만 combo 우선 처리
+      const mCombo=s.match(/(\d+\.?\d*)억\s*(\d+\.?\d*)?(천만|만)?/);
+      if(mCombo&&mCombo[1]){
+        let total=Math.round(parseFloat(mCombo[1])*10000);
+        if(mCombo[2]){
+          const mult=mCombo[3]==='천만'?1000:1;
+          total+=Math.round(parseFloat(mCombo[2])*mult);
+        }
+        return total;
+      }
       const m2=s.match(/(\d+)천만/);
       const m3=s.match(/(\d+\.?\d*)만/);
       const m4=s.match(/^(\d+)$/);
-      if(m1) return Math.round(parseFloat(m1[1])*10000);
       if(m2) return parseInt(m2[1])*1000;
       if(m3) return Math.round(parseFloat(m3[1]));
       if(m4) return parseInt(m4[1]);
