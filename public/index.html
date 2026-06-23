@@ -774,6 +774,11 @@ async function generateReportPDF(d){
       비수도권의 물건을 보시면 됩니다!
     </div>`:'';
 
+  const transferLabel=d.transfer_available==='Y'?'전입가능':d.transfer_available==='N'?'전입불가':'';
+  const housingLine=noHouse&&transferLabel
+    ?`주택수 : ${d.housing_type} (${transferLabel})`
+    :`주택수 : ${d.housing_type}`;
+
   const container=document.createElement('div');
   container.style.cssText='position:fixed;left:-9999px;top:0;width:580px;background:#fff;font-family:"Apple SD Gothic Neo","Pretendard",sans-serif;';
   container.innerHTML=`
@@ -783,7 +788,7 @@ async function generateReportPDF(d){
       </div>
       <div style="font-size:15px;font-weight:700;color:#2d2300;margin-bottom:10px">[${d.cohort} ${d.name}님]</div>
       <div style="font-size:13.5px;line-height:1.9;color:#2d2300;margin-bottom:4px">${seedLine}</div>
-      <div style="font-size:13.5px;line-height:1.9;color:#2d2300;margin-bottom:16px">주택수 : ${d.housing_type}</div>
+      <div style="font-size:13.5px;line-height:1.9;color:#2d2300;margin-bottom:16px">${housingLine}</div>
       <div style="font-size:15px;font-weight:700;color:#2d2300;margin-bottom:8px">[투자 방향성]</div>
       <div style="font-size:13.5px;line-height:1.9;color:#2d2300;white-space:pre-line">${narrative}</div>
       ${noHouseNote}
