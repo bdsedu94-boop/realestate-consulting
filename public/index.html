@@ -763,35 +763,63 @@ async function generateReportPDF(d){
   const seedLine=cr>0?`시드 : ${fmtAmt(d.seed_amount)} + 신용 ${fmtAmt(cr)} (합산 ${fmtAmt(total)})`:`시드 : ${fmtAmt(d.seed_amount)}`;
 
   const noHouseNote=noHouse?`
-    <div style="margin-top:18px;padding:14px 16px;background:#fdf6e3;border-radius:10px;font-size:12.5px;line-height:1.7;color:#5a4a1a">
-      ※ 강의시간에 말씀드린거와 같이<br>
-      무주택자는 수도권에서 경락잔금대출을 받을 수 있지만,<br>
-      6개월 이내 전입을 해야하는 조건이 있습니다.<br>
-      매매사업자로 단타매매를 할거지만, 전입을 하게 된다면<br>
-      추후 매매사업자로 인정이 안될 수 있다는 의견이 있습니다.<br>
-      (법적 근거는 없음)<br>
-      이부분이 걸리신다면, 수도권에서는 현금 + 신용대출 금액으로 입찰할 수 있는 금액으로 물건 봐주시거나,<br>
-      비수도권의 물건을 보시면 됩니다!
+    <div style="margin-top:24px;padding:18px 20px;background:#f7f8fa;border-left:3px solid #b8860b;border-radius:4px;font-size:12px;line-height:1.85;color:#555">
+      <div style="font-weight:700;color:#222;margin-bottom:8px;font-size:12.5px">※ 참고사항</div>
+      강의시간에 말씀드린거와 같이 무주택자는 수도권에서 경락잔금대출을 받을 수 있지만,
+      6개월 이내 전입을 해야하는 조건이 있습니다.<br><br>
+      매매사업자로 단타매매를 할거지만, 전입을 하게 된다면 추후 매매사업자로 인정이 안될 수 있다는 의견이 있습니다. (법적 근거는 없음)<br><br>
+      이부분이 걸리신다면, 수도권에서는 현금 + 신용대출 금액으로 입찰할 수 있는 금액으로 물건 봐주시거나, 비수도권의 물건을 보시면 됩니다!
     </div>`:'';
 
-  const transferLabel=d.transfer_available==='Y'?'전입가능':d.transfer_available==='N'?'전입불가':'';
-  const housingLine=noHouse&&transferLabel
-    ?`주택수 : ${d.housing_type} (${transferLabel})`
-    :`주택수 : ${d.housing_type}`;
+  const transferLabel=d.transfer_available==='Y'?'전입가능':d.transfer_available==='N'?'전입불가':'미확인';
+  const today=new Date();
+  const dateStr=`${today.getFullYear()}.${String(today.getMonth()+1).padStart(2,'0')}.${String(today.getDate()).padStart(2,'0')}`;
+
+  const narrativeRows=narrative.split('\n').map(line=>{
+    const m=line.match(/^(\d+)\.\s*(.+)$/);
+    if(!m) return `<div style="font-size:13px;line-height:1.7;color:#333">${line}</div>`;
+    return `<div style="display:flex;gap:10px;margin-bottom:10px">
+      <div style="flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#1a3a5c;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">${m[1]}</div>
+      <div style="font-size:13px;line-height:1.65;color:#222;padding-top:2px">${m[2]}</div>
+    </div>`;
+  }).join('');
 
   const container=document.createElement('div');
-  container.style.cssText='position:fixed;left:-9999px;top:0;width:580px;background:#fff;font-family:"Apple SD Gothic Neo","Pretendard",sans-serif;';
+  container.style.cssText='position:fixed;left:-9999px;top:0;width:600px;background:#fff;font-family:"Apple SD Gothic Neo","Pretendard",sans-serif;';
   container.innerHTML=`
-    <div style="background:#fee500;border-radius:18px;padding:24px 26px;width:580px;box-sizing:border-box">
-      <div style="font-size:14px;line-height:1.8;color:#2d2300;margin-bottom:18px">
-        안녕하세요! 이주임입니다:)<br>설문지 작성해준 내용 토대로 투자방향성 잡아드리겠습니다!
+    <div style="width:600px;box-sizing:border-box;background:#fff;border:1px solid #e3e3e3;border-radius:6px;overflow:hidden">
+      <div style="background:#1a3a5c;padding:22px 28px">
+        <div style="font-size:11px;letter-spacing:2px;color:#9fb4c9;margin-bottom:4px">REAL ESTATE AUCTION CONSULTING</div>
+        <div style="font-size:19px;font-weight:700;color:#fff">투자 방향성 리포트</div>
       </div>
-      <div style="font-size:15px;font-weight:700;color:#2d2300;margin-bottom:10px">[${d.cohort} ${d.name}님]</div>
-      <div style="font-size:13.5px;line-height:1.9;color:#2d2300;margin-bottom:4px">${seedLine}</div>
-      <div style="font-size:13.5px;line-height:1.9;color:#2d2300;margin-bottom:16px">${housingLine}</div>
-      <div style="font-size:15px;font-weight:700;color:#2d2300;margin-bottom:8px">[투자 방향성]</div>
-      <div style="font-size:13.5px;line-height:1.9;color:#2d2300;white-space:pre-line">${narrative}</div>
-      ${noHouseNote}
+      <div style="padding:24px 28px 8px">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <tr>
+            <td style="width:70px;padding:7px 0;color:#888">기수</td>
+            <td style="padding:7px 0;color:#222;font-weight:600">${d.cohort}</td>
+            <td style="width:70px;padding:7px 0;color:#888">이름</td>
+            <td style="padding:7px 0;color:#222;font-weight:600">${d.name}님</td>
+          </tr>
+          <tr>
+            <td style="padding:7px 0;color:#888;border-top:1px solid #f0f0f0">투자금</td>
+            <td style="padding:7px 0;color:#222;font-weight:600;border-top:1px solid #f0f0f0">${seedLine.replace('시드 : ','')}</td>
+            <td style="padding:7px 0;color:#888;border-top:1px solid #f0f0f0">주택유형</td>
+            <td style="padding:7px 0;color:#222;font-weight:600;border-top:1px solid #f0f0f0">${d.housing_type}${noHouse?` (${transferLabel})`:''}</td>
+          </tr>
+        </table>
+      </div>
+      <div style="padding:8px 28px 26px">
+        <div style="display:flex;align-items:center;gap:8px;margin:18px 0 14px">
+          <div style="width:4px;height:16px;background:#1a3a5c"></div>
+          <div style="font-size:14.5px;font-weight:700;color:#1a3a5c">투자 방향성 분석</div>
+        </div>
+        ${narrativeRows}
+        ${noHouseNote}
+      </div>
+      <div style="padding:14px 28px;background:#fafafa;border-top:1px solid #eee;display:flex;justify-content:space-between;font-size:10.5px;color:#999">
+        <span>본 리포트는 작성일 기준 시세 및 대출 조건을 토대로 산정되었습니다.</span>
+        <span>작성일 ${dateStr}</span>
+      </div>
     </div>`;
   document.body.appendChild(container);
 
