@@ -849,6 +849,7 @@ async function generateReportPDF(d){
       <table style="width:100%;border-collapse:collapse;padding:14px 28px;background:#fafafa;border-top:1px solid #eee"><tr>
         <td style="padding:14px 28px;font-size:10.5px;color:#999;line-height:1.6">본 리포트는 설문지를 기준으로 산정된 투자 방향성 참고자료이며, 정확한 대출 조건 및 세부 사항은 별도 상담을 통해 확인하시기 바랍니다.</td>
       </tr></table>
+      <div style="text-align:right;padding:0 28px 16px;font-size:10.5px;color:#999">작성일 ${dateStr}</div>
     </div>`;
   document.body.appendChild(container);
 
@@ -863,9 +864,6 @@ async function generateReportPDF(d){
     const imgH=canvas.height*imgW/canvas.width;
     const finalH=Math.min(imgH,pageH-60);
     pdf.addImage(imgData,'PNG',30,30,imgW,finalH);
-    pdf.setFontSize(9);
-    pdf.setTextColor(150,150,150);
-    pdf.text(`작성일 ${dateStr}`,pageW-30,pageH-25,{align:'right'});
     pdf.save(`${d.cohort} ${d.name} 컨설팅리포트.pdf`);
   }catch(e){
     alert('PDF 생성 오류: '+e.message);
@@ -1185,14 +1183,16 @@ function render(){
             ${flags.filter(f=>f!=='전문가확인').map(f=>`<span class="flg">${flb(f)}</span>`).join('')}
           </div>
         </div>
-        <div style="text-align:right;flex-shrink:0">
-          <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
+        <div style="display:flex;align-items:flex-start;gap:6px;flex-shrink:0">
+          <div style="text-align:right">
             <div style="font-size:14px;font-weight:700">${fmt(d.seed_amount)}</div>
+            ${cr>0?`<div style="font-size:10px;color:#0c447c">+신용 ${fmt(cr)}</div><div style="font-size:12px;font-weight:700;color:#0c447c">합산 ${fmt(total)}</div>`:''}
+          </div>
+          <div style="display:flex;align-items:center;gap:2px">
             <button class="pdf-btn-inline" onclick='generateReportPDF(${JSON.stringify(d)})' title="리포트 PDF 다운로드">📄</button>
             <button class="edit-btn-inline" onclick='openEdit(${JSON.stringify(d)})' title="수정">✏</button>
             <button class="del-btn-inline" onclick="delS(${d.id},'${d.name}','${d.cohort}')" title="삭제">✕</button>
           </div>
-          ${cr>0?`<div style="font-size:10px;color:#0c447c">+신용 ${fmt(cr)}</div><div style="font-size:12px;font-weight:700;color:#0c447c">합산 ${fmt(total)}</div>`:''}
         </div>
       </div>
       <div class="rg">
