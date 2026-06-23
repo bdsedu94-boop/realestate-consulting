@@ -37,12 +37,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Malgun Gothic','Apple SD Goth
 .consult-note{font-size:11px;color:#0c447c;background:#e6f1fb;border-radius:6px;padding:4px 8px;margin-top:6px}
 .consult-date{font-size:10px;color:#aaa;margin-top:4px}
 .bv-badge{font-size:10px;padding:2px 8px;border-radius:8px;background:#eaf3de;color:#27500a;font-weight:600;margin-left:6px;vertical-align:middle}
-.del-btn{position:absolute;top:10px;right:10px;width:22px;height:22px;border:none;background:none;color:#ccc;font-size:14px;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:0}
-.del-btn:hover{background:#fcebeb;color:#a32d2d}
-.edit-btn{position:absolute;top:10px;right:38px;width:22px;height:22px;border:none;background:none;color:#ccc;font-size:13px;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:0}
-.edit-btn:hover{background:#e6f1fb;color:#0c447c}
-.pdf-btn{position:absolute;top:10px;right:66px;width:22px;height:22px;border:none;background:none;color:#ccc;font-size:13px;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:0}
-.pdf-btn:hover{background:#fdf3e0;color:#a3690a}
+.del-btn-inline,.edit-btn-inline,.pdf-btn-inline{width:20px;height:20px;border:none;background:none;color:#ccc;font-size:12px;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:0}
+.del-btn-inline:hover{background:#fcebeb;color:#a32d2d}
+.edit-btn-inline:hover{background:#e6f1fb;color:#0c447c}
+.pdf-btn-inline:hover{background:#fdf3e0;color:#a3690a}
 .top-bar{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:0.75rem}
 .ctrls{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:8px}
 select,input[type=text],input[type=number]{border:1px solid rgba(0,0,0,0.15);border-radius:7px;padding:6px 10px;font-size:13px;font-family:inherit;color:#1a1a1a;background:#fff;outline:none}
@@ -1108,9 +1106,6 @@ function render(){
     const isM=d.housing_type==='다주택',dBg=isM?'#faeeda':'#eaf3de',dTx=isM?'#633806':'#27500a';
     const st=d.status||'대기';
     return `<div class="card">
-      <button class="edit-btn" onclick='openEdit(${JSON.stringify(d)})' title="수정">✏</button>
-      <button class="del-btn" onclick="delS(${d.id},'${d.name}','${d.cohort}')" title="삭제">✕</button>
-      <button class="pdf-btn" onclick='generateReportPDF(${JSON.stringify(d)})' title="리포트 PDF 다운로드">📄</button>
       <div class="card-head">
         <div class="av">${d.cohort}</div>
         <div style="flex:1;min-width:0">
@@ -1124,7 +1119,12 @@ function render(){
             ${flags.filter(f=>f!=='전문가확인').map(f=>`<span class="flg">${flb(f)}</span>`).join('')}
           </div>
         </div>
-        <div style="text-align:right;flex-shrink:0;margin-top:14px">
+        <div style="text-align:right;flex-shrink:0">
+          <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-bottom:4px">
+            <button class="pdf-btn-inline" onclick='generateReportPDF(${JSON.stringify(d)})' title="리포트 PDF 다운로드">📄</button>
+            <button class="edit-btn-inline" onclick='openEdit(${JSON.stringify(d)})' title="수정">✏</button>
+            <button class="del-btn-inline" onclick="delS(${d.id},'${d.name}','${d.cohort}')" title="삭제">✕</button>
+          </div>
           <div style="font-size:14px;font-weight:700">${fmt(d.seed_amount)}</div>
           ${cr>0?`<div style="font-size:10px;color:#0c447c">+신용 ${fmt(cr)}</div><div style="font-size:12px;font-weight:700;color:#0c447c">합산 ${fmt(total)}</div>`:''}
         </div>
