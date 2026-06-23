@@ -1120,12 +1120,12 @@ function render(){
           </div>
         </div>
         <div style="text-align:right;flex-shrink:0">
-          <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-bottom:4px">
+          <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
             <button class="pdf-btn-inline" onclick='generateReportPDF(${JSON.stringify(d)})' title="리포트 PDF 다운로드">📄</button>
             <button class="edit-btn-inline" onclick='openEdit(${JSON.stringify(d)})' title="수정">✏</button>
             <button class="del-btn-inline" onclick="delS(${d.id},'${d.name}','${d.cohort}')" title="삭제">✕</button>
+            <div style="font-size:14px;font-weight:700">${fmt(d.seed_amount)}</div>
           </div>
-          <div style="font-size:14px;font-weight:700">${fmt(d.seed_amount)}</div>
           ${cr>0?`<div style="font-size:10px;color:#0c447c">+신용 ${fmt(cr)}</div><div style="font-size:12px;font-weight:700;color:#0c447c">합산 ${fmt(total)}</div>`:''}
         </div>
       </div>
