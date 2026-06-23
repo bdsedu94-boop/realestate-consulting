@@ -942,9 +942,10 @@ function formatBidNarrative(d){
         if(!tY) lb=fs(total)+' 이하';
         else if(!snrOk) lb=fs(total)+' + 신용대출 확인';
         else lb=fs(aptBid)+' 이하';
-        // 1억3천 이상이면 빌라·아파트 함께 표기
+        // 1억3천 이상이면 빌라·아파트 함께 표기 (지역 표시 없음), 1.3억 미만은 빌라만 + 인천·부천
         const propType=aptBid>=13000?'빌라·아파트':'빌라';
-        lines.push(area+' '+propType+' '+lb+' (인천, 부천)');
+        const regionTag=aptBid>=13000?'':' (인천, 부천)';
+        lines.push(area+' '+propType+' '+lb+regionTag);
       }
     }
   }else if(oneHouse){
