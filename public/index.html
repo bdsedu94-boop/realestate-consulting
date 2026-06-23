@@ -847,8 +847,7 @@ async function generateReportPDF(d){
         ${noteBox}
       </div>
       <table style="width:100%;border-collapse:collapse;padding:14px 28px;background:#fafafa;border-top:1px solid #eee"><tr>
-        <td style="padding:14px 0 14px 28px;font-size:10.5px;color:#999;line-height:1.6">본 리포트는 설문지를 기준으로 산정된 투자 방향성 참고자료이며, 정확한 대출 조건 및 세부 사항은 별도 상담을 통해 확인하시기 바랍니다.</td>
-        <td style="padding:14px 28px 14px 12px;font-size:10.5px;color:#999;white-space:nowrap;vertical-align:bottom;text-align:right">작성일 ${dateStr}</td>
+        <td style="padding:14px 28px;font-size:10.5px;color:#999;line-height:1.6">본 리포트는 설문지를 기준으로 산정된 투자 방향성 참고자료이며, 정확한 대출 조건 및 세부 사항은 별도 상담을 통해 확인하시기 바랍니다.</td>
       </tr></table>
     </div>`;
   document.body.appendChild(container);
@@ -864,6 +863,9 @@ async function generateReportPDF(d){
     const imgH=canvas.height*imgW/canvas.width;
     const finalH=Math.min(imgH,pageH-60);
     pdf.addImage(imgData,'PNG',30,30,imgW,finalH);
+    pdf.setFontSize(9);
+    pdf.setTextColor(150,150,150);
+    pdf.text(`작성일 ${dateStr}`,pageW-30,pageH-25,{align:'right'});
     pdf.save(`${d.cohort} ${d.name} 컨설팅리포트.pdf`);
   }catch(e){
     alert('PDF 생성 오류: '+e.message);
