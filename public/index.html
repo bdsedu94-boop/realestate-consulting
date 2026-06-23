@@ -864,7 +864,7 @@ async function generateReportPDF(d){
     const imgH=canvas.height*imgW/canvas.width;
     const finalH=Math.min(imgH,pageH-60);
     pdf.addImage(imgData,'PNG',30,30,imgW,finalH);
-    pdf.save(`${d.cohort}_${d.name}_투자방향성.pdf`);
+    pdf.save(`${d.cohort} ${d.name} 컨설팅리포트.pdf`);
   }catch(e){
     alert('PDF 생성 오류: '+e.message);
   }finally{
