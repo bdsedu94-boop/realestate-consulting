@@ -813,10 +813,10 @@ async function generateReportPDF(d){
         </table>
       </div>
       <div style="padding:8px 28px 26px">
-        <div style="display:flex;align-items:center;gap:8px;margin:18px 0 14px">
-          <div style="width:4px;height:16px;background:#1a3a5c"></div>
-          <div style="font-size:14.5px;font-weight:700;color:#1a3a5c">투자 방향성 분석</div>
-        </div>
+        <table style="border-collapse:collapse;margin:18px 0 16px"><tr>
+          <td style="width:4px;padding:0"><div style="width:4px;height:16px;background:#1a3a5c"></div></td>
+          <td style="padding:0 0 0 8px"><div style="font-size:14.5px;font-weight:700;color:#1a3a5c;line-height:16px">투자 방향성 분석</div></td>
+        </tr></table>
         ${narrativeRows}
         ${noHouseNote}
       </div>
