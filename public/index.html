@@ -922,10 +922,10 @@ function formatBidNarrative(d){
   }
   if(multi){
     if(needsCrCheck){
-      lines.push('수도권 비규제 빌라 현금+신용대출 활용해 올현금 입찰 가능 물건 (조건부·공시가1억이하)');
+      lines.push('수도권 비규제 빌라 현금+신용대출 활용해 올현금 입찰 가능 물건 (공시가 1억이하)');
     }else{
       const regionMulti=total<=15000?' (인천, 부천)':'';
-      lines.push('수도권 비규제 빌라 '+fs(Math.min(total,50000))+' 이하 (조건부·공시가1억이하)'+regionMulti);
+      lines.push('수도권 비규제 빌라 '+fs(Math.min(total,50000))+' 이하 (공시가 1억이하)'+regionMulti);
     }
   }else if(noHouse){
     const aptBid=tY&&snrOk?snr70:total;
@@ -1093,7 +1093,7 @@ function consult(d){
   // 수도권 비규제 (인천+경기 일부)
   function bidNreg(){
     if(!noHouse&&!oneHouse){ // 다주택
-      return cr===0?'현금+신용대출 합산금액 (조건부·공시가1억이하)':fmt(bAmt)+' (조건부·공시가1억이하)';
+      return cr===0?'현금+신용대출 합산금액 (공시가 1억이하)':fmt(bAmt)+' (공시가 1억이하)';
     }
     if(oneHouse){ // 1주택
       return fmt(bAmt)+' (신용/현금·조건부)';
