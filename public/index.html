@@ -749,7 +749,6 @@ async function importExcel(input){
   }catch(e){alert('Excel 파싱 오류: '+e.message);console.error(e);}
 }
 
-/* ── 방향성 텍스트 생성 ── */
 /* ── 리포트 PDF 생성 (카톡 양식 그대로) ── */
 async function generateReportPDF(d){
   const cr=d.credit_amount||0,total=d.seed_amount+cr;
@@ -812,7 +811,8 @@ async function generateReportPDF(d){
   }
 }
 
-
+/* ── 방향성 텍스트 생성 ── */
+function formatBidNarrative(d){
   const cr=d.credit_amount||0,total=d.seed_amount+cr;
   const tY=d.transfer_available==='Y';
   const isFirst=d.housing_type==='생애최초',noHouse=d.housing_type==='무주택'||isFirst;
