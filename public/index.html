@@ -41,6 +41,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Malgun Gothic','Apple SD Goth
 .del-btn:hover{background:#fcebeb;color:#a32d2d}
 .edit-btn{position:absolute;top:10px;right:34px;width:20px;height:20px;border:none;background:none;color:#ccc;font-size:13px;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:0}
 .edit-btn:hover{background:#e6f1fb;color:#0c447c}
+.pdf-btn{position:absolute;top:10px;right:58px;width:20px;height:20px;border:none;background:none;color:#ccc;font-size:13px;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:0}
+.pdf-btn:hover{background:#fdf3e0;color:#a3690a}
 .top-bar{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:0.75rem}
 .ctrls{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:8px}
 select,input[type=text],input[type=number]{border:1px solid rgba(0,0,0,0.15);border-radius:7px;padding:6px 10px;font-size:13px;font-family:inherit;color:#1a1a1a;background:#fff;outline:none}
@@ -252,6 +254,8 @@ button:hover{background:#f0ede6}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 /* ── 투자 유형 ── */
 /* ── 초기 데이터 ── */
@@ -746,7 +750,69 @@ async function importExcel(input){
 }
 
 /* ── 방향성 텍스트 생성 ── */
-function formatBidNarrative(d){
+/* ── 리포트 PDF 생성 (카톡 양식 그대로) ── */
+async function generateReportPDF(d){
+  const cr=d.credit_amount||0,total=d.seed_amount+cr;
+  const isFirst=d.housing_type==='생애최초',noHouse=d.housing_type==='무주택'||isFirst;
+  const narrative=formatBidNarrative(d);
+  const fmtAmt=v=>{
+    v=Math.min(v,50000);
+    if(v>=10000){const a=Math.floor(v/10000),r=v%10000;
+      if(!r)return a+'억원';
+      if(r%1000===0)return a+'억 '+(r/1000)+'천만원';
+      return a+'억 '+r.toLocaleString()+'만원';}
+    return v.toLocaleString()+'만원';
+  };
+  const seedLine=cr>0?`시드 : ${fmtAmt(d.seed_amount)} + 신용 ${fmtAmt(cr)} (합산 ${fmtAmt(total)})`:`시드 : ${fmtAmt(d.seed_amount)}`;
+
+  const noHouseNote=noHouse?`
+    <div style="margin-top:18px;padding:14px 16px;background:#fdf6e3;border-radius:10px;font-size:12.5px;line-height:1.7;color:#5a4a1a">
+      ※ 강의시간에 말씀드린거와 같이<br>
+      무주택자는 수도권에서 경락잔금대출을 받을 수 있지만,<br>
+      6개월 이내 전입을 해야하는 조건이 있습니다.<br>
+      매매사업자로 단타매매를 할거지만, 전입을 하게 된다면<br>
+      추후 매매사업자로 인정이 안될 수 있다는 의견이 있습니다.<br>
+      (법적 근거는 없음)<br>
+      이부분이 걸리신다면, 수도권에서는 현금 + 신용대출 금액으로 입찰할 수 있는 금액으로 물건 봐주시거나,<br>
+      비수도권의 물건을 보시면 됩니다!
+    </div>`:'';
+
+  const container=document.createElement('div');
+  container.style.cssText='position:fixed;left:-9999px;top:0;width:580px;background:#fff;font-family:"Apple SD Gothic Neo","Pretendard",sans-serif;';
+  container.innerHTML=`
+    <div style="background:#fee500;border-radius:18px;padding:24px 26px;width:580px;box-sizing:border-box">
+      <div style="font-size:14px;line-height:1.8;color:#2d2300;margin-bottom:18px">
+        안녕하세요! 이주임입니다:)<br>설문지 작성해준 내용 토대로 투자방향성 잡아드리겠습니다!
+      </div>
+      <div style="font-size:15px;font-weight:700;color:#2d2300;margin-bottom:10px">[${d.cohort} ${d.name}님]</div>
+      <div style="font-size:13.5px;line-height:1.9;color:#2d2300;margin-bottom:4px">${seedLine}</div>
+      <div style="font-size:13.5px;line-height:1.9;color:#2d2300;margin-bottom:16px">주택수 : ${d.housing_type}</div>
+      <div style="font-size:15px;font-weight:700;color:#2d2300;margin-bottom:8px">[투자 방향성]</div>
+      <div style="font-size:13.5px;line-height:1.9;color:#2d2300;white-space:pre-line">${narrative}</div>
+      ${noHouseNote}
+    </div>`;
+  document.body.appendChild(container);
+
+  try{
+    const canvas=await html2canvas(container,{scale:2,backgroundColor:'#ffffff'});
+    const imgData=canvas.toDataURL('image/png');
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({unit:'pt',format:'a4'});
+    const pageW=pdf.internal.pageSize.getWidth();
+    const pageH=pdf.internal.pageSize.getHeight();
+    const imgW=pageW-60;
+    const imgH=canvas.height*imgW/canvas.width;
+    const finalH=Math.min(imgH,pageH-60);
+    pdf.addImage(imgData,'PNG',30,30,imgW,finalH);
+    pdf.save(`${d.cohort}_${d.name}_투자방향성.pdf`);
+  }catch(e){
+    alert('PDF 생성 오류: '+e.message);
+  }finally{
+    document.body.removeChild(container);
+  }
+}
+
+
   const cr=d.credit_amount||0,total=d.seed_amount+cr;
   const tY=d.transfer_available==='Y';
   const isFirst=d.housing_type==='생애최초',noHouse=d.housing_type==='무주택'||isFirst;
@@ -1042,6 +1108,7 @@ function render(){
     return `<div class="card">
       <button class="edit-btn" onclick='openEdit(${JSON.stringify(d)})' title="수정">✏</button>
       <button class="del-btn" onclick="delS(${d.id},'${d.name}','${d.cohort}')" title="삭제">✕</button>
+      <button class="pdf-btn" onclick='generateReportPDF(${JSON.stringify(d)})' title="리포트 PDF 다운로드">📄</button>
       <div class="card-head">
         <div class="av">${d.cohort}</div>
         <div style="flex:1;min-width:0">
