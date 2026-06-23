@@ -849,13 +849,22 @@ async function generateReportPDF(d){
       <table style="width:100%;border-collapse:collapse;padding:14px 28px;background:#fafafa;border-top:1px solid #eee"><tr>
         <td style="padding:14px 28px;font-size:10.5px;color:#999;line-height:1.6">본 리포트는 설문지를 기준으로 산정된 투자 방향성 참고자료이며, 정확한 대출 조건 및 세부 사항은 별도 상담을 통해 확인하시기 바랍니다.</td>
       </tr></table>
-      <div style="text-align:right;padding:0 28px 16px;font-size:10.5px;color:#999">작성일 ${dateStr}</div>
     </div>`;
   document.body.appendChild(container);
 
   try{
     const canvas=await html2canvas(container,{scale:2,backgroundColor:'#ffffff'});
     const imgData=canvas.toDataURL('image/png');
+
+    // 작성일 텍스트도 한글 폰트 문제 회피를 위해 이미지로 렌더링
+    const dateEl=document.createElement('div');
+    dateEl.style.cssText='position:fixed;left:-9999px;top:0;font-family:"Apple SD Gothic Neo","Pretendard",sans-serif;font-size:11px;color:#999;white-space:nowrap;background:#fff;padding:2px';
+    dateEl.textContent=`작성일 ${dateStr}`;
+    document.body.appendChild(dateEl);
+    const dateCanvas=await html2canvas(dateEl,{scale:2,backgroundColor:'#ffffff'});
+    const dateImgData=dateCanvas.toDataURL('image/png');
+    document.body.removeChild(dateEl);
+
     const {jsPDF}=window.jspdf;
     const pdf=new jsPDF({unit:'pt',format:'a4'});
     const pageW=pdf.internal.pageSize.getWidth();
@@ -864,6 +873,11 @@ async function generateReportPDF(d){
     const imgH=canvas.height*imgW/canvas.width;
     const finalH=Math.min(imgH,pageH-60);
     pdf.addImage(imgData,'PNG',30,30,imgW,finalH);
+
+    const dateImgW=dateCanvas.width/2;
+    const dateImgH=dateCanvas.height/2;
+    pdf.addImage(dateImgData,'PNG',pageW-30-dateImgW,pageH-25-dateImgH,dateImgW,dateImgH);
+
     pdf.save(`${d.cohort} ${d.name} 컨설팅리포트.pdf`);
   }catch(e){
     alert('PDF 생성 오류: '+e.message);
@@ -1183,12 +1197,12 @@ function render(){
             ${flags.filter(f=>f!=='전문가확인').map(f=>`<span class="flg">${flb(f)}</span>`).join('')}
           </div>
         </div>
-        <div style="display:flex;align-items:flex-start;gap:6px;flex-shrink:0">
+        <div style="display:flex;align-items:flex-start;gap:8px;flex-shrink:0">
           <div style="text-align:right">
             <div style="font-size:14px;font-weight:700">${fmt(d.seed_amount)}</div>
-            ${cr>0?`<div style="font-size:10px;color:#0c447c">+신용 ${fmt(cr)}</div><div style="font-size:12px;font-weight:700;color:#0c447c">합산 ${fmt(total)}</div>`:''}
+            ${cr>0?`<div style="font-size:10px;color:#0c447c;margin-top:2px">+신용 ${fmt(cr)}</div><div style="font-size:12px;font-weight:700;color:#0c447c">합산 ${fmt(total)}</div>`:''}
           </div>
-          <div style="display:flex;align-items:center;gap:2px">
+          <div style="display:flex;flex-direction:row;gap:2px;align-items:center">
             <button class="pdf-btn-inline" onclick='generateReportPDF(${JSON.stringify(d)})' title="리포트 PDF 다운로드">📄</button>
             <button class="edit-btn-inline" onclick='openEdit(${JSON.stringify(d)})' title="수정">✏</button>
             <button class="del-btn-inline" onclick="delS(${d.id},'${d.name}','${d.cohort}')" title="삭제">✕</button>
