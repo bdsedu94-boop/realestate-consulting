@@ -37,10 +37,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Malgun Gothic','Apple SD Goth
 .consult-note{font-size:11px;color:#0c447c;background:#e6f1fb;border-radius:6px;padding:4px 8px;margin-top:6px}
 .consult-date{font-size:10px;color:#aaa;margin-top:4px}
 .bv-badge{font-size:10px;padding:2px 8px;border-radius:8px;background:#eaf3de;color:#27500a;font-weight:600;margin-left:6px;vertical-align:middle}
-.del-btn{position:absolute;top:10px;right:10px;width:20px;height:20px;border:none;background:none;color:#ccc;font-size:14px;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:0}
-.del-btn:hover{background:#fcebeb;color:#a32d2d}
-.edit-btn{position:absolute;top:10px;right:34px;width:20px;height:20px;border:none;background:none;color:#ccc;font-size:13px;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:0}
-.edit-btn:hover{background:#e6f1fb;color:#0c447c}
+.del-btn-inline,.edit-btn-inline,.pdf-btn-inline{width:20px;height:20px;border:none;background:none;color:#ccc;font-size:12px;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:0}
+.del-btn-inline:hover{background:#fcebeb;color:#a32d2d}
+.edit-btn-inline:hover{background:#e6f1fb;color:#0c447c}
+.pdf-btn-inline:hover{background:#fdf3e0;color:#a3690a}
 .top-bar{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:0.75rem}
 .ctrls{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:8px}
 select,input[type=text],input[type=number]{border:1px solid rgba(0,0,0,0.15);border-radius:7px;padding:6px 10px;font-size:13px;font-family:inherit;color:#1a1a1a;background:#fff;outline:none}
@@ -252,6 +252,8 @@ button:hover{background:#f0ede6}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 /* ── 투자 유형 ── */
 /* ── 초기 데이터 ── */
@@ -745,6 +747,131 @@ async function importExcel(input){
   }catch(e){alert('Excel 파싱 오류: '+e.message);console.error(e);}
 }
 
+/* ── 리포트 PDF 생성 (카톡 양식 그대로) ── */
+async function generateReportPDF(d){
+  const cr=d.credit_amount||0,total=d.seed_amount+cr;
+  const isFirst=d.housing_type==='생애최초',noHouse=d.housing_type==='무주택'||isFirst;
+  const narrative=formatBidNarrative(d);
+  const fmtAmt=v=>{
+    v=Math.min(v,50000);
+    if(v>=10000){const a=Math.floor(v/10000),r=v%10000;
+      if(!r)return a+'억원';
+      if(r%1000===0)return a+'억 '+(r/1000)+'천만원';
+      return a+'억 '+r.toLocaleString()+'만원';}
+    return v.toLocaleString()+'만원';
+  };
+  const seedLine=cr>0?`시드 : ${fmtAmt(d.seed_amount)} + 신용 ${fmtAmt(cr)} (합산 ${fmtAmt(total)})`:`시드 : ${fmtAmt(d.seed_amount)}`;
+
+  const oneHouse=d.housing_type==='1주택';
+  const multi=!noHouse&&!oneHouse;
+
+  const noHouseNote=noHouse?`
+    <div style="margin-top:24px;padding:18px 20px;background:#f7f8fa;border-left:3px solid #b8860b;border-radius:4px;font-size:12px;line-height:1.85;color:#555">
+      <div style="font-weight:700;color:#222;margin-bottom:8px;font-size:12.5px">※ 참고사항</div>
+      강의시간에 말씀드린거와 같이 무주택자는 수도권에서 경락잔금대출을 받을 수 있지만,
+      6개월 이내 전입을 해야하는 조건이 있습니다.<br><br>
+      매매사업자로 단타매매를 할거지만, 전입을 하게 된다면 추후 매매사업자로 인정이 안될 수 있다는 의견이 있습니다. (법적 근거는 없음)<br><br>
+      이부분이 걸리신다면, 수도권에서는 현금 + 신용대출 금액으로 입찰할 수 있는 금액으로 물건 봐주시거나, 비수도권의 물건을 보시면 됩니다!
+    </div>`:'';
+
+  const oneHouseNote=oneHouse?`
+    <div style="margin-top:24px;padding:18px 20px;background:#f7f8fa;border-left:3px solid #b8860b;border-radius:4px;font-size:12px;line-height:1.85;color:#555">
+      <div style="font-weight:700;color:#222;margin-bottom:8px;font-size:12.5px">※ 참고사항</div>
+      1주택자는 수도권 규제지역에서 경락잔금대출(LTV)을 활용할 수 없습니다.
+      규제지역 내 추가 주택 매수는 세제·대출 규제 대상이기 때문입니다.<br><br>
+      반면 수도권 비규제지역은 주담대 LTV 적용 없이 <strong>현금 + 신용대출</strong>로 매수하는 방식이라면
+      투자 진입이 가능합니다. (전입 여부와 무관)<br><br>
+      비수도권은 LTV 60~80% 경락잔금대출이 정상적으로 적용되므로, 가용 자금 대비 더 큰 물건에 도전할 수 있습니다.
+    </div>`:'';
+
+  const multiNote=multi?`
+    <div style="margin-top:24px;padding:18px 20px;background:#f7f8fa;border-left:3px solid #b8860b;border-radius:4px;font-size:12px;line-height:1.85;color:#555">
+      <div style="font-weight:700;color:#222;margin-bottom:8px;font-size:12.5px">※ 참고사항</div>
+      다주택자는 수도권 규제지역에서 경락잔금대출이 전면 불가합니다.<br><br>
+      수도권 비규제지역은 <strong>공시가격 1억원 이하</strong> 주택에 한해 현금+신용대출로 투자 가능합니다.
+      공시가 1억 이하 주택은 다주택자 양도세·종부세 중과 대상에서 제외되는 경우가 많아,
+      추가 매수 시 세제 부담을 줄일 수 있는 기준이 되기 때문입니다.<br><br>
+      비수도권은 <strong>공시가격 2억원 이하</strong> 주택까지 LTV 60~80% 경락잔금대출이 적용됩니다.
+      해당 기준을 넘는 물건은 별도로 세무사 상담을 통해 중과 여부를 확인해 주세요.
+    </div>`:'';
+
+  const noteBox=noHouseNote||oneHouseNote||multiNote;
+
+  const transferLabel=d.transfer_available==='Y'?'전입가능':d.transfer_available==='N'?'전입불가':'미확인';
+  const today=new Date();
+  const dateStr=`${today.getFullYear()}.${String(today.getMonth()+1).padStart(2,'0')}.${String(today.getDate()).padStart(2,'0')}`;
+
+  const narrativeRows=narrative.split('\n').map(line=>{
+    const m=line.match(/^(\d+)\.\s*(.+)$/);
+    if(!m) return `<div style="font-size:13px;line-height:1.6;color:#333">${line}</div>`;
+    return `<table style="width:100%;margin-bottom:10px;border-collapse:collapse"><tr>
+      <td style="width:30px;vertical-align:top;padding:0">
+        <div style="width:22px;height:22px;border-radius:50%;background:#1a3a5c;color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:22px">${m[1]}</div>
+      </td>
+      <td style="vertical-align:top;padding:0">
+        <div style="font-size:13px;line-height:22px;color:#222">${m[2]}</div>
+      </td>
+    </tr></table>`;
+  }).join('');
+
+  const container=document.createElement('div');
+  container.style.cssText='position:fixed;left:-9999px;top:0;width:600px;background:#fff;font-family:"Apple SD Gothic Neo","Pretendard",sans-serif;';
+  container.innerHTML=`
+    <div style="width:600px;box-sizing:border-box;background:#fff;border:1px solid #e3e3e3;border-radius:6px;overflow:hidden">
+      <div style="background:#1a3a5c;padding:22px 28px">
+        <div style="font-size:11px;letter-spacing:2px;color:#9fb4c9;margin-bottom:4px">REAL ESTATE AUCTION CONSULTING</div>
+        <div style="font-size:19px;font-weight:700;color:#fff">투자 방향성 리포트</div>
+      </div>
+      <div style="padding:24px 28px 8px">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <tr>
+            <td style="width:70px;padding:7px 0;color:#888">기수</td>
+            <td style="padding:7px 0;color:#222;font-weight:600">${d.cohort}</td>
+            <td style="width:70px;padding:7px 0;color:#888">이름</td>
+            <td style="padding:7px 0;color:#222;font-weight:600">${d.name}님</td>
+          </tr>
+          <tr>
+            <td style="padding:7px 0;color:#888;border-top:1px solid #f0f0f0">투자금</td>
+            <td style="padding:7px 0;color:#222;font-weight:600;border-top:1px solid #f0f0f0">${seedLine.replace('시드 : ','')}</td>
+            <td style="padding:7px 0;color:#888;border-top:1px solid #f0f0f0">주택유형</td>
+            <td style="padding:7px 0;color:#222;font-weight:600;border-top:1px solid #f0f0f0">${d.housing_type}${noHouse?` (${transferLabel})`:''}</td>
+          </tr>
+        </table>
+      </div>
+      <div style="padding:8px 28px 26px">
+        <table style="border-collapse:collapse;margin:18px 0 16px"><tr>
+          <td style="width:4px;padding:0"><div style="width:4px;height:16px;background:#1a3a5c"></div></td>
+          <td style="padding:0 0 0 8px"><div style="font-size:14.5px;font-weight:700;color:#1a3a5c;line-height:16px">투자 방향성 분석</div></td>
+        </tr></table>
+        ${narrativeRows}
+        ${noteBox}
+      </div>
+      <div style="padding:14px 28px;background:#fafafa;border-top:1px solid #eee;display:flex;justify-content:space-between;font-size:10.5px;color:#999">
+        <span>본 리포트는 작성일 기준 시세 및 대출 조건을 토대로 산정되었습니다.</span>
+        <span>작성일 ${dateStr}</span>
+      </div>
+    </div>`;
+  document.body.appendChild(container);
+
+  try{
+    const canvas=await html2canvas(container,{scale:2,backgroundColor:'#ffffff'});
+    const imgData=canvas.toDataURL('image/png');
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({unit:'pt',format:'a4'});
+    const pageW=pdf.internal.pageSize.getWidth();
+    const pageH=pdf.internal.pageSize.getHeight();
+    const imgW=pageW-60;
+    const imgH=canvas.height*imgW/canvas.width;
+    const finalH=Math.min(imgH,pageH-60);
+    pdf.addImage(imgData,'PNG',30,30,imgW,finalH);
+    pdf.save(`${d.cohort} ${d.name} 컨설팅리포트.pdf`);
+  }catch(e){
+    alert('PDF 생성 오류: '+e.message);
+  }finally{
+    document.body.removeChild(container);
+  }
+}
+
 /* ── 방향성 텍스트 생성 ── */
 function formatBidNarrative(d){
   const cr=d.credit_amount||0,total=d.seed_amount+cr;
@@ -815,7 +942,9 @@ function formatBidNarrative(d){
         if(!tY) lb=fs(total)+' 이하';
         else if(!snrOk) lb=fs(total)+' + 신용대출 확인';
         else lb=fs(aptBid)+' 이하';
-        lines.push(area+' 빌라 '+lb+' (인천, 부천)');
+        // 1억3천 이상이면 빌라·아파트 함께 표기
+        const propType=aptBid>=13000?'빌라·아파트':'빌라';
+        lines.push(area+' '+propType+' '+lb+' (인천, 부천)');
       }
     }
   }else if(oneHouse){
@@ -1040,8 +1169,6 @@ function render(){
     const isM=d.housing_type==='다주택',dBg=isM?'#faeeda':'#eaf3de',dTx=isM?'#633806':'#27500a';
     const st=d.status||'대기';
     return `<div class="card">
-      <button class="edit-btn" onclick='openEdit(${JSON.stringify(d)})' title="수정">✏</button>
-      <button class="del-btn" onclick="delS(${d.id},'${d.name}','${d.cohort}')" title="삭제">✕</button>
       <div class="card-head">
         <div class="av">${d.cohort}</div>
         <div style="flex:1;min-width:0">
@@ -1056,7 +1183,12 @@ function render(){
           </div>
         </div>
         <div style="text-align:right;flex-shrink:0">
-          <div style="font-size:14px;font-weight:700">${fmt(d.seed_amount)}</div>
+          <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
+            <div style="font-size:14px;font-weight:700">${fmt(d.seed_amount)}</div>
+            <button class="pdf-btn-inline" onclick='generateReportPDF(${JSON.stringify(d)})' title="리포트 PDF 다운로드">📄</button>
+            <button class="edit-btn-inline" onclick='openEdit(${JSON.stringify(d)})' title="수정">✏</button>
+            <button class="del-btn-inline" onclick="delS(${d.id},'${d.name}','${d.cohort}')" title="삭제">✕</button>
+          </div>
           ${cr>0?`<div style="font-size:10px;color:#0c447c">+신용 ${fmt(cr)}</div><div style="font-size:12px;font-weight:700;color:#0c447c">합산 ${fmt(total)}</div>`:''}
         </div>
       </div>
