@@ -855,6 +855,16 @@ async function generateReportPDF(d){
   try{
     const canvas=await html2canvas(container,{scale:2,backgroundColor:'#ffffff'});
     const imgData=canvas.toDataURL('image/png');
+
+    // 작성일 텍스트도 한글 폰트 문제 회피를 위해 이미지로 렌더링
+    const dateEl=document.createElement('div');
+    dateEl.style.cssText='position:fixed;left:-9999px;top:0;font-family:"Apple SD Gothic Neo","Pretendard",sans-serif;font-size:11px;color:#999;white-space:nowrap;background:#fff;padding:2px';
+    dateEl.textContent=`작성일 ${dateStr}`;
+    document.body.appendChild(dateEl);
+    const dateCanvas=await html2canvas(dateEl,{scale:2,backgroundColor:'#ffffff'});
+    const dateImgData=dateCanvas.toDataURL('image/png');
+    document.body.removeChild(dateEl);
+
     const {jsPDF}=window.jspdf;
     const pdf=new jsPDF({unit:'pt',format:'a4'});
     const pageW=pdf.internal.pageSize.getWidth();
@@ -863,9 +873,11 @@ async function generateReportPDF(d){
     const imgH=canvas.height*imgW/canvas.width;
     const finalH=Math.min(imgH,pageH-60);
     pdf.addImage(imgData,'PNG',30,30,imgW,finalH);
-    pdf.setFontSize(9);
-    pdf.setTextColor(150,150,150);
-    pdf.text(`작성일 ${dateStr}`,pageW-30,pageH-25,{align:'right'});
+
+    const dateImgW=dateCanvas.width/2;
+    const dateImgH=dateCanvas.height/2;
+    pdf.addImage(dateImgData,'PNG',pageW-30-dateImgW,pageH-25-dateImgH,dateImgW,dateImgH);
+
     pdf.save(`${d.cohort} ${d.name} 컨설팅리포트.pdf`);
   }catch(e){
     alert('PDF 생성 오류: '+e.message);
