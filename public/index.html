@@ -777,9 +777,9 @@ async function generateReportPDF(d){
   const oneHouseNote=oneHouse?`
     <div style="margin-top:24px;padding:18px 20px;background:#f7f8fa;border-left:3px solid #b8860b;border-radius:4px;font-size:12px;line-height:1.85;color:#555">
       <div style="font-weight:700;color:#222;margin-bottom:8px;font-size:12.5px">※ 참고사항</div>
-      1주택자는 수도권 규제지역에서 경락잔금대출(LTV)을 활용할 수 없습니다.
-      규제지역 내 추가 주택 매수는 세제·대출 규제 대상이기 때문입니다.<br><br>
-      반면 수도권 비규제지역은 주담대 LTV 적용 없이 <strong>현금 + 신용대출</strong>로 매수하는 방식이라면
+      1주택자는 수도권 규제지역에서 경락잔금대출(LTV)을 활용할 수 없습니다.<br>
+      경락잔금대출(LTV) 활용 시 6개월 이내 기존 주택 처분조건 뿐만아니라 규제지역 내 추가 주택 매수는 매매사업자 세제혜택을 받을 수 없습니다.<br><br>
+      반면 수도권 비규제지역은 경락잔금대출(LTV) 적용 없이 <strong>현금 + 신용대출</strong>로 매수하는 방식이라면
       투자 진입이 가능합니다. (전입 여부와 무관)<br><br>
       비수도권은 LTV 60~80% 경락잔금대출이 정상적으로 적용되므로, 가용 자금 대비 더 큰 물건에 도전할 수 있습니다.
     </div>`:'';
@@ -787,12 +787,12 @@ async function generateReportPDF(d){
   const multiNote=multi?`
     <div style="margin-top:24px;padding:18px 20px;background:#f7f8fa;border-left:3px solid #b8860b;border-radius:4px;font-size:12px;line-height:1.85;color:#555">
       <div style="font-weight:700;color:#222;margin-bottom:8px;font-size:12.5px">※ 참고사항</div>
-      다주택자는 수도권 규제지역에서 경락잔금대출이 전면 불가합니다.<br><br>
+      다주택자는 수도권에서 경락잔금대출이 전면 불가할 뿐만아니라 규제지역에서는 매매사업자 세제혜택을 받을 수 없습니다.<br><br>
       수도권 비규제지역은 <strong>공시가격 1억원 이하</strong> 주택에 한해 현금+신용대출로 투자 가능합니다.
-      공시가 1억 이하 주택은 다주택자 양도세·종부세 중과 대상에서 제외되는 경우가 많아,
-      추가 매수 시 세제 부담을 줄일 수 있는 기준이 되기 때문입니다.<br><br>
-      비수도권은 <strong>공시가격 2억원 이하</strong> 주택까지 LTV 60~80% 경락잔금대출이 적용됩니다.
-      해당 기준을 넘는 물건은 별도로 세무사 상담을 통해 중과 여부를 확인해 주세요.
+      공시가 1억 이하 주택은 다주택자도 취득세 1%에 적용 되기때문에, 추가 매수 시 세제 부담을 줄일 수 있습니다.<br><br>
+      비수도권은 <strong>공시가격 2억원 이하</strong> 주택까지 취득세 1%를 적용받을 수 있습니다.<br>
+      또한 경락잔금대출(LTV) 60~80%가 적용되어 가용자금 대비 더 큰 물건에 도전할 수 있습니다.<br><br>
+      세금에 대해 자세한 상담을 받고 싶은 분들은 별도로 세무사 상담을 받아보시는 걸 추천드립니다.
     </div>`:'';
 
   const noteBox=noHouseNote||oneHouseNote||multiNote;
