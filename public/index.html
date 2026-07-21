@@ -629,35 +629,64 @@ async function importExcel(input){
     const iLoc=ci('거주지','거주 지');
     const iHousing=ci('주택보유','주택수','주택 보유');
     const iSeed=ci('투자가능한금액','투자가능금액','투자금액','투자금');
-    const iCreditLoan=ci('추가신용대출','신용대출가능여부','신용대출');
+    // 신용대출: 이전(통합) or 신규(분리) 모두 지원
+    const iLoanAvail=ci('추가신용대출가능여부','신용대출가능여부','추가신용대출');
+    const iCreditAmt=ci('신용대출이가능한경우','가능한금액');
+    // 통합 컬럼(이전 양식) 폴백
+    const iCreditLoan=iLoanAvail>=0?iLoanAvail:ci('신용대출');
     const iTransfer=ci('전입가능여부','전입가능','전입 가능');
-    const iNote=ci('특이사항','Unnamed:24','비고');
-    // 마지막 컬럼도 특이사항 후보
+    const iNote=ci('특이사항','비고');
     const iLastCol=header.length-1;
 
-    function mapLoanCredit(v){
-      if(!v||String(v).trim()==='')return{loan:'unknown',credit:0};
+    function mapLoan(v){
+      if(!v||String(v).trim()==='') return 'unknown';
       const s=String(v).trim();
+      if(s.includes('잘 모르겠음')||s.includes('모르')||s.includes('불확실')) return 'unknown';
+      if(s.includes('불가')) return 'N';
+      if(s.includes('가능')) return 'Y';
+      return 'unknown';
+    }
+
+    function mapLoanCredit(loanVal, amtVal){
+      // 신규 양식: 대출가능여부 + 금액 분리
+      if(iCreditAmt>=0){
+        const loan=mapLoan(loanVal);
+        let credit=0;
+        if(loan==='Y'&&amtVal){
+          credit=parseSeedAmt(String(amtVal));
+        }
+        return{loan,credit};
+      }
+      // 이전 양식: 통합 컬럼 처리
+      if(!loanVal||String(loanVal).trim()==='')return{loan:'unknown',credit:0};
+      const s=String(loanVal).trim();
       if(s.includes('잘 모르겠음')||s.includes('모르'))return{loan:'unknown',credit:0};
       if(s.includes('불가'))return{loan:'N',credit:0};
       if(s.includes('가능')){
-        let cr=0;
-        const mCombo=s.match(/(\d+\.?\d*)억\s*(\d+\.?\d*)?\s*(천만|천|만)?/);
-        if(mCombo&&mCombo[1]){
-          cr=Math.round(parseFloat(mCombo[1])*10000);
-          if(mCombo[2]){
-            const unit=mCombo[3];
-            const mult=(unit==='천만'||unit==='천'||!unit)?1000:1;
-            cr+=Math.round(parseFloat(mCombo[2])*mult);
-          }
-        }else{
-          const m2=s.match(/(\d+)천만/);
-          const m3=s.match(/(\d+)만/);
-          if(m2) cr=parseInt(m2[1])*1000;
-          else if(m3) cr=parseInt(m3[1]);
-        }
-        return{loan:'Y',credit:cr};
+        return{loan:'Y',credit:parseSeedAmt(s)};
       }
+      return{loan:'unknown',credit:0};
+    }
+
+    function parseSeedAmt(s){
+      s=String(s).replace(/,/g,'').trim();
+      const mCombo=s.match(/(\d+\.?\d*)억\s*(\d+\.?\d*)?\s*(천만|천|만)?/);
+      if(mCombo&&mCombo[1]){
+        let v=Math.round(parseFloat(mCombo[1])*10000);
+        if(mCombo[2]){const u=mCombo[3];v+=Math.round(parseFloat(mCombo[2])*((u==='천만'||u==='천'||!u)?1000:1));}
+        return v;
+      }
+      const m2=s.match(/(\d+)천만/);const m3=s.match(/(\d+\.?\d*)만/);
+      const mR=s.match(/\d+[~\-]\s*(\d+\.?\d*)(천만|만)/);
+      const mR2=s.match(/\d+[~\-]\s*(\d+)/);
+      const mN=s.match(/^(\d+)$/);
+      if(m2)return parseInt(m2[1])*1000;
+      if(m3)return Math.round(parseFloat(m3[1]));
+      if(mR)return Math.round(parseFloat(mR[1])*(mR[2]==='천만'?1000:1));
+      if(mR2)return parseInt(mR2[1]);
+      if(mN)return parseInt(mN[1]);
+      return 0;
+    }
       return{loan:'unknown',credit:0};
     }
     function mapTransfer(v){
@@ -714,7 +743,7 @@ async function importExcel(input){
       const rawNote=iNote>=0&&r[iNote]?String(r[iNote]).trim()
         :r[iLastCol]?String(r[iLastCol]).trim():'';
       const note=[loc?loc+' 거주':'',rawNote].filter(Boolean).join(' · ');
-      const {loan,credit}=mapLoanCredit(r[iCreditLoan]);
+      const {loan,credit}=mapLoanCredit(r[iLoanAvail>=0?iLoanAvail:iCreditLoan], iCreditAmt>=0?r[iCreditAmt]:undefined);
 
       newStudents.push({
         cohort, name,
