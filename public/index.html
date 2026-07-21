@@ -685,8 +685,6 @@ async function importExcel(input){
       if(mN)return parseInt(mN[1]);
       return 0;
     }
-      return{loan:'unknown',credit:0};
-    }
     function mapTransfer(v){
       const s=String(v||'').trim();
       if(s.includes('불가')) return'N';
