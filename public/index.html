@@ -627,12 +627,10 @@ async function importExcel(input){
     const iCohort=ci('기수');
     const iName=ci('성함','이름','성명');
     const iLoc=ci('거주지','거주 지');
-    const iHousing=ci('주택보유','주택수','주택 보유');
+    const iHousing=ci('주택보유','주택수','주택 보유','주택 수');
     const iSeed=ci('투자가능한금액','투자가능금액','투자금액','투자금');
-    // 신용대출: 이전(통합) or 신규(분리) 모두 지원
     const iLoanAvail=ci('추가신용대출가능여부','신용대출가능여부','추가신용대출');
     const iCreditAmt=ci('신용대출이가능한경우','가능한금액');
-    // 통합 컬럼(이전 양식) 폴백
     const iCreditLoan=iLoanAvail>=0?iLoanAvail:ci('신용대출');
     const iTransfer=ci('전입가능여부','전입가능','전입 가능');
     const iNote=ci('특이사항','비고');
