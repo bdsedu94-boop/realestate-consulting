@@ -828,6 +828,17 @@ async function generateReportPDF(d){
       비수도권은 LTV 60~80% 경락잔금대출이 정상적으로 적용되므로, 가용 자금 대비 더 큰 물건에 도전할 수 있습니다.
     </div>`:'';
 
+  // 실거주+전입가능이 아닌 1주택자는 원래대로 하나의 박스로 합쳐서 하단에 배치
+  const oneHouseNoteCombined=oneHouse?`
+    <div style="margin-top:24px;padding:18px 20px;background:#f7f8fa;border-left:3px solid #b8860b;border-radius:4px;font-size:12px;line-height:1.85;color:#555">
+      <div style="font-weight:700;color:#222;margin-bottom:8px;font-size:12.5px">※ 참고사항</div>
+      1주택자는 수도권 규제지역에서 경락잔금대출(LTV)을 활용할 수 없습니다.<br>
+      경락잔금대출(LTV)활용 시 6개월이내 기존 주택 처분조건 뿐만아니라 규제지역 내 추가 주택 매수는 매매사업자 세제혜택을 받을 수 없습니다.<br><br>
+      반면 수도권 비규제지역은 경락잔금대출(LTV) 적용 없이 <strong>현금 + 신용대출</strong>로 매수하는 방식이라면<br>
+      투자 진입이 가능합니다. (전입 여부와 무관)<br><br>
+      비수도권은 LTV 60~80% 경락잔금대출이 정상적으로 적용되므로, 가용 자금 대비 더 큰 물건에 도전할 수 있습니다.
+    </div>`:'';
+
   const multiNote=multi?`
     <div style="margin-top:24px;padding:18px 20px;background:#f7f8fa;border-left:3px solid #b8860b;border-radius:4px;font-size:12px;line-height:1.85;color:#555">
       <div style="font-weight:700;color:#222;margin-bottom:8px;font-size:12.5px">※ 참고사항</div>
@@ -839,7 +850,8 @@ async function generateReportPDF(d){
       세금에 대해 자세한 상담을 받고 싶은 분들은 별도로 세무사 상담을 받아보시는 걸 추천드립니다.
     </div>`:'';
 
-  const noteBox=noHouseNote||oneHouseNoteBottom||multiNote;
+  const oneHouseNoteFinal=oneHouse?(wantsResidence?oneHouseNoteBottom:oneHouseNoteCombined):'';
+  const noteBox=noHouseNote||oneHouseNoteFinal||multiNote;
 
   const transferLabel=d.transfer_available==='Y'?'전입가능':d.transfer_available==='N'?'전입불가':'미확인';
   const today=new Date();
@@ -857,8 +869,8 @@ async function generateReportPDF(d){
       </td>
     </tr></table>`;
   });
-  // 1주택자는 1번 항목(수도권 규제) 바로 아래에 관련 참고사항을 끼워 넣음
-  const narrativeRows=oneHouse&&narrativeRowsArr.length
+  // 실거주+전입가능 1주택자만 1번 항목(수도권 규제) 바로 아래에 관련 참고사항을 끼워 넣음
+  const narrativeRows=oneHouse&&wantsResidence&&narrativeRowsArr.length
     ?narrativeRowsArr[0]+oneHouseNoteTop+narrativeRowsArr.slice(1).join('')
     :narrativeRowsArr.join('');
 
