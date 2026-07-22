@@ -869,7 +869,7 @@ async function generateReportPDF(d){
     return `<table style="width:100%;margin-bottom:10px;border-collapse:collapse"><tr>
       <td style="width:30px;vertical-align:top;padding:0">
         <table style="width:22px;height:22px;border-collapse:collapse"><tr>
-          <td style="width:22px;height:22px;border-radius:50%;background:#1a3a5c;color:#fff;font-size:12px;font-weight:700;text-align:center;vertical-align:middle;line-height:1;padding:0">${num}</td>
+          <td style="width:22px;height:22px;border-radius:50%;background:#9314cc;color:#fff;font-size:12px;font-weight:700;text-align:center;vertical-align:middle;line-height:1;padding:0">${num}</td>
         </tr></table>
       </td>
       <td style="vertical-align:top;padding:0">
@@ -879,8 +879,8 @@ async function generateReportPDF(d){
   }
   function sectionTitleHtml(t){
     return `<table style="border-collapse:collapse;margin:18px 0 16px"><tr>
-      <td style="width:4px;padding:0"><div style="width:4px;height:16px;background:#1a3a5c"></div></td>
-      <td style="padding:0 0 0 8px"><div style="font-size:14.5px;font-weight:700;color:#1a3a5c;line-height:16px">${t}</div></td>
+      <td style="width:4px;padding:0"><div style="width:4px;height:16px;background:#9314cc"></div></td>
+      <td style="padding:0 0 0 8px"><div style="font-size:14.5px;font-weight:700;color:#9314cc;line-height:16px">${t}</div></td>
     </tr></table>`;
   }
 
@@ -910,7 +910,7 @@ async function generateReportPDF(d){
   container.style.cssText='position:fixed;left:-9999px;top:0;width:600px;background:#fff;font-family:"Apple SD Gothic Neo","Pretendard",sans-serif;';
   container.innerHTML=`
     <div style="width:600px;box-sizing:border-box;background:#fff;border:1px solid #e3e3e3;border-radius:6px;overflow:hidden">
-      <div style="background:#1a3a5c;padding:22px 28px">
+      <div style="background:#9314cc;padding:22px 28px">
         <div style="font-size:11px;letter-spacing:2px;color:#9fb4c9;margin-bottom:4px">REAL ESTATE AUCTION CONSULTING</div>
         <div style="font-size:19px;font-weight:700;color:#fff">투자 방향성 리포트</div>
       </div>
@@ -932,8 +932,8 @@ async function generateReportPDF(d){
       </div>
       <div style="padding:8px 28px 26px">
         ${mainTitle?`<table style="border-collapse:collapse;margin:18px 0 16px"><tr>
-          <td style="width:4px;padding:0"><div style="width:4px;height:16px;background:#1a3a5c"></div></td>
-          <td style="padding:0 0 0 8px"><div style="font-size:14.5px;font-weight:700;color:#1a3a5c;line-height:16px">${mainTitle}</div></td>
+          <td style="width:4px;padding:0"><div style="width:4px;height:16px;background:#9314cc"></div></td>
+          <td style="padding:0 0 0 8px"><div style="font-size:14.5px;font-weight:700;color:#9314cc;line-height:16px">${mainTitle}</div></td>
         </tr></table>`:''}
         ${bodyContent}
         ${bottomNoteBox}
