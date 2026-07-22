@@ -800,6 +800,7 @@ async function generateReportPDF(d){
 
   const oneHouse=d.housing_type==='1주택';
   const multi=!noHouse&&!oneHouse;
+  const wantsResidence=oneHouse&&d.transfer_available==='Y'&&(d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주');
 
   const noHouseNote=noHouse?`
     <div style="margin-top:24px;padding:18px 20px;background:#f7f8fa;border-left:3px solid #b8860b;border-radius:4px;font-size:12px;line-height:1.85;color:#555">
@@ -810,10 +811,13 @@ async function generateReportPDF(d){
       이부분이 걸리신다면, 수도권에서는 현금 + 신용대출 금액으로 입찰할 수 있는 금액으로 물건 봐주시거나, 비수도권의 물건을 보시면 됩니다!
     </div>`:'';
 
+  const residenceExceptionLine=wantsResidence?`
+      다만 <strong>기존 주택 처분조건 + 전입조건</strong>을 충족하는 경우에 한하여 추가 매수도 조건부로 가능합니다. (2년 이상 장기보유시 매매사업자는 불필요함)<br><br>`:'';
+
   const oneHouseNote=oneHouse?`
     <div style="margin-top:24px;padding:18px 20px;background:#f7f8fa;border-left:3px solid #b8860b;border-radius:4px;font-size:12px;line-height:1.85;color:#555">
       <div style="font-weight:700;color:#222;margin-bottom:8px;font-size:12.5px">※ 참고사항</div>
-      1주택자는 수도권 규제지역에서 경락잔금대출(LTV)을 활용할 수 없습니다.<br>
+      1주택자는 수도권 규제지역에서 경락잔금대출(LTV)을 활용할 수 없습니다.<br>${residenceExceptionLine}
       경락잔금대출(LTV)활용 시 6개월이내 기존 주택 처분조건 뿐만아니라 규제지역 내 추가 주택 매수는 매매사업자 세제혜택을 받을 수 없습니다.<br><br>
       반면 수도권 비규제지역은 경락잔금대출(LTV) 적용 없이 <strong>현금 + 신용대출</strong>로 매수하는 방식이라면<br>
       투자 진입이 가능합니다. (전입 여부와 무관)<br><br>
