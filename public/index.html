@@ -962,13 +962,13 @@ async function generateReportPDF(d){
     document.body.removeChild(dateEl);
 
     const {jsPDF}=window.jspdf;
-    const pdf=new jsPDF({unit:'pt',format:'a4'});
-    const pageW=pdf.internal.pageSize.getWidth();
-    const pageH=pdf.internal.pageSize.getHeight();
-    const imgW=pageW-60;
-    const imgH=canvas.height*imgW/canvas.width;
-    const finalH=Math.min(imgH,pageH-60);
-    pdf.addImage(imgData,'PNG',30,30,imgW,finalH);
+    const A4_W=595.28, A4_H=841.89; // A4 in pt
+    const imgW=A4_W-60;
+    const imgH=canvas.height*imgW/canvas.width; // 비율 유지 (절대 찌그러뜨리지 않음)
+    const pageH=Math.max(A4_H, imgH+60+30); // 내용이 길면 페이지 자체를 늘려서 세로 스크롤 형태로, 절대 압축하지 않음
+    const pdf=new jsPDF({unit:'pt',format:[A4_W,pageH]});
+    const pageW=A4_W;
+    pdf.addImage(imgData,'PNG',30,30,imgW,imgH);
 
     const dateImgW=dateCanvas.width/2;
     const dateImgH=dateCanvas.height/2;
