@@ -1113,12 +1113,13 @@ function formatBidNarrative(d){
   return lines.map((l,i)=>(i+1)+'. '+l).join('\n');
 }
 
-// CSV 전용: 1주택자+실거주(또는 단타+실거주)+전입가능자는 [실거주]/[단타] 라벨을 붙여서 구분, 신용대출 포함자는 확인 문구 추가 (PDF 리포트 함수는 그대로 둠)
+// CSV 전용: (1주택자 또는 무주택자) + 실거주(또는 단타+실거주) + 전입가능자는 [실거주]/[단타] 라벨을 붙여서 구분, 신용대출 포함자는 확인 문구 추가 (PDF 리포트 함수는 그대로 둠)
 function formatBidNarrativeCSV(d){
   const base=formatBidNarrative(d);
   const oneHouse=d.housing_type==='1주택';
+  const noHouse=d.housing_type==='무주택'||d.housing_type==='생애최초';
   const tY=d.transfer_available==='Y';
-  const wantsResidence=oneHouse&&tY&&(d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주');
+  const wantsResidence=(oneHouse||noHouse)&&tY&&(d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주');
   let lines=base.split('\n');
   if(wantsResidence&&lines.length>=2){
     lines=['[실거주]',lines[0],'[단타]',...lines.slice(1)];
