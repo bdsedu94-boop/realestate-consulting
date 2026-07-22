@@ -1070,7 +1070,7 @@ function formatBidNarrative(d){
       }
     }
   }else if(oneHouse){
-    const regionOne=total<=15000?' (인천, 부천)':'';
+    const regionOne=total<=15000?' (인천, 부천)':(total<30000?' (인천, 경기외곽)':'');
     // 기존주택 처분조건 + 전입조건 충족 시 1주택자도 수도권 규제지역 조건부 가능
     const wantsResidence=tY&&(d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주');
     if(wantsResidence){
