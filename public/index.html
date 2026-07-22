@@ -1075,8 +1075,11 @@ function consult(d){
   let reg,nreg,local,primary,dirLabel;
 
   // 수도권 규제지역 (서울 전역·경기 12곳)
+  const wantsResidence=oneHouse&&tY&&(d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주');
   if(noHouse){
     reg = tY ? {st:'O',lb:'가능',nt:''} : {st:'T',lb:'조건부',nt:'신용대출 또는 현금 활용'};
+  } else if(wantsResidence){
+    reg = {st:'T',lb:'조건부',nt:'기존주택 처분조건부·전입조건부'};
   } else {
     reg = {st:'X',lb:'불가',nt:''};
   }
@@ -1150,11 +1153,12 @@ function consult(d){
 
   // 수도권 규제 (서울 전역·경기 12곳)
   function bidReg(){
-    if(!noHouse) return '불가';
-    if(bigInv) return fmt(bAmt)+' (올현금 추천)';
+    if(!noHouse&&!wantsResidence) return '불가';
+    if(noHouse&&bigInv) return fmt(bAmt)+' (올현금 추천)';
     if(!tY) return fmt(bAmt)+' (신용/현금·조건부)';
+    const suffix=wantsResidence?' · 기존주택 처분조건부·전입조건부':'';
     const s=cLtv(0.3,0.7);
-    return s.ok?fmt(s.bid)+' ('+s.label+')':fmt(bAmt)+' (올현금)';
+    return s.ok?fmt(s.bid)+' ('+s.label+suffix+')':fmt(bAmt)+' (올현금'+suffix+')';
   }
 
   // 수도권 비규제 (인천+경기 일부)
