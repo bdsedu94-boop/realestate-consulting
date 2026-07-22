@@ -1107,6 +1107,20 @@ function formatBidNarrative(d){
   return lines.map((l,i)=>(i+1)+'. '+l).join('\n');
 }
 
+// CSV 전용: 1주택자+실거주(또는 단타+실거주)+전입가능자는 [실거주]/[단타] 라벨을 붙여서 구분 (PDF 리포트 함수는 그대로 둠)
+function formatBidNarrativeCSV(d){
+  const base=formatBidNarrative(d);
+  const oneHouse=d.housing_type==='1주택';
+  const tY=d.transfer_available==='Y';
+  const wantsResidence=oneHouse&&tY&&(d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주');
+  if(!wantsResidence) return base;
+  const lines=base.split('\n');
+  if(lines.length<2) return base;
+  const out=['[실거주]',lines[0],'[단타]'];
+  for(let i=1;i<lines.length;i++) out.push(lines[i]);
+  return out.join('\n');
+}
+
 function exportCSV(){
   try{
     const headers=['기수','이름','주택수','투자금(만원)','신용대출(만원)','합산(만원)','대출가능','투자목적','전입가능','특이사항','상담메모','플래그','상담상태','상담일','이주임 확인완료','방향성'];
@@ -1123,7 +1137,7 @@ function exportCSV(){
         (d.flags||[]).join('/'),
         d.status||'대기', d.consult_date||'',
         '', // 이주임 확인완료 (수동 입력)
-        formatBidNarrative(d) // 방향성 = 입찰 가능 금액대
+        formatBidNarrativeCSV(d) // 방향성 = 입찰 가능 금액대
       ];
     });
     const csv=[headers,...rows].map(r=>r.map(v=>{
