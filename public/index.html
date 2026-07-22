@@ -633,6 +633,7 @@ async function importExcel(input){
     const iCreditAmt=ci('신용대출이가능한경우','가능한금액');
     const iCreditLoan=iLoanAvail>=0?iLoanAvail:ci('신용대출');
     const iTransfer=ci('전입가능여부','전입가능','전입 가능');
+    const iPurpose=ci('경매투자목적','투자목적','경매 투자 목적','투자 목적');
     const iNote=ci('특이사항','비고');
     const iLastCol=header.length-1;
 
@@ -689,6 +690,12 @@ async function importExcel(input){
       const s=String(v||'').trim();
       if(s.includes('불가')) return'N';
       if(s.includes('가능')) return'Y';
+      return'unknown';
+    }
+    function mapPurpose(v){
+      const s=String(v||'').trim();
+      if(s.includes('단타')) return'단타';
+      if(s.includes('실거주')) return'실거주';
       return'unknown';
     }
     function mapHousing(v){
@@ -748,6 +755,7 @@ async function importExcel(input){
         credit_amount:credit,
         loan_available:loan,
         transfer_available:mapTransfer(r[iTransfer]),
+        investment_purpose:iPurpose>=0?mapPurpose(r[iPurpose]):'unknown',
         note, flags:[],
         status:'대기', consult_date:'', consult_note:''
       });
@@ -1013,7 +1021,7 @@ function formatBidNarrative(d){
 
 function exportCSV(){
   try{
-    const headers=['기수','이름','주택수','투자금(만원)','신용대출(만원)','합산(만원)','대출가능','전입가능','특이사항','상담메모','플래그','상담상태','상담일','이주임 확인완료','방향성'];
+    const headers=['기수','이름','주택수','투자금(만원)','신용대출(만원)','합산(만원)','대출가능','투자목적','전입가능','특이사항','상담메모','플래그','상담상태','상담일','이주임 확인완료','방향성'];
     const rows=students.map(d=>{
       const c=consult(d);
       const cr=d.credit_amount||0;
@@ -1021,6 +1029,7 @@ function exportCSV(){
         d.cohort, d.name, d.housing_type,
         d.seed_amount, cr, d.seed_amount+cr,
         d.loan_available==='Y'?'가능':d.loan_available==='N'?'불가':'미확인',
+        d.investment_purpose==='단타'?'단타':d.investment_purpose==='실거주'?'실거주':'미기재',
         d.transfer_available==='Y'?'가능':d.transfer_available==='N'?'불가':'미기재',
         d.note||'', d.consult_note||'',
         (d.flags||[]).join('/'),

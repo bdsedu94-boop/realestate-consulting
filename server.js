@@ -193,6 +193,7 @@ app.post('/api/students/bulk', (req, res) => {
       credit_amount: parseInt(s.credit_amount) || 0,
       loan_available: s.loan_available || 'unknown',
       transfer_available: s.transfer_available || 'unknown',
+      investment_purpose: s.investment_purpose || 'unknown',
       note: s.note || '',
       consult_note: '',
       consult_date: '',
