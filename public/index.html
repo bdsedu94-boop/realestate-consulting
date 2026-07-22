@@ -111,6 +111,7 @@ button:hover{background:#f0ede6}
           <option value="무주택">무주택</option>
           <option value="1주택">1주택</option>
           <option value="다주택">다주택</option>
+          <option value="미기입">미기입</option>
         </select>
         <select id="fSt" onchange="loadStudents()">
           <option value="">전체 상태</option>
@@ -703,10 +704,12 @@ async function importExcel(input){
     }
     function mapHousing(v){
       const s=String(v||'').trim();
+      if(!s)return'미기입';
       if(s.includes('생애최초'))return'생애최초';
       if(s.includes('다주택'))return'다주택';
       if(s.includes('1주택'))return'1주택';
-      return'무주택';
+      if(s.includes('무주택'))return'무주택';
+      return'미기입';
     }
     function parseSeed(v){
       if(!v||String(v).trim()==='')return 0;
@@ -799,7 +802,8 @@ async function generateReportPDF(d){
   const seedLine=cr>0?`시드 : ${fmtAmt(d.seed_amount)} + 신용 ${fmtAmt(cr)} (합산 ${fmtAmt(total)})`:`시드 : ${fmtAmt(d.seed_amount)}`;
 
   const oneHouse=d.housing_type==='1주택';
-  const multi=!noHouse&&!oneHouse;
+  const missingHousing=d.housing_type==='미기입';
+  const multi=!noHouse&&!oneHouse&&!missingHousing;
   const wantsResidence=oneHouse&&d.transfer_available==='Y'&&(d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주');
 
   const noHouseNote=noHouse?`
@@ -976,6 +980,9 @@ async function generateReportPDF(d){
 
 /* ── 방향성 텍스트 생성 ── */
 function formatBidNarrative(d){
+  if(d.housing_type==='미기입'){
+    return'⚠ 주택수 미기입 - 확인 필요 (상담 시 주택 보유 현황을 먼저 파악해주세요)';
+  }
   const cr=d.credit_amount||0,total=d.seed_amount+cr;
   const tY=d.transfer_available==='Y';
   const isFirst=d.housing_type==='생애최초',noHouse=d.housing_type==='무주택'||isFirst;
@@ -1127,6 +1134,15 @@ function exportCSV(){
   }catch(e){alert('CSV 내보내기 실패: '+e.message);}
 }
 function consult(d){
+  if(d.housing_type==='미기입'){
+    const errBox={st:'E',lb:'미기입',nt:'주택수 확인 필요'};
+    return{
+      reg:errBox, nreg:errBox, local:errBox,
+      bid:'⚠ 주택수 미기입 - 확인 필요',
+      primary:'', dirLabel:'',
+      ltvLabel:'주택수 확인 필요'
+    };
+  }
   const cr=d.credit_amount||0,total=d.seed_amount+cr;
   const lY=d.loan_available==='Y',tY=d.transfer_available==='Y',lN=d.loan_available==='N';
   const isFirst=d.housing_type==='생애최초',noHouse=d.housing_type==='무주택'||isFirst;
@@ -1280,9 +1296,9 @@ function consult(d){
 }
 
 /* ── 색상 ── */
-const SC={O:{bg:'#eaf3de',tx:'#27500a'},T:{bg:'#faeeda',tx:'#633806'},X:{bg:'#fcebeb',tx:'#791f1f'}};
-const SM={O:'✓',T:'△',X:'✕'};
-const HC={'생애최초':{bg:'#e6f1fb',tx:'#0c447c'},'무주택':{bg:'#eaf3de',tx:'#27500a'},'1주택':{bg:'#faeeda',tx:'#633806'},'다주택':{bg:'#fcebeb',tx:'#791f1f'}};
+const SC={O:{bg:'#eaf3de',tx:'#27500a'},T:{bg:'#faeeda',tx:'#633806'},X:{bg:'#fcebeb',tx:'#791f1f'},E:{bg:'#ececec',tx:'#555'}};
+const SM={O:'✓',T:'△',X:'✕',E:'⚠'};
+const HC={'생애최초':{bg:'#e6f1fb',tx:'#0c447c'},'무주택':{bg:'#eaf3de',tx:'#27500a'},'1주택':{bg:'#faeeda',tx:'#633806'},'다주택':{bg:'#fcebeb',tx:'#791f1f'},'미기입':{bg:'#ececec',tx:'#555'}};
 const STCLS={'완료':'s-완료','재상담':'s-재상담','대기':'s-대기'};
 const STLBL={'완료':'✓ 상담완료','재상담':'↩ 재상담필요','대기':'· 상담대기'};
 function fmt(v){if(v>=10000){const a=Math.floor(v/10000),r=v%10000;return r?`${a}억 ${r.toLocaleString()}만원`:`${a}억원`;}return `${v.toLocaleString()}만원`;}
