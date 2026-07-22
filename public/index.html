@@ -864,7 +864,9 @@ async function generateReportPDF(d){
   function rowHtml(num,text){
     return `<table style="width:100%;margin-bottom:10px;border-collapse:collapse"><tr>
       <td style="width:30px;vertical-align:top;padding:0">
-        <div style="width:22px;height:22px;border-radius:50%;background:#1a3a5c;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1">${num}</div>
+        <table style="width:22px;height:22px;border-collapse:collapse"><tr>
+          <td style="width:22px;height:22px;border-radius:50%;background:#1a3a5c;color:#fff;font-size:12px;font-weight:700;text-align:center;vertical-align:middle;line-height:1;padding:0">${num}</td>
+        </tr></table>
       </td>
       <td style="vertical-align:top;padding:0">
         <div style="font-size:13px;line-height:22px;color:#222">${text}</div>
