@@ -943,7 +943,8 @@ function formatBidNarrative(d){
   const localMin=Math.max(8300,l60bid);
   const hasLocal=l80bid>=8300;
   const snr70=tY?Math.min(Math.round(total/0.3/100)*100,CAP):null;
-  const snrOk=snr70&&snr70*0.7>=5000;
+  // 자기자금 3,000만원 미만은 레버리지 계산 자체를 적용하지 않음
+  const snrOk=snr70&&total>=3000&&snr70*0.7>=5000;
   // 인천·부천 추천: 실제 입찰가 기준 (LTV 가능시 입찰가, 불가시 시드)
   const bidForRegion=snrOk&&snr70?snr70:total;
   const region=bidForRegion<=15000?' (인천, 부천)':'';
@@ -1096,7 +1097,8 @@ function consult(d){
     const rawBid=Math.round(total/downPct/100)*100;
     const loanAmt=rawBid*ltvPct;
     const crSfx=cr>0?' · 시드+신용합산':'';
-    if(loanAmt<minLoan)
+    // 자기자금 3,000만원 미만은 레버리지 계산 자체를 적용하지 않고 시드+신용대출금액 그대로 표기
+    if(total<3000||loanAmt<minLoan)
       return{ok:false,bid:Math.min(total,CAP),label:'올현금'+(cr>0?' (시드+신용합산)':'')};
     return{ok:true,bid:Math.min(rawBid,CAP),label:'LTV '+Math.round(ltvPct*100)+'%'+crSfx};
   }
