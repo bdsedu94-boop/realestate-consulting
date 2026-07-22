@@ -5,7 +5,10 @@ const cookieParser = require('cookie-parser');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DB_FILE = path.join(__dirname, 'db.json');
+// Railway에 Volume을 붙이면 RAILWAY_VOLUME_MOUNT_PATH가 자동 설정됨 → 그 경로에 저장(재배포해도 유지)
+// Volume이 없는 로컬 개발 환경에서는 기존처럼 프로젝트 폴더에 저장
+const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || __dirname;
+const DB_FILE = path.join(DATA_DIR, 'db.json');
 
 /* ── 비밀번호 설정 (Railway 환경변수 SITE_PASSWORD로 변경 가능) ── */
 const SITE_PASSWORD = process.env.SITE_PASSWORD || '1500cjdeka@@';
@@ -81,6 +84,7 @@ app.get('/logout', (req, res) => {
 
 function readDB() {
   try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
     if (fs.existsSync(DB_FILE)) {
       return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
     }
@@ -90,6 +94,7 @@ function readDB() {
 
 function writeDB(data) {
   try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
     fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
   } catch(e) { console.error('DB 쓰기 오류:', e); }
 }
