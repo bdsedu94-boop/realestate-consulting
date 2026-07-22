@@ -1185,6 +1185,7 @@ function consult(d){
 
   // 수도권 규제지역 (서울 전역·경기 12곳)
   const wantsResidence=oneHouse&&tY&&(d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주');
+  const wantsResidenceNH=noHouse&&tY&&(d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주');
   if(noHouse){
     reg = tY ? {st:'O',lb:'가능',nt:''} : {st:'T',lb:'조건부',nt:'신용대출 또는 현금 활용'};
   } else if(wantsResidence){
@@ -1263,6 +1264,11 @@ function consult(d){
   // 수도권 규제 (서울 전역·경기 12곳)
   function bidReg(){
     if(!noHouse&&!wantsResidence) return '불가';
+    if(noHouse&&wantsResidenceNH){
+      const bid60=Math.round(total/0.4/100)*100;
+      const bid70=Math.round(total/0.3/100)*100;
+      return fmt(bid60)+' ~ '+fmt(bid70);
+    }
     if(noHouse&&bigInv) return fmt(bAmt)+' (올현금 추천)';
     if(!tY) return fmt(bAmt)+' (신용/현금·조건부)';
     if(wantsResidence){
@@ -1283,6 +1289,11 @@ function consult(d){
       return fmt(bAmt)+' (신용/현금·조건부)';
     }
     // 무주택/생애최초
+    if(wantsResidenceNH){
+      const bid60=Math.round(total/0.4/100)*100;
+      const bid70=Math.round(total/0.3/100)*100;
+      return fmt(bid60)+' ~ '+fmt(bid70);
+    }
     if(bigInv) return fmt(bAmt)+' (올현금 추천)';
     if(!tY) return fmt(bAmt)+' (신용/현금·조건부)';
     const s=cLtv(0.3,0.7);
