@@ -1052,10 +1052,16 @@ function formatBidNarrative(d){
       lines.push('수도권 비규제 APT·빌라 '+fs(Math.min(total,50000))+' 이하 (공시가 1억이하)'+regionMulti);
     }
   }else if(noHouse){
+    const wantsResidenceNH=tY&&(d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주');
     const aptBid=tY&&snrOk?snr70:total;
     // 현금+신용대출은 전입 없이도 규제지역 가능 → 항상 규제·비규제
     const area='수도권 규제·비규제';
-    if(aptBid>15000){
+    if(wantsResidenceNH&&snrOk){
+      // 실거주(또는 단타+실거주) 목적 + 전입가능이면 5억 상한 없이 LTV 60~70% 범위로 표시
+      const bid60=Math.round(total/0.4/100)*100;
+      const bid70=Math.round(total/0.3/100)*100;
+      lines.push(area+' APT '+fsNoCap(bid60)+' ~ '+fsNoCap(bid70)+' 이하');
+    }else if(aptBid>15000){
       const aptRegion=aptBid>=30000?'':' (인천, 경기외곽)';
       lines.push(area+' APT '+fs(Math.min(aptBid,50000))+' 이하'+aptRegion);
     }else{
