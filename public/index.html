@@ -989,6 +989,14 @@ function formatBidNarrative(d){
     if(v%1000===0)return (v/1000)+'천만원';
     return v.toLocaleString()+'만원';
   }
+  function fsNoCap(v){
+    if(v>=10000){const a=Math.floor(v/10000),r=v%10000;
+      if(!r)return a+'억원';
+      if(r%1000===0)return a+'억 '+(r/1000)+'천만원';
+      return a+'억 '+r.toLocaleString()+'만원';}
+    if(v%1000===0)return (v/1000)+'천만원';
+    return v.toLocaleString()+'만원';
+  }
 
   // 올현금 플래그: 경락잔금대출 미활용 → 올현금 투자만
   if(isOlhyun){
@@ -1059,7 +1067,9 @@ function formatBidNarrative(d){
     if(wantsResidence){
       const condNote=' (기존주택 처분조건부·전입조건부)';
       if(snrOk){
-        lines.push('수도권 규제 '+fs(snr70)+' 이하'+condNote);
+        const bid60=Math.round(total/0.4/100)*100;
+        const bid70=Math.round(total/0.3/100)*100;
+        lines.push('수도권 규제 '+fsNoCap(bid60)+' ~ '+fsNoCap(bid70)+condNote);
       }else{
         lines.push('수도권 규제지역 현금+신용대출 활용해 올현금 입찰 가능 물건'+condNote+(needsCrCheck?' (신용대출 가능금액 확인 필요)':''));
       }
@@ -1205,9 +1215,13 @@ function consult(d){
     if(!noHouse&&!wantsResidence) return '불가';
     if(noHouse&&bigInv) return fmt(bAmt)+' (올현금 추천)';
     if(!tY) return fmt(bAmt)+' (신용/현금·조건부)';
-    const suffix=wantsResidence?' · 기존주택 처분조건부·전입조건부':'';
+    if(wantsResidence){
+      const bid60=Math.round(total/0.4/100)*100;
+      const bid70=Math.round(total/0.3/100)*100;
+      return fmt(bid60)+' ~ '+fmt(bid70)+' (기존주택 처분조건부·전입조건부)';
+    }
     const s=cLtv(0.3,0.7);
-    return s.ok?fmt(s.bid)+' ('+s.label+suffix+')':fmt(bAmt)+' (올현금'+suffix+')';
+    return s.ok?fmt(s.bid)+' ('+s.label+')':fmt(bAmt)+' (올현금)';
   }
 
   // 수도권 비규제 (인천+경기 일부)
