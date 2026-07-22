@@ -859,20 +859,46 @@ async function generateReportPDF(d){
 
   const narrativeRowsArr=narrative.split('\n').map(line=>{
     const m=line.match(/^(\d+)\.\s*(.+)$/);
-    if(!m) return `<div style="font-size:13px;line-height:1.6;color:#333">${line}</div>`;
+    return m?{plain:false,text:m[2]}:{plain:true,text:line};
+  });
+  function rowHtml(num,text){
     return `<table style="width:100%;margin-bottom:10px;border-collapse:collapse"><tr>
       <td style="width:30px;vertical-align:top;padding:0">
-        <div style="width:22px;height:22px;border-radius:50%;background:#1a3a5c;color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:22px">${m[1]}</div>
+        <div style="width:22px;height:22px;border-radius:50%;background:#1a3a5c;color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:22px">${num}</div>
       </td>
       <td style="vertical-align:top;padding:0">
-        <div style="font-size:13px;line-height:22px;color:#222">${m[2]}</div>
+        <div style="font-size:13px;line-height:22px;color:#222">${text}</div>
       </td>
     </tr></table>`;
-  });
-  // 실거주+전입가능 1주택자만 1번 항목(수도권 규제) 바로 아래에 관련 참고사항을 끼워 넣음
-  const narrativeRows=oneHouse&&wantsResidence&&narrativeRowsArr.length
-    ?narrativeRowsArr[0]+oneHouseNoteTop+narrativeRowsArr.slice(1).join('')
-    :narrativeRowsArr.join('');
+  }
+  function sectionTitleHtml(t){
+    return `<table style="border-collapse:collapse;margin:18px 0 16px"><tr>
+      <td style="width:4px;padding:0"><div style="width:4px;height:16px;background:#1a3a5c"></div></td>
+      <td style="padding:0 0 0 8px"><div style="font-size:14.5px;font-weight:700;color:#1a3a5c;line-height:16px">${t}</div></td>
+    </tr></table>`;
+  }
+
+  let mainTitle, bodyContent, bottomNoteBox;
+  if(oneHouse&&wantsResidence&&narrativeRowsArr.length){
+    // 실거주 목적 시 / 단타매매 목적 시 섹션을 나누고, 각 섹션 안에서 번호를 1부터 새로 매김
+    const restItems=narrativeRowsArr.slice(1);
+    mainTitle='';
+    bodyContent=sectionTitleHtml('투자방향성 분석 - 실거주')
+      +rowHtml(1,narrativeRowsArr[0].text)
+      +oneHouseNoteTop
+      +sectionTitleHtml('투자방향성 분석 - 단타매매')
+      +restItems.map((r,i)=>rowHtml(i+1,r.text)).join('')
+      +oneHouseNoteBottom;
+    bottomNoteBox='';
+  }else{
+    mainTitle='투자 방향성 분석';
+    let n=1;
+    bodyContent=narrativeRowsArr.map(r=>r.plain
+      ?`<div style="font-size:13px;line-height:1.6;color:#333">${r.text}</div>`
+      :rowHtml(n++,r.text)
+    ).join('');
+    bottomNoteBox=noteBox;
+  }
 
   const container=document.createElement('div');
   container.style.cssText='position:fixed;left:-9999px;top:0;width:600px;background:#fff;font-family:"Apple SD Gothic Neo","Pretendard",sans-serif;';
@@ -899,12 +925,12 @@ async function generateReportPDF(d){
         </table>
       </div>
       <div style="padding:8px 28px 26px">
-        <table style="border-collapse:collapse;margin:18px 0 16px"><tr>
+        ${mainTitle?`<table style="border-collapse:collapse;margin:18px 0 16px"><tr>
           <td style="width:4px;padding:0"><div style="width:4px;height:16px;background:#1a3a5c"></div></td>
-          <td style="padding:0 0 0 8px"><div style="font-size:14.5px;font-weight:700;color:#1a3a5c;line-height:16px">투자 방향성 분석</div></td>
-        </tr></table>
-        ${narrativeRows}
-        ${noteBox}
+          <td style="padding:0 0 0 8px"><div style="font-size:14.5px;font-weight:700;color:#1a3a5c;line-height:16px">${mainTitle}</div></td>
+        </tr></table>`:''}
+        ${bodyContent}
+        ${bottomNoteBox}
       </div>
       <table style="width:100%;border-collapse:collapse;padding:14px 28px;background:#fafafa;border-top:1px solid #eee"><tr>
         <td style="padding:14px 28px;font-size:10.5px;color:#999;line-height:1.6">본 리포트는 설문지를 기준으로 산정된 투자 방향성 참고자료이며, 정확한 대출 조건 및 세부 사항은 별도 상담을 통해 확인하시기 바랍니다.</td>
