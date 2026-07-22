@@ -927,7 +927,7 @@ async function generateReportPDF(d){
             <td style="padding:7px 0;color:#888;border-top:1px solid #f0f0f0">투자금</td>
             <td style="padding:7px 0;color:#222;font-weight:600;border-top:1px solid #f0f0f0">${seedLine.replace('시드 : ','')}</td>
             <td style="padding:7px 0;color:#888;border-top:1px solid #f0f0f0">주택유형</td>
-            <td style="padding:7px 0;color:#222;font-weight:600;border-top:1px solid #f0f0f0">${d.housing_type}${noHouse?` (${transferLabel})`:''}</td>
+            <td style="padding:7px 0;color:#222;font-weight:600;border-top:1px solid #f0f0f0">${d.housing_type}${(noHouse||oneHouse)?` (${transferLabel})`:''}</td>
           </tr>
         </table>
       </div>
