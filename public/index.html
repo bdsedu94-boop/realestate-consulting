@@ -1133,7 +1133,7 @@ function formatBidNarrative(d){
       if(snrOk){
         const bid60=Math.round(total/0.4/100)*100;
         const bid70=Math.round(total/0.3/100)*100;
-        lines.push('수도권 규제 '+fsNoCap(bid60)+' ~ '+fsNoCap(bid70)+condNote);
+        lines.push('입찰가능한 금액 : '+fsNoCap(bid60)+' ~ '+fsNoCap(bid70));
       }else{
         lines.push('수도권 규제지역 현금+신용대출 활용해 올현금 입찰 가능 물건'+condNote+(needsCrCheck?' (신용대출 가능금액 확인 필요)':''));
       }
@@ -1159,7 +1159,7 @@ function formatBidNarrative(d){
 // 신용대출 금액이 있으면 확인 문구 추가 (CSV/PDF 공통)
 function appendCreditCheckNote(text,d){
   if((d.credit_amount||0)>0){
-    return text+'\n**단, 신용대출과 함께 진행 시 경락잔금대출까지 함께 나오는지 항상 확인 필요';
+    return text+'\n** 단, 신용대출 활용 시 경락잔금대출까지 함께 나오는지 항상 확인 필요';
   }
   return text;
 }
