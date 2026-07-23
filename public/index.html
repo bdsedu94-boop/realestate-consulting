@@ -124,6 +124,7 @@ button:hover{background:#f0ede6}
         <button onclick="document.getElementById('xlsxInput').click()" style="background:#1a6b8a;color:#fff">📤 Excel 업로드</button>
         <input type="file" id="xlsxInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(this)">
         <button onclick="exportCSV()" style="background:#27500a;color:#fff">📥 CSV 내보내기</button>
+        <button id="bulkPdfBtn" onclick="downloadAllPDFs()" style="background:#9314cc;color:#fff">📦 전체 PDF 다운로드</button>
       </div>
     </div>
   </div>
@@ -255,6 +256,7 @@ button:hover{background:#f0ede6}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 /* ── 투자 유형 ── */
 /* ── 초기 데이터 ── */
@@ -787,7 +789,7 @@ async function importExcel(input){
 }
 
 /* ── 리포트 PDF 생성 (카톡 양식 그대로) ── */
-async function generateReportPDF(d){
+async function buildReportPDF(d){
   const cr=d.credit_amount||0,total=d.seed_amount+cr;
   const isFirst=d.housing_type==='생애최초',noHouse=d.housing_type==='무주택'||isFirst;
   const narrative=appendCreditCheckNote(formatBidNarrative(d),d);
@@ -971,11 +973,57 @@ async function generateReportPDF(d){
     const dateImgH=dateCanvas.height/2;
     pdf.addImage(dateImgData,'PNG',pageW-30-dateImgW,pageH-25-dateImgH,dateImgW,dateImgH);
 
-    pdf.save(`${d.cohort} ${d.name} 컨설팅리포트.pdf`);
-  }catch(e){
-    alert('PDF 생성 오류: '+e.message);
+    return {pdf,filename:`${d.cohort}_${d.name}_컨설팅리포트.pdf`};
   }finally{
     document.body.removeChild(container);
+  }
+}
+
+// 개별 다운로드 버튼용: buildReportPDF로 만든 PDF를 바로 저장
+async function generateReportPDF(d){
+  try{
+    const {pdf,filename}=await buildReportPDF(d);
+    pdf.save(filename);
+  }catch(e){
+    alert('PDF 생성 오류: '+e.message);
+  }
+}
+
+// 전체(현재 필터된 목록) PDF를 ZIP으로 묶어서 한 번에 다운로드
+async function downloadAllPDFs(){
+  if(!students.length){alert('다운로드할 학생이 없습니다.');return;}
+  const btn=document.getElementById('bulkPdfBtn');
+  const origText=btn.textContent;
+  btn.disabled=true;
+  try{
+    const zip=new JSZip();
+    for(let i=0;i<students.length;i++){
+      const d=students[i];
+      btn.textContent=`PDF 생성 중... (${i+1}/${students.length})`;
+      try{
+        const {pdf,filename}=await buildReportPDF(d);
+        const blob=pdf.output('blob');
+        zip.file(filename,blob);
+      }catch(e){
+        console.error(d.name+' PDF 생성 실패:',e);
+      }
+    }
+    btn.textContent='압축하는 중...';
+    const zipBlob=await zip.generateAsync({type:'blob'});
+    const cohortLabel=document.getElementById('fC').value||'전체';
+    const url=URL.createObjectURL(zipBlob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`${cohortLabel}_컨설팅리포트_모음.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }catch(e){
+    alert('일괄 다운로드 오류: '+e.message);
+  }finally{
+    btn.disabled=false;
+    btn.textContent=origText;
   }
 }
 
