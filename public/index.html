@@ -885,12 +885,16 @@ async function buildReportPDF(d){
   if(oneHouse&&wantsResidence&&narrativeRowsArr.length){
     // 실거주 목적 시 / 단타매매 목적 시 섹션을 나누고, 각 섹션 안에서 번호를 1부터 새로 매김
     const restItems=narrativeRowsArr.slice(1);
+    let rn=1;
     mainTitle='';
     bodyContent=sectionTitleHtml('투자방향성 분석 - 실거주')
       +rowHtml(1,narrativeRowsArr[0].text)
       +oneHouseNoteTop
       +sectionTitleHtml('투자방향성 분석 - 단타매매')
-      +restItems.map((r,i)=>rowHtml(i+1,r.text)).join('')
+      +restItems.map(r=>r.plain
+        ?`<div style="font-size:12.5px;line-height:1.6;color:#555;margin-top:6px">${r.text}</div>`
+        :rowHtml(rn++,r.text)
+      ).join('')
       +oneHouseNoteBottom;
     bottomNoteBox='';
   }else{
