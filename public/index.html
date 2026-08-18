@@ -1165,7 +1165,8 @@ function appendCreditCheckNote(text,d){
 }
 
 // CSV 전용: (1주택자 또는 무주택자) + 실거주(또는 단타+실거주) + 전입가능자는 [실거주]/[단타] 라벨을 붙여서 구분 (PDF 리포트는 라벨 없이, 신용대출 문구만 공통 적용)
-// 단, 무주택자인데 자기자금 3,000만원 미만 등으로 실거주/단타 구분 자체가 의미 없는 경우(계산 결과가 동일)는 [실거주,단타]로 통합 표기
+// - 무주택자가 자기자금 3,000만원 미만이면 실거주/단타 구분이 의미 없으므로 [실거주,단타]로 통합
+// - 무주택자가 구분되는 경우([실거주]는 5억 상한 없이, [단타]는 원래 5억 상한 걸린 수도권 규제·비규제 줄도 추가)
 function formatBidNarrativeCSV(d){
   const base=formatBidNarrative(d);
   const oneHouse=d.housing_type==='1주택';
@@ -1176,16 +1177,43 @@ function formatBidNarrativeCSV(d){
   const snr70=tY?Math.min(Math.round(total/0.3/100)*100,CAP):null;
   const snrOk=snr70&&total>=3000&&snr70*0.7>=5000;
   const wantsResidence=(oneHouse||noHouse)&&tY&&(d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주');
-  let lines=base.split('\n');
-  if(wantsResidence&&lines.length>=2){
-    if(noHouse&&!snrOk){
-      // 무주택자는 자기자금 3,000만원 미만이면 실거주든 단타든 결과가 동일 → 라벨 하나로 통합
-      lines=['[실거주,단타]',...lines];
-    }else{
-      lines=['[실거주]',lines[0],'[단타]',...lines.slice(1)];
-    }
+  const rawLines=base.split('\n').map(l=>{
+    const m=l.match(/^\d+\.\s*(.+)$/);
+    return m?m[1]:l;
+  });
+  if(!(wantsResidence&&rawLines.length>=2)){
+    return appendCreditCheckNote(base,d);
   }
-  return appendCreditCheckNote(lines.join('\n'),d);
+  function fsCap(v){
+    v=Math.min(v,CAP);
+    if(v>=10000){const a=Math.floor(v/10000),r=v%10000;
+      if(!r)return a+'억원';
+      if(r%1000===0)return a+'억 '+(r/1000)+'천만원';
+      return a+'억 '+r.toLocaleString()+'만원';}
+    if(v%1000===0)return (v/1000)+'천만원';
+    return v.toLocaleString()+'만원';
+  }
+  let items;
+  if(noHouse&&!snrOk){
+    // 자기자금 3,000만원 미만 → 실거주든 단타든 결과 동일, 라벨 통합
+    items=[{h:true,text:'[실거주,단타]'},...rawLines];
+  }else if(noHouse&&snrOk){
+    // 단타 목적이었다면 나왔을 5억 상한 버전 수도권 줄을 [단타] 아래에 추가
+    const aptBid=snr70;
+    let dantaLine;
+    if(aptBid>15000){
+      const aptRegion=aptBid>=30000?'':' (인천, 경기외곽)';
+      dantaLine='수도권 규제·비규제 APT '+fsCap(aptBid)+' 이하'+aptRegion;
+    }else{
+      dantaLine='수도권 규제·비규제 APT '+fsCap(aptBid)+' 이하'+(aptBid>=13000?'':' (인천, 부천)');
+    }
+    items=[{h:true,text:'[실거주]'},rawLines[0],{h:true,text:'[단타]'},dantaLine,...rawLines.slice(1)];
+  }else{
+    items=[{h:true,text:'[실거주]'},rawLines[0],{h:true,text:'[단타]'},...rawLines.slice(1)];
+  }
+  let n=1;
+  const out=items.map(it=>(typeof it==='object'&&it.h)?it.text:(n++)+'. '+it);
+  return appendCreditCheckNote(out.join('\n'),d);
 }
 
 function exportCSV(){
