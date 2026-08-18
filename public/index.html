@@ -1165,15 +1165,25 @@ function appendCreditCheckNote(text,d){
 }
 
 // CSV 전용: (1주택자 또는 무주택자) + 실거주(또는 단타+실거주) + 전입가능자는 [실거주]/[단타] 라벨을 붙여서 구분 (PDF 리포트는 라벨 없이, 신용대출 문구만 공통 적용)
+// 단, 무주택자인데 자기자금 3,000만원 미만 등으로 실거주/단타 구분 자체가 의미 없는 경우(계산 결과가 동일)는 [실거주,단타]로 통합 표기
 function formatBidNarrativeCSV(d){
   const base=formatBidNarrative(d);
   const oneHouse=d.housing_type==='1주택';
   const noHouse=d.housing_type==='무주택'||d.housing_type==='생애최초';
   const tY=d.transfer_available==='Y';
+  const cr=d.credit_amount||0,total=d.seed_amount+cr;
+  const CAP=50000;
+  const snr70=tY?Math.min(Math.round(total/0.3/100)*100,CAP):null;
+  const snrOk=snr70&&total>=3000&&snr70*0.7>=5000;
   const wantsResidence=(oneHouse||noHouse)&&tY&&(d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주');
   let lines=base.split('\n');
   if(wantsResidence&&lines.length>=2){
-    lines=['[실거주]',lines[0],'[단타]',...lines.slice(1)];
+    if(noHouse&&!snrOk){
+      // 무주택자는 자기자금 3,000만원 미만이면 실거주든 단타든 결과가 동일 → 라벨 하나로 통합
+      lines=['[실거주,단타]',...lines];
+    }else{
+      lines=['[실거주]',lines[0],'[단타]',...lines.slice(1)];
+    }
   }
   return appendCreditCheckNote(lines.join('\n'),d);
 }
