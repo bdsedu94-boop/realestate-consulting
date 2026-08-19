@@ -230,6 +230,13 @@ button:hover{background:#f0ede6}
           <option value="Y">가능</option>
           <option value="N">불가</option>
         </select></div>
+      <div><label class="fl">투자목적</label>
+        <select id="em-purpose" style="width:100%">
+          <option value="unknown">미기재</option>
+          <option value="실거주">실거주</option>
+          <option value="단타">단타</option>
+          <option value="단타+실거주">단타+실거주 (둘 다)</option>
+        </select></div>
       <div><label class="fl">상담 상태</label>
         <select id="em-status" style="width:100%">
           <option value="대기">상담 대기</option>
@@ -511,6 +518,7 @@ function openEdit(d){
   document.getElementById('em-cr').value=d.credit_amount||0;
   document.getElementById('em-l').value=d.loan_available;
   document.getElementById('em-t').value=d.transfer_available;
+  document.getElementById('em-purpose').value=d.investment_purpose||'unknown';
   document.getElementById('em-status').value=d.status||'대기';
   document.getElementById('em-date').value=d.consult_date||'';
   document.getElementById('em-note').value=d.note||'';
@@ -536,6 +544,7 @@ async function saveEdit(){
     credit_amount:parseInt(document.getElementById('em-cr').value)||0,
     loan_available:document.getElementById('em-l').value,
     transfer_available:document.getElementById('em-t').value,
+    investment_purpose:document.getElementById('em-purpose').value,
     status:document.getElementById('em-status').value,
     consult_date:document.getElementById('em-date').value.trim(),
     note:document.getElementById('em-note').value.trim(),
