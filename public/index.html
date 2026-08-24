@@ -838,12 +838,17 @@ async function buildReportPDF(d){
       이 부분이 걸리신다면, 수도권에서는 현금 + 신용대출 금액으로 입찰할 수 있는 금액으로 물건 봐주시거나, 비수도권의 물건을 보시면 됩니다!
     </div>`:'';
 
-  const noHouseNoteTop='<div style="height:24px"></div>';
+  const noHouseNoteTop=noHouse?`
+    <div style="margin:2px 0 14px 0;padding:16px 20px;background:#f7f8fa;border-left:3px solid #4a4a4a;border-radius:4px;font-size:12px;line-height:1.85;color:#555">
+      <div style="font-weight:700;color:#222;margin-bottom:8px;font-size:12.5px">※ 참고사항</div>
+      무주택자는 수도권에서 경락잔금대출(낙찰 받은 집을 담보로 대출)을 받을 수 있지만, 전입을 해야하는 조건이 있습니다.<br>
+      ※ 실거주 주택 구입 시 매매사업자 불필요
+    </div>`:'';
 
   const noHouseNoteBottom=noHouse?`
     <div style="margin-top:24px;padding:18px 20px;background:#f7f8fa;border-left:3px solid #4a4a4a;border-radius:4px;font-size:12px;line-height:1.85;color:#555">
       <div style="font-weight:700;color:#222;margin-bottom:8px;font-size:12.5px">※ 참고사항</div>
-      무주택자는 수도권에서 경락잔금대출(낙찰 받은 집을 담보로 대출)을 받을 수 있지만, 전입을 해야하는 조건이 있습니다.<br><br>
+      단타매매 역시 무주택자는 수도권에서 경락잔금대출(낙찰 받은 집을 담보로 대출)을 받을 수 있지만, 전입을 해야하는 조건이 있습니다.<br><br>
       ※ 매매사업자를 활용해 단타매매를 하기 전, 해당 집에 전입을 했다는 이유만으로 매매사업자로 인정을 받을 수 없다(단기 매도 시 양도세 77%)는 의견이 있습니다. 이는 세무사님 마다도 의견이 다르기 때문에 판단과 책임은 본인에게 있습니다.<br><br>
       이 부분이 걸리신다면, 수도권에서는 현금 + 신용대출 금액으로 입찰할 수 있는 금액으로 물건 봐주시거나, 비수도권의 물건을 보시면 됩니다!
     </div>`:'';
