@@ -1205,7 +1205,7 @@ function formatBidNarrative(d){
       // 실거주(또는 단타+실거주) 목적 + 전입가능이면 5억 상한 없이 LTV 60~70% 범위로 표시
       const bid60=Math.round(total/0.4/100)*100;
       const bid70=Math.round(total/0.3/100)*100;
-      lines.push(area+' APT '+fsNoCap(bid60)+' ~ '+fsNoCap(bid70)+' 이하');
+      lines.push('입찰가능한 금액 : '+fsNoCap(bid60)+' ~ '+fsNoCap(bid70));
     }else if(aptBid>15000){
       const t=tierLabel(Math.min(aptBid,50000));
       lines.push(area+' '+t.propType+' '+fs(Math.min(aptBid,50000))+' 이하'+t.regionTag);
