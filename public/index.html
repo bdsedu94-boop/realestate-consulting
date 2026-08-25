@@ -879,6 +879,23 @@ async function buildReportPDF(d){
       비수도권은 경락잔금대출 낙찰가의 60~80%가 대부분 적용되므로, 수도권 보단 더 높은 금액대에 도전할 수 있습니다.
     </div>`:'';
 
+  const multiNoteTop=multi?`
+    <div style="margin:2px 0 14px 0;padding:16px 20px;background:#f7f8fa;border-left:3px solid #4a4a4a;border-radius:4px;font-size:12px;line-height:1.85;color:#555">
+      <div style="font-weight:700;color:#222;margin-bottom:8px;font-size:12.5px">※ 참고사항</div>
+      다주택자의 경우 기존 주택을 다 처분해야 대출을 받을 수 있습니다.<br>
+      기존주택을 처분하지 않을 경우 취득세 중과(8~12%)가 될 수 있으니 세금적인 부분도 함께 고려하셔야 합니다.<br>
+      기존 주택을 보유하면서 취득세 1%를 받기 위해서는 수도권 공시가격 1억원, 비수도권 공시가격 2억원 이하의 물건으로 보셔야 합니다.
+    </div>`:'';
+
+  const multiNoteBottom=multi?`
+    <div style="margin-top:24px;padding:18px 20px;background:#f7f8fa;border-left:3px solid #4a4a4a;border-radius:4px;font-size:12px;line-height:1.85;color:#555">
+      <div style="font-weight:700;color:#222;margin-bottom:8px;font-size:12.5px">※ 참고사항</div>
+      다주택자는 수도권에서는 경락잔금대출을 받을 수 없으며, 규제지역에서는 매매사업자 세제 혜택도 적용받을 수 없습니다.<br><br>
+      다만 수도권 비규제지역의 공시가격 1억 원 이하 주택은 현금과 신용대출을 활용해 투자할 수 있습니다. 공시가격 1억 원 이하 주택은 다주택자도 취득세 1%가 적용되어 추가 매수 시 세금 부담을 줄일 수 있습니다.<br><br>
+      또한 비수도권의 공시가격 2억 원 이하 주택도 취득세 1%가 적용됩니다. 여기에 경락잔금대출(LTV 60~80%)을 활용할 수 있어, 같은 자금으로 더 높은 금액대의 물건에 투자할 수 있습니다.<br><br>
+      세금은 개인의 상황에 따라 달라질 수 있으므로, 자세한 내용은 세무사와 상담하시기를 권장드립니다.
+    </div>`:'';
+
   const multiNote=multi?`
     <div style="margin-top:24px;padding:18px 20px;background:#f7f8fa;border-left:3px solid #4a4a4a;border-radius:4px;font-size:12px;line-height:1.85;color:#555">
       <div style="font-weight:700;color:#222;margin-bottom:8px;font-size:12.5px">※ 참고사항</div>
@@ -890,7 +907,9 @@ async function buildReportPDF(d){
 
   const oneHouseNoteFinal=oneHouse?(wantsResidence?oneHouseNoteBottom:oneHouseNoteCombined):'';
   const noHouseNoteFinal=noHouse?(wantsResidenceNH&&snrOkNH?'':noHouseNote):'';
-  const noteBox=noHouseNoteFinal||oneHouseNoteFinal||multiNote;
+  const wantsResidenceMulti=multi&&d.transfer_available==='Y'&&(d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주');
+  const multiNoteFinal=multi?(wantsResidenceMulti?'':multiNote):'';
+  const noteBox=noHouseNoteFinal||oneHouseNoteFinal||multiNoteFinal;
 
   const transferLabel=d.transfer_available==='Y'?'전입가능':d.transfer_available==='N'?'전입불가':'미확인';
   const today=new Date();
@@ -953,6 +972,20 @@ async function buildReportPDF(d){
         :rowHtml(rn++,r.text)
       ).join('')
       +noHouseNoteBottom;
+    bottomNoteBox='';
+  }else if(multi&&wantsResidenceMulti&&narrativeRowsArr.length){
+    // 다주택자 실거주 목적: 계산된 금액 대신 "별도 상담 필요" 안내, 단타 항목은 기존 계산 그대로
+    let rn=1;
+    mainTitle='';
+    bodyContent=sectionTitleHtml('투자방향성 분석 - 실거주')
+      +rowHtml(1,'별도 상담 필요')
+      +multiNoteTop
+      +sectionTitleHtml('투자방향성 분석 - 단타매매')
+      +narrativeRowsArr.map(r=>r.plain
+        ?`<div style="font-size:12.5px;line-height:1.6;color:#555;margin-top:6px">${r.text}</div>`
+        :rowHtml(rn++,r.text)
+      ).join('')
+      +multiNoteBottom;
     bottomNoteBox='';
   }else{
     mainTitle='투자 방향성 분석';
@@ -1239,16 +1272,25 @@ function formatBidNarrativeCSV(d){
   const base=formatBidNarrative(d);
   const oneHouse=d.housing_type==='1주택';
   const noHouse=d.housing_type==='무주택'||d.housing_type==='생애최초';
+  const multi=d.housing_type==='다주택';
   const tY=d.transfer_available==='Y';
   const cr=d.credit_amount||0,total=d.seed_amount+cr;
   const CAP=50000;
   const snr70=tY?Math.min(Math.round(total/0.3/100)*100,CAP):null;
   const snrOk=snr70&&total>=3000&&snr70*0.7>=5000;
   const wantsResidence=(oneHouse||noHouse)&&tY&&(d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주');
+  const wantsResidenceMulti=multi&&tY&&(d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주');
   const rawLines=base.split('\n').map(l=>{
     const m=l.match(/^\d+\.\s*(.+)$/);
     return m?m[1]:l;
   });
+  if(wantsResidenceMulti){
+    // 다주택자 실거주 목적: 계산된 금액 대신 "별도 상담 필요"로 안내, 단타 항목은 기존 계산 그대로
+    const items=[{h:true,text:'[실거주]'},'별도 상담 필요',{h:true,text:'[단타]'},...rawLines];
+    let n=1;
+    const out=items.map(it=>(typeof it==='object'&&it.h)?it.text:(n++)+'. '+it);
+    return appendCreditCheckNote(out.join('\n'),d);
+  }
   if(!(wantsResidence&&rawLines.length>=2)){
     return appendCreditCheckNote(base,d);
   }
