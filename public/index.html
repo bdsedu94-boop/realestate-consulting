@@ -1292,7 +1292,17 @@ function formatBidNarrativeCSV(d){
     const out=items.map(it=>(typeof it==='object'&&it.h)?it.text:(n++)+'. '+it);
     return appendCreditCheckNote(out.join('\n'),d);
   }
-  if(!(wantsResidence&&rawLines.length>=2)){
+  if(!wantsResidence){
+    return appendCreditCheckNote(base,d);
+  }
+  if(rawLines.length===1){
+    // 자금이 너무 작아 완전 계산불가(1줄짜리 안내문) 상황 → 실거주/단타 구분 의미 없음, 라벨 통합
+    const items=[{h:true,text:'[실거주,단타]'},...rawLines];
+    let n=1;
+    const out=items.map(it=>(typeof it==='object'&&it.h)?it.text:(n++)+'. '+it);
+    return appendCreditCheckNote(out.join('\n'),d);
+  }
+  if(rawLines.length<2){
     return appendCreditCheckNote(base,d);
   }
   function fsCap(v){
