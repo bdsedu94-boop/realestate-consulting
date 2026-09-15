@@ -1291,10 +1291,15 @@ function formatBidNarrative(d){
   }
   if(hasLocal){
     const note=multi?' (공시가 2억이하)':'';
-    const localPrefix=needsCrCheck&&!multi?'비수도권 APT 입찰가 기준: ':'비수도권 APT ';
-    lines.push(localMin===l80bid
-      ?localPrefix+fs(l80bid)+' 이하'+note
-      :localPrefix+fs(localMin)+' ~ '+fs(l80bid)+note);
+    if(total>10000){
+      // 합산자금 1억 초과면 구체적 범위 대신 상한선만 안내
+      lines.push('비수도권 APT '+fs(CAP)+' 이하'+note);
+    }else{
+      const localPrefix=needsCrCheck&&!multi?'비수도권 APT 입찰가 기준: ':'비수도권 APT ';
+      lines.push(localMin===l80bid
+        ?localPrefix+fs(l80bid)+' 이하'+note
+        :localPrefix+fs(localMin)+' ~ '+fs(l80bid)+note);
+    }
   }
   return lines.map((l,i)=>(i+1)+'. '+l).join('\n');
 }
