@@ -1215,7 +1215,7 @@ function formatBidNarrative(d,forceDanta){
       return{ok:true,bid:8300};
     }
     function fmtLine(r){
-      return r.ok?fsNoCap(r.bid):'현금+신용대출 활용해 올현금 입찰 가능 물건';
+      return r.ok?fsNoCap(r.bid)+' 이하':'현금+신용대출 활용해 올현금 입찰 가능 물건';
     }
     const rLines=[];
     if(multi){
