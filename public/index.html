@@ -945,8 +945,8 @@ async function buildReportPDF(d){
       </td>
     </tr></table>`;
   }
-  function sectionTitleHtml(t){
-    return `<table style="border-collapse:collapse;margin:18px 0 16px"><tr>
+  function sectionTitleHtml(t,marginTop=18){
+    return `<table style="border-collapse:collapse;margin:${marginTop}px 0 16px"><tr>
       <td style="width:4px;padding:0"><div style="width:4px;height:16px;background:#9314cc"></div></td>
       <td style="padding:0 0 0 8px"><div style="font-size:14.5px;font-weight:700;color:#9314cc;line-height:16px">${t}</div></td>
     </tr></table>`;
@@ -974,7 +974,7 @@ async function buildReportPDF(d){
         ?`<div style="font-size:12.5px;line-height:1.6;color:#555;margin-top:6px">${r.text}</div>`
         :rowHtml(rn1++,r.text)
       ).join('')
-      +sectionTitleHtml('투자방향성 분석 - 단타매매')
+      +sectionTitleHtml('투자방향성 분석 - 단타매매',40)
       +dantaRows.map(r=>r.plain
         ?`<div style="font-size:12.5px;line-height:1.6;color:#555;margin-top:6px">${r.text}</div>`
         :rowHtml(rn2++,r.text)
