@@ -984,7 +984,7 @@ async function buildReportPDF(d){
     }
     const mergedRows=toRowsNH(narrative);
     let rn=1;
-    mainTitle='투자 방향성 분석';
+    mainTitle='투자 방향성 분석 - 실거주&단타';
     bodyContent=mergedRows.map(r=>r.plain
       ?`<div style="font-size:13px;line-height:1.6;color:#333">${r.text}</div>`
       :rowHtml(rn++,r.text)
