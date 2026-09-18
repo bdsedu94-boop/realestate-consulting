@@ -839,7 +839,7 @@ async function buildReportPDF(d){
   const noHouseNote=noHouse?`
     <div style="margin-top:24px;padding:18px 20px;background:#f7f8fa;border-left:3px solid #4a4a4a;border-radius:4px;font-size:12px;line-height:1.85;color:#555">
       <div style="font-weight:700;color:#222;margin-bottom:8px;font-size:12.5px">※ 참고사항</div>
-      ${wantsResidenceNH?`
+      ${(wantsResidenceNH||usesHypothetical)?`
       수도권에서 경락잔금대출(낙찰 받은 집을 담보로 대출)을 받을 수 있지만, 전입 조건이 있습니다.<br>
       생애최초 구입이시면 대출 한도가 더 높게 적용되어 같은 자금으로도 더 큰 금액까지 도전하실 수 있습니다.<br><br>
       실거주 목적의 주택 구입 시 매매사업자 등록은 필요하지 않습니다.<br><br>
@@ -974,14 +974,12 @@ async function buildReportPDF(d){
         ?`<div style="font-size:12.5px;line-height:1.6;color:#555;margin-top:6px">${r.text}</div>`
         :rowHtml(rn1++,r.text)
       ).join('')
-      +noHouseNoteTop
       +sectionTitleHtml('투자방향성 분석 - 단타매매')
       +dantaRows.map(r=>r.plain
         ?`<div style="font-size:12.5px;line-height:1.6;color:#555;margin-top:6px">${r.text}</div>`
         :rowHtml(rn2++,r.text)
-      ).join('')
-      +noHouseNoteBottom;
-    bottomNoteBox='';
+      ).join('');
+    bottomNoteBox=noHouseNote;
   }else if(usesNewScheme&&noHouse){
     // 무주택자는 처분조건 제약이 없어 실거주/단타 결과가 실질적으로 같으므로 단일 섹션으로 병합
     function toRowsNH(text){
