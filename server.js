@@ -11,7 +11,8 @@ const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || __dirname;
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
 /* ── 비밀번호 설정 (Railway 환경변수 SITE_PASSWORD로 변경 가능) ── */
-const SITE_PASSWORD = process.env.SITE_PASSWORD || '1500cjdeka@@';
+const SITE_PASSWORD = process.env.SITE_PASSWORD;
+if (!SITE_PASSWORD) throw new Error('SITE_PASSWORD must be configured in the server environment');
 const AUTH_TOKEN = 'consulting_auth_ok';
 
 /* ── 로그인 페이지 HTML ── */
@@ -62,6 +63,7 @@ function requireAuth(req, res, next) {
 }
 
 app.use(cookieParser());
+app.use('/api/investment', require('./investment-api')());
 app.use(express.json({ limit: '10mb' }));
 app.use(requireAuth);
 app.use(express.static(path.join(__dirname, 'public')));
