@@ -108,7 +108,7 @@ function formatBidNarrative(d,forceDanta,forceResidence){
         rLines.push('비수도권 '+fmtLine(ltvLine(0.8)));
       }else{
         rLines.push('수도권 규제 '+fmtLine(ltvLine(0.4,true))+' (생애최초인 경우 '+fmtLine(ltvLine(0.7,true))+')');
-        rLines.push('수도권 비규제 '+fmtLine(ltvLine(0.7)));
+        rLines.push('수도권 비규제 '+fmtLine(ltvLine(0.7,true)));
         rLines.push('비수도권 '+fmtLine(ltvLine(0.7))+' (생애최초인 경우 '+fmtLine(ltvLine(0.8))+')');
       }
     }
