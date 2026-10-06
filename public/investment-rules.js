@@ -14,6 +14,27 @@ function tierLabel(amt){
   if(amt<=30000) return{propType:'APT',regionTag:' (인천, 경기외곽)'};
   return{propType:'APT',regionTag:''};
 }
+
+// 수도권·규제지역 주택구입목적 주담대 총액한도 반영.
+// 주택가격 15억원 이하 6억원 / 15억원 초과~25억원 이하 4억원 / 25억원 초과 2억원.
+// LTV로 계산한 입찰가와 자기자금+해당 구간 대출한도 중 실제 가능한 최대 금액을 사용합니다.
+function metroBidWithLoanCap(total,ltv){
+  const raw=Math.round(total/(1-ltv)/100)*100;
+  const tiers=[
+    {min:0,max:150000,cap:60000},
+    {min:150000,max:250000,cap:40000},
+    {min:250000,max:Infinity,cap:20000}
+  ];
+  let best=0;
+  for(const t of tiers){
+    let candidate=Math.min(raw,total+t.cap,t.max);
+    candidate=Math.floor(candidate/100)*100;
+    if(candidate<=t.min) continue;
+    const requiredLoan=Math.max(0,candidate-total);
+    if(requiredLoan<=t.cap&&candidate<=raw) best=Math.max(best,candidate);
+  }
+  return best||Math.min(raw,total);
+}
 function formatBidNarrative(d,forceDanta,forceResidence){
   if(d.housing_type==='미기입'){
     return'⚠ 주택수 미기입 - 확인 필요 (상담 시 주택 보유 현황을 먼저 파악해주세요)';
@@ -57,17 +78,15 @@ function formatBidNarrative(d,forceDanta,forceResidence){
   if(wantsResidenceAny&&total>=3000){
     // 낙찰가 = 자기자금 ÷ (1-LTV%), 최소 8,300만원. 8,300만원으로 끌어올려진 경우에만
     // 그 시점의 자기부담분(8,300×(1-LTV%))이 실제 보유 자기자금을 넘는지 검사
-    function ltvLine(ltv){
+    function ltvLine(ltv,isMetro){
       const raw=Math.round(total/(1-ltv)/100)*100;
-      let bid;
-      if(raw>=8300){
-        bid=raw;
-      }else{
+      let bid=isMetro?metroBidWithLoanCap(total,ltv):raw;
+      if(bid<8300){
         const selfBurden=Math.round(8300*(1-ltv));
         if(selfBurden>total) return{ok:false,bid:null};
         bid=8300;
       }
-      const loanAmt=Math.round(bid*ltv);
+      const loanAmt=Math.max(0,bid-total);
       if(loanAmt<5000) return{ok:false,bid:null}; // 대출실행액 5,000만원 미만이면 실제 대출 자체가 안 나옴
       return{ok:true,bid:bid};
     }
@@ -76,19 +95,19 @@ function formatBidNarrative(d,forceDanta,forceResidence){
     }
     const rLines=[];
     if(multi){
-      rLines.push('수도권 비규제 '+fmtLine(ltvLine(0.6))+' (기존주택 처분조건부)');
+      rLines.push('수도권 비규제 '+fmtLine(ltvLine(0.6,true))+' (기존주택 처분조건부)');
       rLines.push('비수도권 '+fmtLine(ltvLine(0.6)));
     }else if(oneHouse){
-      rLines.push('수도권 규제 '+fmtLine(ltvLine(0.4))+' (기존주택 처분조건부)');
-      rLines.push('수도권 비규제 '+fmtLine(ltvLine(0.7))+' (기존주택 처분조건부)');
+      rLines.push('수도권 규제 '+fmtLine(ltvLine(0.4,true))+' (기존주택 처분조건부)');
+      rLines.push('수도권 비규제 '+fmtLine(ltvLine(0.7,true))+' (기존주택 처분조건부)');
       rLines.push('비수도권 '+fmtLine(ltvLine(0.6)));
     }else{ // noHouse (무주택/생애최초)
       if(isFirst){
-        rLines.push('수도권 규제 '+fmtLine(ltvLine(0.7)));
-        rLines.push('수도권 비규제 '+fmtLine(ltvLine(0.7)));
+        rLines.push('수도권 규제 '+fmtLine(ltvLine(0.7,true)));
+        rLines.push('수도권 비규제 '+fmtLine(ltvLine(0.7,true)));
         rLines.push('비수도권 '+fmtLine(ltvLine(0.8)));
       }else{
-        rLines.push('수도권 규제 '+fmtLine(ltvLine(0.4))+' (생애최초인 경우 '+fmtLine(ltvLine(0.7))+')');
+        rLines.push('수도권 규제 '+fmtLine(ltvLine(0.4,true))+' (생애최초인 경우 '+fmtLine(ltvLine(0.7,true))+')');
         rLines.push('수도권 비규제 '+fmtLine(ltvLine(0.7)));
         rLines.push('비수도권 '+fmtLine(ltvLine(0.7))+' (생애최초인 경우 '+fmtLine(ltvLine(0.8))+')');
       }
@@ -166,14 +185,13 @@ function formatBidNarrative(d,forceDanta,forceResidence){
         lines.push('수도권 규제지역 현금+신용대출 활용해 올현금 입찰 가능 물건'+condNote+(needsCrCheck?' (신용대출 가능금액 확인 필요)':''));
       }
     }
-    if(total>10000){
-      const t=tierLabel(Math.min(total,50000));
-      lines.push('수도권 비규제 '+t.propType+' '+fs(total)+' 이하'+t.regionTag);
-    }else if(needsCrCheck){
+    // 1주택 + 단타 방향은 기존주택 처분을 전제로 한 LTV를 기본안으로 보지 않음.
+    // 신용대출 금액이 미확인(0)이면 투자금 규모와 관계없이 확인 필요 문구를 우선 표시.
+    if(needsCrCheck){
       lines.push('수도권 비규제지역 현금+신용대출 활용해 올현금 입찰 가능 물건 (신용대출 가능금액 확인 필요)');
     }else{
-      const t=tierLabel(total);
-      lines.push('수도권 비규제 '+t.propType+' '+fs(total)+' 이하'+t.regionTag);
+      const t=tierLabel(Math.min(total,50000));
+      lines.push('수도권 비규제 '+t.propType+' '+fs(total)+' 이하'+t.regionTag+' (올현금)');
     }
   }
   if(hasLocal){

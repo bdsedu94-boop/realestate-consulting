@@ -59,3 +59,15 @@ test('API authenticates, validates input, returns shared rules, and grants no st
   const privateResponse = await fetch(origin + '/api/students', { headers: { Authorization: `Bearer ${token}` } });
   assert.equal(privateResponse.status, 401);
 });
+
+
+test('one-home short-term investor with unknown credit always gets cash+credit guidance', () => {
+  const result = rules.diagnose({ housing_type:'1주택', transfer_available:'Y', investment_purpose:'단타', seed_amount:13000, credit_amount:0 });
+  assert.match(result.narrative, /수도권 비규제지역 현금\+신용대출 활용해 올현금 입찰 가능 물건 \(신용대출 가능금액 확인 필요\)/);
+  assert.doesNotMatch(result.narrative, /수도권 비규제 APT·빌라 1억 3천만원 이하/);
+});
+
+test('high-cash no-house residence profile applies metro mortgage caps but keeps first-home reference', () => {
+  const result = rules.diagnose({ housing_type:'무주택', transfer_available:'Y', investment_purpose:'단타+실거주', seed_amount:50000, credit_amount:0 });
+  assert.equal(result.narrative, '[실거주&단타]\n1. 수도권 규제 8억 3,300만원 이하 (생애최초인 경우 11억원 이하)\n2. 수도권 비규제 11억원 이하\n3. 비수도권 16억 6,700만원 이하 (생애최초인 경우 25억원 이하)');
+});
