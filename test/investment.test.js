@@ -71,3 +71,41 @@ test('high-cash no-house residence profile applies metro mortgage caps but keeps
   const result = rules.diagnose({ housing_type:'무주택', transfer_available:'Y', investment_purpose:'단타+실거주', seed_amount:50000, credit_amount:0 });
   assert.equal(result.narrative, '[실거주&단타]\n1. 수도권 규제 8억 3,300만원 이하 (생애최초인 경우 11억원 이하)\n2. 수도권 비규제 11억원 이하\n3. 비수도권 16억 6,700만원 이하 (생애최초인 경우 25억원 이하)');
 });
+
+
+test('admin, CSV, PDF context, and diagnostic API share capped metro amounts for the same profile', async t => {
+  const profile = {
+    housing_type: '무주택',
+    transfer_available: 'Y',
+    investment_purpose: '단타+실거주',
+    seed_amount: 50000,
+    credit_amount: 0,
+    loan_available: 'unknown',
+    flags: []
+  };
+  const admin = rules.consult(profile);
+  assert.equal(admin.bid, '수도권 규제 8억 3,300만원 이하 / 수도권 비규제 11억원 이하 / 비수도권 5억원 (LTV 80%)');
+
+  const csv = rules.formatBidNarrativeCSV(profile);
+  assert.match(csv, /수도권 규제 8억 3,300만원 이하/);
+  assert.match(csv, /수도권 비규제 11억원 이하/);
+  const pdf = rules.getReportContext(profile).narrative;
+  assert.match(pdf, /수도권 규제 8억 3,300만원 이하/);
+  assert.match(pdf, /수도권 비규제 11억원 이하/);
+
+  const app = express();
+  app.use('/api/investment', investmentApi(token));
+  const server = app.listen(0, '127.0.0.1');
+  await new Promise(resolve => server.once('listening', resolve));
+  t.after(() => new Promise(resolve => { server.closeAllConnections(); server.close(resolve); }));
+  const response = await fetch(`http://127.0.0.1:${server.address().port}/api/investment/diagnose`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(profile)
+  });
+  assert.equal(response.status, 200);
+  const api = await response.json();
+  assert.equal(api.result.narrative, csv);
+  assert.match(api.result.narrative, /수도권 규제 8억 3,300만원 이하/);
+  assert.match(api.result.narrative, /수도권 비규제 11억원 이하/);
+});
