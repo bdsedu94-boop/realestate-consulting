@@ -426,16 +426,13 @@ function consult(d){
   function bidReg(){
     if(!noHouse&&!wantsResidence) return '불가';
     if(noHouse&&wantsResidenceNH){
-      const bid60=Math.round(total/0.4/100)*100;
-      const bid70=Math.round(total/0.3/100)*100;
-      return fmt(bid60)+' ~ '+fmt(bid70);
+      const regLtv=isFirst?0.7:0.4;
+      return fmt(metroBidWithLoanCap(total,regLtv))+' 이하';
     }
     if(noHouse&&bigInv) return fmt(bAmt)+' (올현금 추천)';
     if(!tY) return fmt(bAmt)+' (신용/현금·조건부)';
     if(wantsResidence){
-      const bid60=Math.round(total/0.4/100)*100;
-      const bid70=Math.round(total/0.3/100)*100;
-      return fmt(bid60)+' ~ '+fmt(bid70)+' (기존주택 처분조건부·전입조건부)';
+      return fmt(metroBidWithLoanCap(total,0.4))+' 이하 (기존주택 처분조건부·전입조건부)';
     }
     const s=cLtv(0.3,0.7);
     return s.ok?fmt(s.bid)+' ('+s.label+')':fmt(bAmt)+' (올현금)';
@@ -451,9 +448,7 @@ function consult(d){
     }
     // 무주택/생애최초
     if(wantsResidenceNH){
-      const bid60=Math.round(total/0.4/100)*100;
-      const bid70=Math.round(total/0.3/100)*100;
-      return fmt(bid60)+' ~ '+fmt(bid70);
+      return fmt(metroBidWithLoanCap(total,0.7))+' 이하';
     }
     if(bigInv) return fmt(bAmt)+' (올현금 추천)';
     if(!tY) return fmt(bAmt)+' (신용/현금·조건부)';
