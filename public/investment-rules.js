@@ -232,6 +232,7 @@ function formatBidNarrativeCSV(d){
   const snrOk=snr70&&total>=3000&&snr70*0.7>=5000;
   const wantsResidenceAny=tY&&(d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주');
   const purposeMatchesResidence=d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주';
+  const selectedPurposeHeading=d.investment_purpose==='실거주'?'[실거주]':d.investment_purpose==='단타'?'[단타]':'[실거주&단타]';
   // 무주택자이면서 실거주 의사는 있지만 전입불가인 경우: "만약 전입 가능해지면"을 가정한 [실거주] 계산과
   // 실제(전입불가) 상태를 반영한 [단타] 계산을 함께 보여줌
   if(noHouse&&!tY&&purposeMatchesResidence&&total>=3000){
@@ -258,7 +259,7 @@ function formatBidNarrativeCSV(d){
       return m?m[1]:l;
     });
     if(noHouse){
-      const items=[{h:true,text:'[실거주&단타]'},...residenceLines];
+      const items=[{h:true,text:selectedPurposeHeading},...residenceLines];
       let n=1;
       const out=items.map(it=>(typeof it==='object'&&it.h)?it.text:(n++)+'. '+it);
       return appendCreditCheckNote(out.join('\n'),d);
@@ -287,11 +288,12 @@ function formatBidNarrativeCSV(d){
     return appendCreditCheckNote(out.join('\n'),d);
   }
   if(!wantsResidence){
-    return appendCreditCheckNote(base,d);
+    const result=appendCreditCheckNote(base,d);
+    return d.investment_purpose==='단타'?'[단타]\n'+result:result;
   }
   if(rawLines.length===1){
     // 자금이 너무 작아 완전 계산불가(1줄짜리 안내문) 상황 → 실거주/단타 구분 의미 없음, 라벨 통합
-    const items=[{h:true,text:'[실거주,단타]'},...rawLines];
+    const items=[{h:true,text:selectedPurposeHeading},...rawLines];
     let n=1;
     const out=items.map(it=>(typeof it==='object'&&it.h)?it.text:(n++)+'. '+it);
     return appendCreditCheckNote(out.join('\n'),d);
@@ -311,7 +313,7 @@ function formatBidNarrativeCSV(d){
   let items;
   if(noHouse&&!snrOk){
     // 자기자금 3,000만원 미만 → 실거주든 단타든 결과 동일, 라벨 통합
-    items=[{h:true,text:'[실거주,단타]'},...rawLines];
+    items=[{h:true,text:selectedPurposeHeading},...rawLines];
   }else if(noHouse&&snrOk){
     // 단타 목적이었다면 나왔을 5억 상한 버전 수도권 줄을 [단타] 아래에 추가
     const aptBid=snr70;
