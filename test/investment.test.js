@@ -10,10 +10,17 @@ const token = 'isolated-test-only-connection-token';
 
 test('current reference profile keeps exact amounts and credit guidance', () => {
   const result = rules.diagnose(input);
-  assert.equal(result.narrative, '[실거주&단타]\n1. 수도권 규제 1억 6,700만원 이하 (생애최초인 경우 3억 3,300만원 이하)\n2. 수도권 비규제 3억 3,300만원 이하\n3. 비수도권 3억 3,300만원 이하 (생애최초인 경우 5억원 이하)\n** 단, 신용대출 활용 시 경락잔금대출까지 함께 나오는지 항상 확인 필요');
+  assert.equal(result.narrative, '[실거주]\n1. 수도권 규제 1억 6,700만원 이하 (생애최초인 경우 3억 3,300만원 이하)\n2. 수도권 비규제 3억 3,300만원 이하\n3. 비수도권 3억 3,300만원 이하 (생애최초인 경우 5억원 이하)\n** 단, 신용대출 활용 시 경락잔금대출까지 함께 나오는지 항상 확인 필요');
   assert.equal(result.cards.reg.st, 'O');
   assert.ok(result.notes[0].includes('전입 조건'));
   assert.ok(result.notes.every(note => !/<[^>]*>/.test(note)));
+});
+
+test('single-purpose recommendation heading matches the selected purpose', () => {
+  const resident = rules.diagnose({ ...input, investment_purpose: '실거주' });
+  const shortTerm = rules.diagnose({ ...input, investment_purpose: '단타' });
+  assert.match(resident.narrative, /^\[실거주\]/);
+  assert.match(shortTerm.narrative, /^\[단타\]/);
 });
 
 test('residence and short-term scenarios keep their reference distinction', () => {
