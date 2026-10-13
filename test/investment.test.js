@@ -23,6 +23,14 @@ test('single-purpose recommendation heading matches the selected purpose', () =>
   assert.match(shortTerm.narrative, /^\[단타\]/);
 });
 
+test('one-home short-term strategy keeps the disposal-conditioned residence route', () => {
+  const result = rules.diagnose({
+    housing_type: '1주택', transfer_available: 'Y', investment_purpose: '단타',
+    seed_amount: 13000, credit_amount: 0
+  });
+  assert.match(result.narrative, /^\[실거주\][\s\S]*기존주택 처분조건부[\s\S]*\[단타\]/);
+});
+
 test('residence and short-term scenarios keep their reference distinction', () => {
   for (const changes of [{ transfer_available: 'N' }, { housing_type: '1주택' }, { housing_type: '다주택' }]) {
     const result = rules.diagnose({ ...input, ...changes });
@@ -38,6 +46,11 @@ test('browser and PDF import the shared rules without redefining them', () => {
   assert.doesNotMatch(html, /function (consult|formatBidNarrative|formatBidNarrativeCSV|tierLabel)\(/);
   assert.match(html, /const BASE=\[\];/, 'student records must remain on the authenticated server');
   assert.doesNotMatch(html, /api\('\/api\/seed'/, 'opening the page must not reseed private data');
+  const purposeSelect = html.match(/<select id="em-purpose"[\s\S]*?<\/select>/)?.[0] || '';
+  assert.match(purposeSelect, /value="실거주"/);
+  assert.match(purposeSelect, /value="단타"/);
+  assert.doesNotMatch(purposeSelect, /value="단타\+실거주"[^>]*>단타\+실거주/);
+  assert.match(purposeSelect, /value="단타\+실거주" hidden/, 'legacy values stay available to existing records but not as a choice');
 });
 
 test('API authenticates, validates input, returns shared rules, and grants no student access', async t => {
