@@ -254,8 +254,8 @@ function formatBidNarrativeCSV(d){
   // 각 경로의 계산은 formatBidNarrative의 기존 분기를 그대로 사용한다.
   if(oneHouse&&tY&&d.investment_purpose==='단타'){
     function scenarioLines(text){
-      return text.split('\\n').map(line=>{
-        const m=line.match(/^\\d+\\.\\s*(.+)$/);
+      return text.split('\n').map(line=>{
+        const m=line.match(/^\d+\.\s*(.+)$/);
         return m?m[1]:line;
       });
     }
@@ -264,7 +264,7 @@ function formatBidNarrativeCSV(d){
     const items=[{h:true,text:'[실거주]'},...residenceLines,{h:true,text:'[단타]'},...dantaLines];
     let n=1;
     const out=items.map(it=>(typeof it==='object'&&it.h)?it.text:(n++)+'. '+it);
-    return appendCreditCheckNote(out.join('\\n'),d);
+    return appendCreditCheckNote(out.join('\n'),d);
   }
 
   // 자기자금 3,000만원 이상인 경우:
