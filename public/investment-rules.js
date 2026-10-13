@@ -74,7 +74,7 @@ function formatBidNarrative(d,forceDanta,forceResidence){
   }
 
   // ===== 실거주(또는 단타+실거주) + 전입가능 + 자기자금 3,000만원 이상: 주택수별 LTV% 정밀 계산 =====
-  const wantsResidenceAny=!forceDanta&&(forceResidence||tY)&&(d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주');
+  const wantsResidenceAny=!forceDanta&&(forceResidence||(tY&&(d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주')));
   if(wantsResidenceAny&&total>=3000){
     // 낙찰가 = 자기자금 ÷ (1-LTV%), 최소 8,300만원. 8,300만원으로 끌어올려진 경우에만
     // 그 시점의 자기부담분(8,300×(1-LTV%))이 실제 보유 자기자금을 넘는지 검사
@@ -174,7 +174,7 @@ function formatBidNarrative(d,forceDanta,forceResidence){
     }
   }else if(oneHouse){
     // 기존주택 처분조건 + 전입조건 충족 시 1주택자도 수도권 규제지역 조건부 가능
-    const wantsResidence=!forceDanta&&tY&&(d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주');
+    const wantsResidence=!forceDanta&&tY&&(forceResidence||d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주');
     if(wantsResidence){
       const condNote=' (기존주택 처분조건부·전입조건부)';
       if(snrOk){
@@ -250,6 +250,23 @@ function formatBidNarrativeCSV(d){
     const out=items.map(it=>(typeof it==='object'&&it.h)?it.text:(n++)+'. '+it);
     return appendCreditCheckNote(out.join('\n'),d);
   }
+  // 1주택자가 단타를 선택해도 기존주택 처분조건부 실거주 경로와 단타 경로를 함께 보여준다.
+  // 각 경로의 계산은 formatBidNarrative의 기존 분기를 그대로 사용한다.
+  if(oneHouse&&tY&&d.investment_purpose==='단타'){
+    function scenarioLines(text){
+      return text.split('\\n').map(line=>{
+        const m=line.match(/^\\d+\\.\\s*(.+)$/);
+        return m?m[1]:line;
+      });
+    }
+    const residenceLines=scenarioLines(formatBidNarrative(d,false,true));
+    const dantaLines=scenarioLines(formatBidNarrative(d,true));
+    const items=[{h:true,text:'[실거주]'},...residenceLines,{h:true,text:'[단타]'},...dantaLines];
+    let n=1;
+    const out=items.map(it=>(typeof it==='object'&&it.h)?it.text:(n++)+'. '+it);
+    return appendCreditCheckNote(out.join('\\n'),d);
+  }
+
   // 자기자금 3,000만원 이상인 경우:
   // - 무주택자는 처분조건 같은 제약이 없어 실거주/단타 결과가 실질적으로 같으므로 [실거주&단타] 하나로 병합
   // - 1주택/다주택은 처분조건 때문에 실제로 달라지므로 [실거주]/[단타] 두 시나리오를 그대로 보여줌
