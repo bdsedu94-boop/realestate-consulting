@@ -191,7 +191,7 @@ function formatBidNarrative(d,forceDanta,forceResidence){
       lines.push('수도권 비규제지역 현금+신용대출 활용해 올현금 입찰 가능 물건 (신용대출 가능금액 확인 필요)');
     }else{
       const t=tierLabel(Math.min(total,50000));
-      lines.push('수도권 비규제 '+t.propType+' '+fs(total)+' 이하'+t.regionTag+' (올현금)');
+      lines.push('수도권 비규제 '+t.propType+' '+fs(total)+' 이하'+t.regionTag);
     }
   }
   if(hasLocal){
