@@ -71,3 +71,11 @@ test('high-cash no-house residence profile applies metro mortgage caps but keeps
   const result = rules.diagnose({ housing_type:'무주택', transfer_available:'Y', investment_purpose:'단타+실거주', seed_amount:50000, credit_amount:0 });
   assert.equal(result.narrative, '[실거주&단타]\n1. 수도권 규제 8억 3,300만원 이하 (생애최초인 경우 11억원 이하)\n2. 수도권 비규제 11억원 이하\n3. 비수도권 16억 6,700만원 이하 (생애최초인 경우 25억원 이하)');
 });
+
+
+test('one-home short-term investor with stated credit amount omits confusing all-cash label and keeps mortgage coexistence note', () => {
+  const result = rules.diagnose({ housing_type:'1주택', transfer_available:'N', investment_purpose:'단타', seed_amount:5000, credit_amount:5000, loan_available:'Y' });
+  assert.match(result.narrative, /수도권 비규제 빌라 1억원 이하 \(인천, 부천\)/);
+  assert.doesNotMatch(result.narrative, /올현금/);
+  assert.match(result.narrative, /신용대출 활용 시 경락잔금대출까지 함께 나오는지 항상 확인 필요/);
+});
