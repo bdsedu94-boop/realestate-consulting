@@ -78,13 +78,37 @@ async function capture({ reqId, caseNo }, sender) {
       let page = await exec(tabId, pageInspect, [cs]);
       if (!page.isDetail && !page.hasResult) {
         if (cfg.searchUrlTemplate) throw new Error('검색 주소로 열었지만 결과에서 사건을 찾지 못했습니다. 확장프로그램 설정의 검색 주소를 확인해주세요.');
-        progress(`사건번호 ${cs.full} 검색 중...`);
-        const r = await exec(tabId, pageSearch, [cs, cfg.caseInputFormat]);
-        if (!r.ok) throw new Error(r.error);
-        await waitSettle(tabId, 15000);
-        await sleep(cfg.stepDelay);
-        page = await waitFor(tabId, () => exec(tabId, pageInspect, [cs]), p => p.isDetail || p.hasResult, 15000);
-        if (!page || (!page.isDetail && !page.hasResult)) throw new Error(`검색 결과에서 ${cs.full}을(를) 찾지 못했습니다. 종결/취하된 사건이거나 검색 화면 구조가 바뀌었을 수 있습니다.`);
+        const searchUrl = cfg.tankBase.replace(/\/$/, '') + cfg.searchPath;
+        const tried = [];
+        for (let attempt = 0; attempt < 3; attempt++) {
+          progress(`사건번호 ${cs.full} 검색 중...` + (attempt ? ` (다른 검색칸으로 재시도 ${attempt + 1})` : ''));
+          if (attempt) { await chrome.tabs.update(tabId, { url: searchUrl }); await waitSettle(tabId, 20000); await sleep(cfg.stepDelay); }
+          const before = new Set((await chrome.tabs.query({})).map(t => t.id));
+          const r = await exec(tabId, pageSearch, [cs, cfg.caseInputFormat, attempt]);
+          tried.push(r.detail || r.error || '');
+          if (!r.ok) { if (r.noMore) break; continue; }
+          await waitSettle(tabId, 15000);
+          await sleep(cfg.stepDelay);
+          const found = await waitFor(tabId, async () => {
+            const all = await chrome.tabs.query({});
+            for (const t of all.filter(t => !before.has(t.id))) {
+              try { const p = await exec(t.id, pageInspect, [cs]); if (p.isDetail) return { id: t.id, p }; } catch (e) {}
+            }
+            const p = await exec(tabId, pageInspect, [cs]);
+            return (p.isDetail || p.hasResult) ? { id: tabId, p } : null;
+          }, x => !!x, 12000);
+          if (found) {
+            if (found.id !== tabId) {
+              const t = await chrome.tabs.get(found.id);
+              if (ownWindow) { try { await chrome.tabs.remove(tabId); } catch (e) {} }
+              tabId = found.id; winId = t.windowId; ownWindow = true;
+              try { await chrome.windows.update(winId, { width: 1480, height: 1000, focused: true }); } catch (e) {}
+            }
+            page = found.p;
+            break;
+          }
+        }
+        if (!page || (!page.isDetail && !page.hasResult)) throw new Error(`검색 결과에서 ${cs.full}을(를) 찾지 못했습니다. 종결/취하된 사건이거나 검색 화면 인식에 실패했습니다. [진단: ${tried.filter(Boolean).join(' / ')}]`);
       }
       if (!page.isDetail) {
         progress('검색 결과에서 물건을 여는 중...');
@@ -158,8 +182,10 @@ function fillTemplate(t, cs) {
   return t.replace(/\{year\}/g, cs.year).replace(/\{num\}/g, cs.num).replace(/\{caseEnc\}/g, encodeURIComponent(cs.full)).replace(/\{case\}/g, cs.full);
 }
 
+// 검색·클릭은 페이지와 같은 환경(MAIN)에서 실행해야 'javascript:' 링크/검색 함수가 정상 동작함
+const MAIN_WORLD = new Set(['pageSearch', 'pageOpenResult']);
 async function exec(tabId, func, args) {
-  const [res] = await chrome.scripting.executeScript({ target: { tabId }, func, args });
+  const [res] = await chrome.scripting.executeScript({ target: { tabId }, func, args, world: MAIN_WORLD.has(func.name) ? 'MAIN' : 'ISOLATED' });
   if (!res) throw new Error('페이지 스크립트 실행 실패');
   return res.result;
 }
@@ -264,64 +290,76 @@ function pageInspect(cs) {
     if (t.length > 40 || !t.includes(cs.full)) continue;
     if (parseFloat(getComputedStyle(el).fontSize) >= 20) { bigTitle = true; break; }
   }
+  const keys = [cs.full, `${cs.year}-${cs.num}`];
   const resultLinks = has ? [...document.querySelectorAll('a,[onclick]')].filter(a => {
     const row = a.closest('tr,li') || a.parentElement;
-    return row && (row.innerText || '').replace(/\s/g, '').includes(cs.full);
+    const t = row ? (row.innerText || '').replace(/\s/g, '') : '';
+    return keys.some(k => t.includes(k));
   }).length : 0;
   return { isDetail: has && bigTitle && detailMarks >= 2, hasResult: resultLinks > 0 && !(bigTitle && detailMarks >= 2), url: location.href };
 }
 
 // 검색 화면에서 사건번호 입력 후 검색
-function pageSearch(cs, fmt) {
+// 탱크옥션 검색 화면에는 '경매사건(상단 빠른검색)'과 '사건번호(상세검색)' 두 곳에 [연도 선택 + 타경 + 번호칸]이 있음.
+// 연도 선택칸과 바로 뒤 번호칸을 한 쌍으로 찾아 점수순으로 시도(attempt번째 후보).
+function pageSearch(cs, fmt, attempt) {
   const vis = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
-  const near = el => { const c = el.closest('td,th,li,dd,dl,label,div'); return ((c && c.innerText) || '').slice(0, 80); };
   const fire = el => ['input', 'change', 'keyup'].forEach(t => el.dispatchEvent(new Event(t, { bubbles: true })));
-  // 사건년도 선택칸
-  const ysel = [...document.querySelectorAll('select')].filter(vis).find(s => {
-    const opts = [...s.options];
-    return opts.some(o => o.value.trim() === cs.year || o.text.trim().startsWith(cs.year)) && opts.filter(o => /^\d{4}/.test(o.text.trim())).length >= 3;
-  });
-  // 사건번호 입력칸 점수 매기기
-  const inputs = [...document.querySelectorAll('input[type=text],input[type=search],input[type=tel],input[type=number],input:not([type])')].filter(vis);
-  let best = null, bestScore = 0;
-  for (const i of inputs) {
-    let s = 0;
-    const meta = `${i.name} ${i.id} ${i.placeholder} ${i.title}`;
-    if (/사건/.test(meta)) s += 6;
-    if (/sa_?no|saNo|case|sno|tno|evt|event/i.test(meta)) s += 4;
-    if (/사건번호/.test(near(i))) s += 5;
-    if (ysel && (ysel.closest('td,li,div') === i.closest('td,li,div'))) s += 4;
-    if (/주소|소재지|이름|아이디|비밀|addr|keyword/i.test(meta)) s -= 6;
-    if (s > bestScore) { best = i; bestScore = s; }
+  const all = [...document.querySelectorAll('select,input,button,a,img')];
+  const idx = el => all.indexOf(el);
+  const yearSel = [...document.querySelectorAll('select')].filter(vis).filter(s => [...s.options].filter(o => /^\s*(19|20)\d{2}/.test(o.text)).length >= 3);
+  const isText = i => i.tagName === 'INPUT' && /^(text|search|tel|number|)$/.test((i.getAttribute('type') || '').toLowerCase()) && vis(i) && !i.readOnly;
+  const pairs = [];
+  for (const sel of yearSel) {
+    // 연도칸 뒤 10개 요소 안의 첫 번째 텍스트 입력칸 = 번호칸
+    let input = null;
+    for (let k = idx(sel) + 1; k < Math.min(all.length, idx(sel) + 12); k++) { if (isText(all[k])) { input = all[k]; break; } }
+    if (!input) continue;
+    let box = sel.parentElement; for (let d = 0; d < 4 && box && !box.contains(input); d++) box = box.parentElement;
+    const ctx = ((box && box.innerText) || '').slice(0, 200);
+    let score = 0;
+    if (/사건번호/.test(ctx)) score += 4;
+    if (/경매사건/.test(ctx)) score += 3;
+    if (/타경/.test(ctx)) score += 3;
+    if (/주소|소재지|물건명/.test(`${input.name} ${input.id} ${input.placeholder}`)) score -= 6;
+    pairs.push({ sel, input, score, ctx: ctx.replace(/\s+/g, ' ').slice(0, 30) });
   }
-  if (!best) return { ok: false, error: '검색 화면에서 사건번호 입력칸을 찾지 못했습니다. 확장프로그램 설정에서 "검색 주소"를 지정해주세요.' };
-  let value;
-  if (fmt === 'full') value = cs.full;
-  else if (fmt === 'dash') value = `${cs.year}-${cs.num}`;
-  else if (fmt === 'num') value = cs.num;
-  else value = ysel ? cs.num : cs.full;
-  if (ysel) { const o = [...ysel.options].find(o => o.value.trim() === cs.year || o.text.trim().startsWith(cs.year)); ysel.value = o.value; fire(ysel); }
-  best.focus(); best.value = value; fire(best);
-  // 검색 버튼
-  const scope = best.form || best.closest('form,table,div');
-  const btns = [...(scope ? scope.querySelectorAll('button,input[type=submit],input[type=image],input[type=button],a,img') : [])].filter(vis);
-  const btn = btns.find(b => /검색|조회|찾기|search/i.test(`${b.innerText || ''} ${b.value || ''} ${b.alt || ''} ${b.title || ''} ${b.id || ''} ${b.className || ''}`));
-  if (btn) { btn.click(); return { ok: true, via: 'button' }; }
-  if (best.form) { best.form.requestSubmit ? best.form.requestSubmit() : best.form.submit(); return { ok: true, via: 'form' }; }
-  ['keydown', 'keypress', 'keyup'].forEach(t => best.dispatchEvent(new KeyboardEvent(t, { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true })));
-  return { ok: true, via: 'enter' };
+  pairs.sort((a, b) => b.score - a.score);
+  if (!pairs.length) return { ok: false, noMore: true, error: '검색 화면에서 사건번호 입력칸을 찾지 못했습니다.', detail: `연도칸 ${yearSel.length}개, 쌍 0개` };
+  const pr = pairs[attempt];
+  if (!pr) return { ok: false, noMore: true, detail: `후보 ${pairs.length}개 모두 시도` };
+  const opt = [...pr.sel.options].find(o => o.value.trim() === cs.year || o.text.trim().startsWith(cs.year));
+  if (!opt) return { ok: false, detail: `연도 ${cs.year} 없음` };
+  pr.sel.value = opt.value; fire(pr.sel);
+  const value = fmt === 'full' ? cs.full : fmt === 'dash' ? `${cs.year}-${cs.num}` : cs.num;
+  pr.input.focus(); pr.input.value = value; fire(pr.input);
+  // 검색 버튼: 번호칸 바로 뒤의 클릭 요소(버튼/이미지 버튼/이미지 링크)
+  let btn = null;
+  for (let k = idx(pr.input) + 1; k < Math.min(all.length, idx(pr.input) + 8); k++) {
+    const el = all[k];
+    if (!vis(el)) continue;
+    if (el.tagName === 'SELECT' || isText(el)) break;
+    if (el.tagName === 'BUTTON' || (el.tagName === 'INPUT' && /submit|image|button/i.test(el.type)) || (el.tagName === 'IMG' && (el.closest('a,button') || el.onclick || el.getAttribute('onclick'))) || (el.tagName === 'A' && (el.querySelector('img') || /검색|조회/.test(el.innerText)))) { btn = el.tagName === 'IMG' ? (el.closest('a,button') || el) : el; break; }
+  }
+  const detail = `후보${attempt + 1}/${pairs.length}[${pr.ctx}] 입력칸=${pr.input.name || pr.input.id || '?'} 버튼=${btn ? (btn.tagName + (btn.name ? ':' + btn.name : '')) : '없음'}`;
+  // Enter 키 먼저(대부분 검색칸은 Enter로 검색됨) → 버튼 클릭 → 폼 제출
+  ['keydown', 'keypress', 'keyup'].forEach(t => pr.input.dispatchEvent(new KeyboardEvent(t, { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true })));
+  if (btn) { btn.click(); return { ok: true, detail: detail + ' via=버튼' }; }
+  if (pr.input.form) { pr.input.form.requestSubmit ? pr.input.form.requestSubmit() : pr.input.form.submit(); return { ok: true, detail: detail + ' via=폼' }; }
+  return { ok: true, detail: detail + ' via=Enter' };
 }
 
 // 검색 결과 목록에서 해당 사건 열기
 function pageOpenResult(cs) {
   const norm = s => (s || '').replace(/\s/g, '');
+  const keys = [cs.full, `${cs.year}-${cs.num}`];
   const cands = [...document.querySelectorAll('a,[onclick]')].filter(a => {
     const row = a.closest('tr,li') || a.parentElement;
-    return row && norm(row.innerText).includes(cs.full);
+    return row && keys.some(k => norm(row.innerText).includes(k));
   });
   if (!cands.length) return { ok: false, error: '검색 결과에서 물건 링크를 찾지 못했습니다.' };
   // 사건번호 글자가 직접 있는 링크 > 그 행의 첫 링크
-  const el = cands.find(a => norm(a.innerText).includes(cs.full)) || cands.find(a => a.tagName === 'A') || cands[0];
+  const el = cands.find(a => keys.some(k => norm(a.innerText).includes(k))) || cands.find(a => a.tagName === 'A') || cands[0];
   const href = el.tagName === 'A' ? el.getAttribute('href') : null;
   if (href && !/^javascript:|^#/.test(href) && !el.target && !el.getAttribute('onclick')) return { ok: true, href: new URL(href, location.href).href };
   el.click();
@@ -522,6 +560,44 @@ function pagePrepare(cs, opt) {
   const addr = (topText.match(/(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주|전라|충청|경상)[가-힣]*\s+[가-힣]+(?:시|군|구)(?:\s+[가-힣]+(?:구|읍|면|동))?/) || [])[0];
   const hl = [addr, pt, fields.fail_count ? `유찰 ${fields.fail_count}회` : (dt ? '신건' : '')].filter(Boolean);
   if (hl.length >= 2) fields.headline = hl.join(' · ');
+
+  // ── 추천 사유 자동 작성용 사실 정보 (사이트에서 문장으로 만듦) ──
+  const facts = {};
+  const fullAddr = (topText.match(/(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주)[^\n(]{4,60}/) || [])[0];
+  if (fullAddr) facts.address = fullAddr.trim();
+  const pub = topText.match(/공시가\s*[:：]?\s*([0-9~∼.\-억천만원\s]*(?:이하|이상|미만|초과)?)/);
+  if (pub && pub[1].trim()) facts.pubPrice = pub[1].replace(/\s+/g, '').trim();
+  if (pt) facts.propType = pt;
+  const colOf = (t, re) => { const h = t.rows[0] ? [...t.rows[0].cells] : []; let col = 0; for (const c of h) { if (re.test(norm(c.innerText))) return col; col += c.colSpan || 1; } return -1; };
+  const cellAt = (row, i) => { let col = 0; for (const c of row.cells) { if (col === i) return (c.innerText || '').replace(/\s+/g, ' ').trim(); col += c.colSpan || 1; } return ''; };
+  // 등기: 말소기준권리와 소멸되지 않는(인수) 권리
+  for (const t of tables) {
+    const ki = colOf(t, /^권리종류/), di = colOf(t, /^접수일/), xi = colOf(t, /^소멸/);
+    if (ki < 0 || di < 0) continue;
+    const assumed = [];
+    for (let r = 1; r < t.rows.length; r++) {
+      const row = t.rows[r], tx = norm(row.innerText), kind = cellAt(row, ki), date = (cellAt(row, di).match(/\d{4}[.\-]\d{2}[.\-]\d{2}/) || [])[0] || '';
+      if (!facts.baseRight && tx.includes('말소기준')) facts.baseRight = { kind: kind.replace(/설정$/, ''), date };
+      if (xi >= 0 && kind && !/소유권|소유자|경매개시|임의경매|강제경매|공유자/.test(norm(kind)) && !/소멸/.test(cellAt(row, xi)) && !tx.includes('말소기준')) assumed.push(kind);
+    }
+    if (facts.baseRight) { if (xi >= 0) facts.assumedRights = assumed; break; }
+  }
+  // 임차인 현황: 인원·대항력
+  const tt = tables.find(t => colOf(t, /^임차인/) >= 0 && colOf(t, /대항력/) >= 0);
+  if (tt) {
+    const ni = colOf(tt, /^임차인/), di = colOf(tt, /대항력/);
+    let n = 0, dh = 0;
+    for (let r = 1; r < tt.rows.length; r++) {
+      const nm = cellAt(tt.rows[r], ni);
+      if (!nm || /없음|해당없/.test(nm)) continue;
+      n++; if (/있음|유/.test(cellAt(tt.rows[r], di))) dh++;
+    }
+    facts.tenants = n; facts.tenantsWithPriority = dh;
+  } else if (/임차인\s*현황/.test(document.body.innerText) && /(임차|임대차)\s*(내역|관계)?\s*(이|은)?\s*없/.test(document.body.innerText)) {
+    facts.tenants = 0; facts.tenantsWithPriority = 0;
+  }
+  if (/폐문/.test(document.body.innerText)) facts.closedDoor = true;
+  fields.auto_facts = JSON.stringify(facts);
 
   // 인근 낙찰가율: '매각사례' 표(구분 | 평균감정가 | 평균매각가 | 평균매각가율 | …)에서
   // 기간별 평균매각가율의 최저~최고를 범위로 표시. 예) 83.4% ~ 87.2% (최근 12개월 17건 · 경기 고양시 … 아파트)

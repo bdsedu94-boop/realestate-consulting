@@ -14,7 +14,7 @@ const STATUSES = ['작성중', '검수완료', '발송완료'];
 const TEXT_FIELDS = [
   'case_no', 'court', 'sale_date', 'headline', 'prop_type', 'area', 'floor_main', 'floor_sub',
   'occupancy', 'occupancy_sub', 'rights', 'rights_sub', 'win_rate', 'rent', 'strategy_note',
-  'image_note', 'manager', 'win_rate_auto'
+  'image_note', 'manager', 'win_rate_auto', 'auto_facts'
 ];
 const NUM_FIELDS = ['appraisal', 'min_price', 'fail_count', 'bid_low', 'bid_high', 'deposit_rate'];
 const MAX_IMAGES = 6;

@@ -264,7 +264,7 @@ function editorHtml(r){
         </div>
       </div>`).join('')}</div>
     <div style="margin-top:8px">${field('캡처 하단 안내문','image_note',{ph:'※ 출처: 탱크옥션 (2026.10.27 캡처)'})}</div>
-    <h4>추천 사유 (3가지: 조건 적합 / 권리 / 가격)</h4>
+    <h4 style="display:flex;align-items:center;gap:10px">추천 사유 (3가지: 조건 적합 / 권리 / 가격)<button onclick="RecReport.autoReasons()" style="font-size:11px;padding:3px 10px;border-color:${PURPLE};color:${PURPLE};font-weight:600">✨ 자동 작성</button><span style="font-size:11px;color:#888;font-weight:400">자동 캡처하면 빈 칸은 자동으로 채워집니다</span></h4>
     ${reasons.map((x,i)=>`
       <div style="display:grid;grid-template-columns:24px 1fr;gap:8px;margin-bottom:10px">
         <div style="width:22px;height:22px;border-radius:50%;background:${PURPLE};color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:4px">${i+1}</div>
@@ -329,6 +329,59 @@ function updateCalc(){
     :`<div class="rec-check ok"><b>발송 전 확인</b> · 필수 항목이 모두 입력되었습니다.${r.status==='작성중'?' 검수 후 상태를 [검수완료]로 바꿔주세요.':''}</div>`;
 }
 
+/* ── 추천 사유 자동 작성 ──
+ * 1차 기준(투자 방향성에 맞는 지역 + 권리상 문제 없는 물건)에 맞춰
+ * 수강생 조건 + 자동 캡처에서 읽은 사실(지역·말소기준권리·임차인·낙찰가율)로 3가지 사유를 만든다. */
+// 수도권 규제지역 (투자 방향성 기준과 동일: 서울 전역 + 경기 12곳)
+const REG_GG=['과천시','광명시','성남시 분당구','성남시 수정구','성남시 중원구','수원시 영통구','수원시 장안구','수원시 팔달구','안양시 동안구','용인시 수지구','의왕시','하남시'];
+function facts(r){try{return JSON.parse(r.auto_facts||'{}')||{};}catch(e){return {};}}
+function regionOf(r){
+  const a=(facts(r).address||r.headline||'').replace(/\s+/g,' ');
+  if(/^서울/.test(a)) return {key:'reg',label:'수도권 규제지역'};
+  if(/^경기/.test(a)) return REG_GG.some(g=>a.replace(/^경기(도)?\s*/,'').startsWith(g))?{key:'reg',label:'수도권 규제지역'}:{key:'nreg',label:'수도권 비규제지역'};
+  if(/^인천/.test(a)) return {key:'nreg',label:'수도권 비규제지역'};
+  if(a) return {key:'local',label:'비수도권'};
+  return null;
+}
+function rateRange(txt){const m=(txt||'').match(/(\d{1,3}(?:\.\d+)?)%(?:\s*~\s*(\d{1,3}(?:\.\d+)?)%)?/);return m?{lo:+m[1],hi:+(m[2]||m[1])}:null;}
+function genReasons(s,r){
+  const f=facts(r), rg=regionOf(r), prop=f.propType||r.prop_type||'물건';
+  const seed=s.seed_amount||0, cr=s.credit_amount||0, min=num(r.min_price), dep=deposit(r);
+  const many=s.housing_type==='1주택'||s.housing_type==='다주택'||s.housing_type==='일시적2주택';
+  // 1. 투자 방향성(지역·자금) 적합
+  const b1=[];
+  if(min) b1.push(`최저가 ${man(min,'원')}${dep?`(입찰보증금 ${man(dep,'원')})`:''}으로 ${cr>0?`현금 ${man(seed,'원')}과 신용대출 ${man(cr,'원')}을 활용해`:`보유 현금 ${man(seed,'원')} 범위에서`} 입찰이 가능합니다.`);
+  if(rg&&rg.key==='nreg') b1.push(many?'비규제지역이라 기존 주택 처분·전입 조건이 없습니다.':'비규제지역이라 전입·처분 조건 부담이 적습니다.');
+  if(rg&&rg.key==='local') b1.push('비수도권 물건으로 수도권 대출 한도 규제를 받지 않습니다.');
+  if(many&&/1억(원)?(이하|미만)|^~?1억$/.test(f.pubPrice||'')) b1.push('공시가격 1억원 이하 주택으로 취득세 중과 대상에서 제외됩니다.');
+  const r1={title:`투자 방향성에 맞는 ${rg?rg.label+' ':''}${prop}`.replace(/\s+/g,' '),body:b1.join(' ')};
+  // 2. 권리
+  const b2=[];let clean=true;
+  if(f.baseRight) b2.push(`말소기준권리(${f.baseRight.kind}${f.baseRight.date?', '+f.baseRight.date:''}) 이하 권리는 매각으로 모두 소멸됩니다.`);
+  else b2.push('말소기준권리 이하 권리는 매각으로 모두 소멸됩니다.');
+  if(f.tenants===0) b2.push('조사된 임차인이 없어 매수인이 인수할 권리가 없습니다.');
+  else if(f.tenants>0&&!f.tenantsWithPriority) b2.push(`임차인 ${f.tenants}명은 대항력이 없어 매수인이 인수할 보증금이 없습니다.`);
+  else if(f.tenantsWithPriority>0){clean=false;b2.push(`대항력 있는 임차인이 ${f.tenantsWithPriority}명 있어 배당 결과에 따라 보증금을 인수할 수 있으니 확인이 필요합니다.`);}
+  if((f.assumedRights||[]).length){clean=false;b2.push(`소멸되지 않는 권리(${f.assumedRights.join(', ')})가 있어 확인이 필요합니다.`);}
+  if(f.closedDoor) b2.push('다만 폐문으로 점유자 확인이 되지 않아 입찰 전 현장 확인이 필요합니다.');
+  const r2={title:clean?'권리관계가 깨끗한 물건':'권리 확인이 필요한 물건',body:b2.join(' ')};
+  // 3. 가격
+  const b3=[], p=pct(r.min_price,r.appraisal), fc=num(r.fail_count), wr=rateRange(r.win_rate);
+  if(num(r.appraisal)&&min) b3.push(`감정가 ${man(r.appraisal,'원')} 대비 최저가 ${man(min,'원')}(${p}%)${fc?`로 ${fc}회 유찰된 상태입니다.`:'입니다.'}`);
+  if(wr) b3.push(p&&p<wr.lo?`인근 매각사례 낙찰가율(${r.win_rate.replace(/\s*\(.*$/,'')})보다 낮은 가격에서 시작해 가격 메리트가 있습니다.`:`인근 매각사례 낙찰가율은 ${r.win_rate.replace(/\s*\(.*$/,'')} 수준으로, 입찰가 산정 시 참고하세요.`);
+  const r3={title:fc?`${fc}회 유찰로 낮아진 최저가`:'시세 대비 가격 메리트',body:b3.join(' ')};
+  return [r1,r2,r3];
+}
+async function autoReasons(){
+  if(!st.cur) return;
+  readEditor();
+  const has=(st.cur.reasons||[]).some(x=>(x.title||'').trim()||(x.body||'').trim());
+  if(has&&!confirm('이미 입력된 추천 사유를 자동 작성 내용으로 바꿀까요?')) return;
+  if(!st.cur.auto_facts&&!confirm('자동 캡처 정보가 없어 일부 문장만 만들어집니다. 먼저 [🤖 탱크옥션 자동 캡처]를 하면 더 정확합니다. 그래도 작성할까요?')) return;
+  st.cur.reasons=genReasons(st.student,st.cur);
+  await save();
+}
+
 /* ── 발송 전 품질 체크 ── */
 function checkRec(r){
   const out=[];
@@ -346,6 +399,9 @@ function checkRec(r){
     if(total&&deposit(r)>total) out.push(`입찰보증금(${man(deposit(r),'원')})이 수강생 투자금 합산(${man(total,'원')})보다 큽니다.`);
   }
   if(!(r.images||[]).length) out.push('탱크옥션 캡처 이미지가 없습니다. [🤖 탱크옥션 자동 캡처]를 눌러주세요.');
+  const f=facts(r);
+  if(f.tenantsWithPriority>0) out.push(`대항력 있는 임차인 ${f.tenantsWithPriority}명 — 추천 기준(권리상 문제 없음)에 맞는지 확인하세요.`);
+  if((f.assumedRights||[]).length) out.push(`소멸되지 않는 권리(${f.assumedRights.join(', ')}) — 추천 기준에 맞는지 확인하세요.`);
   return out;
 }
 
@@ -557,6 +613,13 @@ async function captureInto(rec,status){
   if(res.fields&&res.fields.win_rate&&rec.win_rate&&rec.win_rate===rec.win_rate_auto) patch.win_rate=res.fields.win_rate;
   if(res.fields&&res.fields.win_rate&&(patch.win_rate||!rec.win_rate)) patch.win_rate_auto=patch.win_rate||res.fields.win_rate;
   if(!rec.image_note) patch.image_note=`※ 출처: 탱크옥션 (${todayStr()} 캡처) · 개인정보는 가림 처리`;
+  if(res.fields&&res.fields.auto_facts) patch.auto_facts=res.fields.auto_facts;
+  // 추천 사유가 비어 있으면 자동 작성 (직접 쓴 내용은 그대로 둠)
+  const merged={...rec,...patch};
+  if(!(rec.reasons||[]).some(x=>(x.title||'').trim()||(x.body||'').trim())){
+    const stu=(st.student&&st.student.id===rec.student_id)?st.student:(typeof students!=='undefined'?students.find(x=>x.id===rec.student_id):null);
+    if(stu) patch.reasons=genReasons(stu,merged);
+  }
   if(Object.keys(patch).length) await recApi(`/api/recommendations/${rec.id}`,'PUT',patch);
   return res;
 }
@@ -824,5 +887,5 @@ async function importRecSheet(input){
 function init(){injectUI();bindMask();pingExt();window.addEventListener('resize',()=>{if(document.getElementById('maskModal').classList.contains('show'))fitMask();});}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 
-window.RecReport={autoCapture,autoCaptureAll,imgEdit,open,close,select,add,save,remove,move,pdf,imgDel,imgMove,maskMode,maskUndo,maskCropApply,maskDone,maskCancel,loadSummary,cardLine,parseRecCell,checkRec,buildRecPDF};
+window.RecReport={autoReasons,genReasons,autoCapture,autoCaptureAll,imgEdit,open,close,select,add,save,remove,move,pdf,imgDel,imgMove,maskMode,maskUndo,maskCropApply,maskDone,maskCancel,loadSummary,cardLine,parseRecCell,checkRec,buildRecPDF};
 })();
