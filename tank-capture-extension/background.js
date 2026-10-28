@@ -586,24 +586,39 @@ function pagePrepare(cs, opt) {
   // '임차인 현황  말소기준일…'처럼 제목 옆에 부가설명이 붙은 경우도 인식 (요소 자체의 텍스트 기준)
   const ownText = el => norm([...el.childNodes].filter(n => n.nodeType === 3).map(n => n.nodeValue).join(''));
   const fsOf = el => parseFloat(getComputedStyle(el).fontSize) || 0;
+  const headingCands = raw => {
+    const x = norm(raw);
+    const cands = [];
+    for (const el of document.querySelectorAll('body *')) {
+      if (/^(SCRIPT|STYLE|TABLE|TBODY|THEAD|TR|A|BUTTON|OPTION|SELECT|LABEL)$/.test(el.tagName) || el.closest('nav,header,#gnb,.gnb,a,button')) continue;
+      if (!visible(el)) continue;
+      const t = norm(el.innerText);
+      if (!t || t.length > 80 || !t.startsWith(x)) continue;
+      const o = ownText(el);
+      let rank = 0;
+      if (t === x) rank = 3;
+      else if (o === x || (o.startsWith(x) && o.length <= x.length + 2)) rank = 2;
+      else if (t.length <= x.length + 40 && !/^(TD|TH)$/.test(el.tagName)) rank = 1;
+      if (!rank) continue;
+      if (/^(TD|TH)$/.test(el.tagName) && rank < 2) continue;
+      cands.push({ el, rank, fs: fsOf(el) });
+    }
+    return cands;
+  };
+  // 탭 메뉴(임차인현황 | 건물등기 | 매각사례 …)의 글자는 섹션 제목이 아님: 가까운 상위 요소에 다른 섹션 이름이 2개 이상 있으면 메뉴로 봄
+  const isMenu = (el, raw) => {
+    const others = sectionTitles.map(norm).filter(t => t !== norm(raw));
+    let p = el.parentElement;
+    for (let d = 0; d < 3 && p; d++, p = p.parentElement) {
+      const t = norm(p.innerText);
+      if (t.length > 200) break;
+      if (new Set(others.filter(o => t.includes(o))).size >= 2) return true;
+    }
+    return false;
+  };
   const findHeading = titles => {
     for (const raw of titles) {
-      const x = norm(raw);
-      const cands = [];
-      for (const el of document.querySelectorAll('body *')) {
-        if (/^(SCRIPT|STYLE|TABLE|TBODY|THEAD|TR|A|BUTTON|OPTION|SELECT|LABEL)$/.test(el.tagName) || el.closest('nav,header,#gnb,.gnb,a,button')) continue;
-        if (!visible(el)) continue;
-        const t = norm(el.innerText);
-        if (!t || t.length > 80 || !t.startsWith(x)) continue;
-        const o = ownText(el);
-        let rank = 0;
-        if (t === x) rank = 3;
-        else if (o === x || (o.startsWith(x) && o.length <= x.length + 2)) rank = 2;
-        else if (t.length <= x.length + 40 && !/^(TD|TH)$/.test(el.tagName)) rank = 1;
-        if (!rank) continue;
-        if (/^(TD|TH)$/.test(el.tagName) && rank < 2) continue;
-        cands.push({ el, rank, fs: fsOf(el) });
-      }
+      const cands = headingCands(raw).filter(c => !isMenu(c.el, raw));
       if (!cands.length) continue;
       // 제목답게 글자가 큰 것 우선 → 일치도 → 더 안쪽 요소
       cands.sort((a, b) => (b.fs - a.fs) || (b.rank - a.rank) || (a.el.contains(b.el) ? 1 : b.el.contains(a.el) ? -1 : 0));
@@ -611,10 +626,14 @@ function pagePrepare(cs, opt) {
     }
     return null;
   };
-  const allTitles = [...opt.tenantTitles, ...opt.registryTitles, '토지등기', '매각사례', '감정평가', '현황조사', '매각물건명세', '예상배당', '관련사건', '인근', '물건사진', '사진', '주의사항', '건축물대장'];
+  const sectionTitles = [...opt.tenantTitles, ...opt.registryTitles, '토지등기', '매각사례', '감정평가', '현황조사', '매각물건명세', '예상배당', '관련사건', '물건사진', '참고/주의', '주의사항', '건축물대장'];
+  const allTitles = [...sectionTitles, '인근', '사진'];
+  const capTitles = new Set([...opt.tenantTitles, ...opt.registryTitles]);
   const headingsBelow = (y, minFs = 0) => {
     const hs = [];
-    for (const t of allTitles) { const h = findHeading([t]); if (h && fsOf(h) >= minFs * 0.85) { const r = rectOf(h); if (r.t > y + 5) hs.push(r.t); } }
+    // 같은 제목이 탭 메뉴 등 여러 곳에 있어도 아래쪽에 있는 것을 모두 경계 후보로 봄
+    // 임차인·등기 제목은 글자 크기가 달라도 경계로 인정
+    for (const t of allTitles) for (const c of headingCands(t)) { if (c.fs >= minFs * 0.85 || capTitles.has(t)) { const r = rectOf(c.el); if (r.t > y + 5) hs.push(r.t); } }
     return hs.length ? Math.min(...hs) : Infinity;
   };
 
@@ -673,6 +692,9 @@ function pagePrepare(cs, opt) {
   };
   if (opt.capTenant) sectionBox(opt.tenantTitles, 'tenant', '임차인 현황');
   if (opt.capRegistry) sectionBox(opt.registryTitles, 'registry', '등기');
+  // 임차인 캡처에 등기 표가 같이 들어가 PDF에 두 번 나오지 않도록, 겹치면 등기 시작 전에서 자름
+  const ten = regions.find(r => r.key === 'tenant'), reg = regions.find(r => r.key === 'registry');
+  if (ten && reg && reg.y > ten.y && ten.y + ten.h > reg.y) { ten.h = reg.y - ten.y; log.push('임차인 현황: 등기 영역과 겹쳐 아래를 잘라냄'); }
 
   // ── 5. 주요 값 읽기 (리포트 발송 전 체크·한 줄 요약용, 빈 칸만 채움) ──
   const fields = {};
@@ -722,12 +744,20 @@ function pagePrepare(cs, opt) {
   const tt = leafTables.find(t => colOf(t, /^임차인/) >= 0 && colOf(t, /대항력/) >= 0);
   if (tt) {
     const ni = colOf(tt, /^임차인/), di = colOf(tt, /대항력/);
-    let n = 0, dh = 0;
+    // 승계인(예: 주택도시보증공사(정○○의 승계인))은 원래 임차인과 같은 사람으로 봄 → 괄호 앞 이름 기준으로 묶음
+    const people = new Map();
     for (let r = 1; r < tt.rows.length; r++) {
       const nm = cellAt(tt.rows[r], ni);
-      if (!nm || /없음|해당없/.test(nm)) continue;
-      n++; if (/있음|유/.test(cellAt(tt.rows[r], di))) dh++;
+      // '계'(합계) 줄, '기타사항' 줄, 긴 설명 문장은 사람이 아님
+      if (!nm || /없음|해당없/.test(nm) || /^(합계|소계|계)($|[(（:：])/.test(norm(nm)) || norm(nm).length > 40) continue;
+      if (/^(기타사항|비고|참고)/.test(norm(cellAt(tt.rows[r], 0)))) continue;
+      const key = norm(nm).replace(/[(（].*$/, '') || norm(nm);
+      people.set(key, people.get(key) || /있음|유/.test(cellAt(tt.rows[r], di)));
     }
+    let n = people.size, dh = [...people.values()].filter(Boolean).length;
+    // 표 아래 합계 '임차인: 1건'이 있으면 그 숫자를 우선 사용
+    const sum = (tt.innerText || '').match(/임차인\s*[:：]\s*(\d+)\s*(건|명)/);
+    if (sum) { n = parseInt(sum[1], 10); dh = Math.min(dh, n); }
     facts.tenants = n; facts.tenantsWithPriority = dh;
   } else if (/임차인\s*현황/.test(document.body.innerText) && /(임차|임대차)\s*(내역|관계)?\s*(이|은)?\s*없/.test(document.body.innerText)) {
     facts.tenants = 0; facts.tenantsWithPriority = 0;
