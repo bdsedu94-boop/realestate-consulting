@@ -158,7 +158,7 @@ async function capture({ reqId, caseNo }, sender) {
     if (!plan.regions.length) throw new Error('캡처할 영역을 찾지 못했습니다. (' + (plan.log || []).join(' / ') + ')');
 
     progress(`${plan.regions.map(r => r.label).join(', ')} 캡처 중...`);
-    const shots = await captureRegions(tabId, plan.regions);
+    const shots = await captureRegions(tabId, plan.regions, () => progress('캡처 연결이 끊겨 다시 연결하는 중...'));
     try { await exec(tabId, pageRestore, []); } catch (e) {}
 
     return {
@@ -231,25 +231,86 @@ async function findOpenDetailTab(cfg, cs) {
 }
 
 /* ── 디버거(CDP)로 영역별 스크린샷: 화면 밖 영역도 한 장으로 캡처 ── */
-async function captureRegions(tabId, regions) {
+// 크롬이 캡처 도중 연결을 끊으면 이유를 남겨 두었다가 안내 문구로 바꿈
+const detachReason = new Map();
+chrome.debugger.onDetach.addListener((src, reason) => { if (src.tabId) detachReason.set(src.tabId, reason); });
+const DETACH_MESSAGES = {
+  canceled_by_user: '캡처 중 탱크옥션 창 위쪽 "디버깅 중" 안내줄의 [취소]가 눌려 캡처가 중단되었습니다. 캡처가 끝날 때까지 안내줄은 그대로 두고 다시 시도해주세요.',
+  target_closed: '캡처 중 탱크옥션 탭이 닫혔거나 다른 페이지로 이동했습니다. 캡처가 끝날 때까지 탱크옥션 창을 그대로 두고 다시 시도해주세요.'
+};
+const MAX_SHOT_H = 3000; // 아주 긴 영역은 이 높이(CSS px)씩 나눠 찍은 뒤 이어 붙임
+
+async function captureRegions(tabId, regions, onRetry) {
   const target = { tabId };
-  try { await chrome.debugger.attach(target, '1.3'); }
-  catch (e) { throw new Error('캡처 권한을 얻지 못했습니다. 탱크옥션 탭에서 개발자도구(F12)가 열려 있다면 닫고 다시 시도해주세요.'); }
+  // 재연결 전에 같은 문서(이름 가림 상태 유지)인지 확인하기 위한 표식
+  const token = Math.random().toString(36).slice(2);
+  await exec(tabId, t => { window.__tcToken = t; return true; }, [token]);
   const send = (method, params) => new Promise((ok, no) => chrome.debugger.sendCommand(target, method, params || {}, r => chrome.runtime.lastError ? no(new Error(chrome.runtime.lastError.message)) : ok(r)));
-  try {
+  const attach = async () => {
+    detachReason.delete(tabId);
+    try { await chrome.debugger.attach(target, '1.3'); }
+    catch (e) {
+      throw new Error(/already attached/i.test(e.message || '')
+        ? '탱크옥션 탭에 개발자도구(F12)나 다른 확장프로그램이 이미 연결되어 있습니다. 개발자도구를 닫거나 다른 확장프로그램을 잠시 끄고 다시 시도해주세요.'
+        : '캡처 권한을 얻지 못했습니다. 탱크옥션 탭에서 개발자도구(F12)가 열려 있다면 닫고 다시 시도해주세요. (' + (e.message || e) + ')');
+    }
     await send('Page.enable');
+  };
+  let attached = false, retried = false;
+  try {
+    await attach(); attached = true;
     const out = [];
     for (const r of regions) {
-      const shot = await send('Page.captureScreenshot', {
-        format: 'jpeg', quality: 88, captureBeyondViewport: true, fromSurface: true,
-        clip: { x: Math.max(0, r.x), y: Math.max(0, r.y), width: r.w, height: r.h, scale: 1 }
-      });
-      out.push('data:image/jpeg;base64,' + shot.data);
+      for (;;) {
+        try { out.push(await shootRegion(send, r)); break; }
+        catch (e) {
+          const reason = detachReason.get(tabId);
+          if (!reason && !/not attached|detached/i.test(e.message || '')) throw e;
+          attached = false;
+          // 사용자가 취소했거나 페이지가 바뀌었으면(이름 가림이 풀렸을 수 있음) 다시 찍지 않음
+          if (retried || reason === 'canceled_by_user' || !(await sameDocument(tabId, token))) {
+            throw new Error(DETACH_MESSAGES[reason] || `캡처 중 크롬이 탱크옥션 탭 연결을 끊었습니다 (${reason || e.message}). 다시 시도해주세요.`);
+          }
+          retried = true;
+          if (onRetry) onRetry();
+          await sleep(500);
+          await attach(); attached = true;
+        }
+      }
     }
     return out;
   } finally {
-    try { await chrome.debugger.detach(target); } catch (e) {}
+    if (attached) { try { await chrome.debugger.detach(target); } catch (e) {} }
   }
+}
+async function sameDocument(tabId, token) {
+  try { return await exec(tabId, t => window.__tcToken === t, [token]); } catch (e) { return false; }
+}
+async function shootRegion(send, r) {
+  const x = Math.max(0, r.x), top = Math.max(0, r.y), bottom = top + r.h;
+  const parts = [];
+  for (let y = top; y < bottom; y += MAX_SHOT_H) {
+    const shot = await send('Page.captureScreenshot', {
+      format: 'jpeg', quality: 88, captureBeyondViewport: true, fromSurface: true,
+      clip: { x, y, width: r.w, height: Math.min(MAX_SHOT_H, bottom - y), scale: 1 }
+    });
+    parts.push(shot.data);
+  }
+  return parts.length === 1 ? 'data:image/jpeg;base64,' + parts[0] : stitch(parts);
+}
+// 나눠 찍은 JPEG(base64)들을 세로로 이어 붙여 한 장으로
+async function stitch(parts) {
+  const bmps = await Promise.all(parts.map(b64 => createImageBitmap(new Blob([Uint8Array.from(atob(b64), c => c.charCodeAt(0))], { type: 'image/jpeg' }))));
+  const w = Math.max(...bmps.map(b => b.width)), h = bmps.reduce((a, b) => a + b.height, 0);
+  const k = Math.min(1, 32000 / h); // 캔버스 최대 높이 제한
+  const cv = new OffscreenCanvas(Math.round(w * k), Math.round(h * k)), ctx = cv.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+  let y = 0;
+  for (const b of bmps) { ctx.drawImage(b, 0, Math.round(y * k), Math.round(b.width * k), Math.round(b.height * k)); y += b.height; b.close(); }
+  const buf = new Uint8Array(await (await cv.convertToBlob({ type: 'image/jpeg', quality: 0.88 })).arrayBuffer());
+  let bin = '';
+  for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+  return 'data:image/jpeg;base64,' + btoa(bin);
 }
 
 /* ── 설정 화면의 [열린 탱크옥션 탭 진단] ── */
