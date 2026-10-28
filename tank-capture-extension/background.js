@@ -149,6 +149,13 @@ async function capture({ reqId, caseNo }, sender) {
     await exec(tabId, pageLoadAll, []);
     await sleep(500);
 
+    // 탱크옥션 자체 개인정보 가림(물건종류 배지 클릭 → 주소·이름 ○○○ 처리)
+    let privacy = { state: 'off' };
+    if (cfg.maskNames) {
+      progress('탱크옥션 개인정보 가림 켜는 중...');
+      privacy = await exec(tabId, pagePrivacyToggle, [false]);
+      if (privacy.state === 'clicked') await sleep(700);
+    }
     progress('캡처 영역 찾는 중' + (cfg.maskNames ? ' · 개인 이름 가림 처리' : '') + '...');
     const plan = await exec(tabId, pagePrepare, [cs, {
       capAuction: cfg.capAuction, capTenant: cfg.capTenant, capRegistry: cfg.capRegistry,
@@ -160,6 +167,9 @@ async function capture({ reqId, caseNo }, sender) {
     progress(`${plan.regions.map(r => r.label).join(', ')} 캡처 중...`);
     const shots = await captureRegions(tabId, plan.regions, () => progress('캡처 연결이 끊겨 다시 연결하는 중...'));
     try { await exec(tabId, pageRestore, []); } catch (e) {}
+    // 원래 열려 있던 탭이면 가림 상태를 원래대로 되돌림
+    if (privacy.state === 'clicked' && !ownWindow) { try { await exec(tabId, pagePrivacyToggle, [true]); } catch (e) {} }
+    if (privacy.log) plan.log = [...(plan.log || []), privacy.log];
 
     return {
       ok: true,
@@ -183,7 +193,7 @@ function fillTemplate(t, cs) {
 }
 
 // 검색·클릭은 페이지와 같은 환경(MAIN)에서 실행해야 'javascript:' 링크/검색 함수가 정상 동작함
-const MAIN_WORLD = new Set(['pageSearch', 'pageOpenResult']);
+const MAIN_WORLD = new Set(['pageSearch', 'pageOpenResult', 'pagePrivacyToggle']);
 async function exec(tabId, func, args) {
   const [res] = await chrome.scripting.executeScript({ target: { tabId }, func, args, world: MAIN_WORLD.has(func.name) ? 'MAIN' : 'ISOLATED' });
   if (!res) throw new Error('페이지 스크립트 실행 실패');
@@ -352,8 +362,10 @@ function pageInspect(cs) {
     if (parseFloat(getComputedStyle(el).fontSize) >= 20) { bigTitle = true; break; }
   }
   const keys = [cs.full, `${cs.year}-${cs.num}`];
+  // 레이아웃용 큰 표의 행은 제외하고, 실제 결과 표의 행(다른 표를 품지 않은 행)만 본다
+  const rowOf = a => { let r = a.closest('tr'); while (r && r.querySelector('table')) r = null; return r || a.closest('li'); };
   const resultLinks = has ? [...document.querySelectorAll('a,[onclick]')].filter(a => {
-    const row = a.closest('tr,li') || a.parentElement;
+    const row = rowOf(a);
     const t = row ? (row.innerText || '').replace(/\s/g, '') : '';
     return keys.some(k => t.includes(k));
   }).length : 0;
@@ -414,10 +426,11 @@ function pageSearch(cs, fmt, attempt) {
 function pageOpenResult(cs) {
   const norm = s => (s || '').replace(/\s/g, '');
   const keys = [cs.full, `${cs.year}-${cs.num}`];
+  const rowOf = a => { let r = a.closest('tr'); if (r && r.querySelector('table')) r = null; return r || a.closest('li'); };
   const cands = [...document.querySelectorAll('a,[onclick]')].filter(a => {
-    const row = a.closest('tr,li') || a.parentElement;
+    const row = rowOf(a);
     return row && keys.some(k => norm(row.innerText).includes(k));
-  });
+  }).sort((x, y) => norm(rowOf(x).innerText).length - norm(rowOf(y).innerText).length);
   if (!cands.length) return { ok: false, error: '검색 결과에서 물건 링크를 찾지 못했습니다.' };
   // 사건번호 글자가 직접 있는 링크 > 그 행의 첫 링크
   const el = cands.find(a => keys.some(k => norm(a.innerText).includes(k))) || cands.find(a => a.tagName === 'A') || cands[0];
@@ -425,6 +438,58 @@ function pageOpenResult(cs) {
   if (href && !/^javascript:|^#/.test(href) && !el.target && !el.getAttribute('onclick')) return { ok: true, href: new URL(href, location.href).href };
   el.click();
   return { ok: true };
+}
+
+// 탱크옥션 상세 상단의 물건종류 배지(예: '아파트')를 누르면 주소·소유자 등 개인정보가 ○○○로 가려짐.
+// undo=false: 가려져 있지 않으면 배지를 눌러 가림 / undo=true: 다시 눌러 원래대로
+async function pagePrivacyToggle(undo) {
+  const KINDS = ['아파트', '오피스텔', '다세대', '빌라', '연립', '다가구', '단독주택', '주택', '도시형생활주택', '주상복합', '근린주택', '근린시설', '근린상가', '상가', '점포', '사무실', '토지', '대지', '임야', '전', '답', '공장', '아파트형공장', '창고', '숙박시설', '기타'];
+  const norm = t => (t || '').replace(/\s/g, '');
+  const vis = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+  // 사건번호 제목(가장 큰 글씨) 찾기
+  let title = null, fs = 0;
+  for (const el of document.querySelectorAll('h1,h2,h3,h4,div,span,strong,b,p')) {
+    const t = norm(el.innerText);
+    if (t.length > 40 || !/\d{4}타경\d+/.test(t) || !vis(el)) continue;
+    const f = parseFloat(getComputedStyle(el).fontSize);
+    if (f > fs) { title = el; fs = f; }
+  }
+  if (!title) return { state: 'notfound', log: '개인정보 가림: 제목 못 찾음' };
+  const tr = title.getBoundingClientRect();
+  // 제목 아래 250px 안의 상단 영역 텍스트에서 ○ 개수로 가림 여부 판단
+  const topArea = () => {
+    let n = 0;
+    for (const el of document.querySelectorAll('td,span,div,p,b,strong,h3,h4')) {
+      if (el.children.length > 3) continue;
+      const r = el.getBoundingClientRect();
+      if (r.top < tr.top - 10 || r.top > tr.bottom + 450) continue;
+      n += ((el.innerText || '').match(/○/g) || []).length;
+    }
+    return n;
+  };
+  const before = topArea();
+  const masked = before >= 4;
+  if (!undo && masked) return { state: 'already', log: '개인정보 가림: 이미 가려져 있음' };
+  if (undo && !masked) return { state: 'already' };
+  // 배지: 제목 바로 아래, 물건종류 글자만 있는 작은 요소
+  const cands = [...document.querySelectorAll('span,a,button,div,em,strong,b,label,li,p')].filter(el => {
+    if (!vis(el)) return false;
+    const t = norm(el.innerText);
+    if (!KINDS.includes(t)) return false;
+    const r = el.getBoundingClientRect();
+    return r.top >= tr.top - 5 && r.top <= tr.bottom + 200 && r.width < 260;
+  }).sort((a, b) => (parseFloat(getComputedStyle(b).fontSize) - parseFloat(getComputedStyle(a).fontSize)) || (a.contains(b) ? 1 : -1));
+  const badge = cands[0];
+  if (!badge) return { state: 'notfound', log: '개인정보 가림: 물건종류 배지 못 찾음' };
+  const clickable = badge.closest('a,button,[onclick]') || badge;
+  ['mousedown', 'mouseup'].forEach(t => clickable.dispatchEvent(new MouseEvent(t, { bubbles: true, cancelable: true, view: window })));
+  clickable.click();
+  await new Promise(r => setTimeout(r, 600));
+  let after = topArea();
+  // 가리려고 눌렀는데 오히려 ○가 줄었으면(이미 가려진 상태였음) 다시 눌러 되돌림
+  if (!undo && after < before) { clickable.click(); await new Promise(r => setTimeout(r, 600)); after = topArea(); return { state: 'already', log: `개인정보 가림: 이미 가려져 있어 원래대로 유지 (○ ${after})` }; }
+  const ok = undo ? after < before : after > before;
+  return { state: ok ? 'clicked' : 'nochange', log: `개인정보 가림: 배지('${norm(badge.innerText)}') 클릭 ${ok ? '성공' : '했지만 변화 없음'} (○ ${before}→${after})` };
 }
 
 // 지연 로딩 영역이 모두 나오도록 끝까지 천천히 스크롤
@@ -457,6 +522,7 @@ function pagePrepare(cs, opt) {
 
   // ── 2. 표 읽기 도우미 ──
   const tables = [...document.querySelectorAll('table')].filter(visible);
+  const leafTables = tables.filter(t => !t.querySelector('table'));
   const headerIdx = (table, names) => {
     const row = table.rows[0]; if (!row) return -1;
     let col = 0;
@@ -489,7 +555,7 @@ function pagePrepare(cs, opt) {
     const names = new Set();
     const addFrom = cell => { if (!cell) return; for (const part of (cell.innerText || '').split(/[\n,·]/)) { const v = part.trim().replace(/\s*외\s*\d+\s*(명|인)?$/, ''); if (isPerson(v)) names.add(v); } };
     ['소유자', '채무자', '채권자'].forEach(l => addFrom(kvCell(l)));
-    for (const t of tables) {
+    for (const t of leafTables) {
       for (const h of [['임차인', '임차인명', '점유자'], ['권리자', '권리자명'], ['소유자']]) {
         const i = headerIdx(t, h); if (i >= 0) colCells(t, i).forEach(addFrom);
       }
@@ -519,29 +585,36 @@ function pagePrepare(cs, opt) {
   // 섹션 제목 찾기: 후보 제목을 앞에서부터 순서대로 시도.
   // '임차인 현황  말소기준일…'처럼 제목 옆에 부가설명이 붙은 경우도 인식 (요소 자체의 텍스트 기준)
   const ownText = el => norm([...el.childNodes].filter(n => n.nodeType === 3).map(n => n.nodeValue).join(''));
+  const fsOf = el => parseFloat(getComputedStyle(el).fontSize) || 0;
   const findHeading = titles => {
     for (const raw of titles) {
       const x = norm(raw);
-      let exact = null, own = null, prefix = null;
+      const cands = [];
       for (const el of document.querySelectorAll('body *')) {
-        if (/^(SCRIPT|STYLE|TABLE|TBODY|TR|TD|TH|A|BUTTON|OPTION|SELECT)$/.test(el.tagName) || el.closest('table,nav,header,#gnb,.gnb')) continue;
+        if (/^(SCRIPT|STYLE|TABLE|TBODY|THEAD|TR|A|BUTTON|OPTION|SELECT|LABEL)$/.test(el.tagName) || el.closest('nav,header,#gnb,.gnb,a,button')) continue;
         if (!visible(el)) continue;
         const t = norm(el.innerText);
         if (!t || t.length > 80 || !t.startsWith(x)) continue;
-        if (t === x) { if (!exact || exact.contains(el)) exact = el; continue; }
         const o = ownText(el);
-        if (o === x || (o.startsWith(x) && o.length <= x.length + 2)) { if (!own || own.contains(el)) own = el; continue; }
-        if (t.length <= x.length + 40 && (!prefix || prefix.contains(el))) prefix = el;
+        let rank = 0;
+        if (t === x) rank = 3;
+        else if (o === x || (o.startsWith(x) && o.length <= x.length + 2)) rank = 2;
+        else if (t.length <= x.length + 40 && !/^(TD|TH)$/.test(el.tagName)) rank = 1;
+        if (!rank) continue;
+        if (/^(TD|TH)$/.test(el.tagName) && rank < 2) continue;
+        cands.push({ el, rank, fs: fsOf(el) });
       }
-      const hit = exact || own || prefix;
-      if (hit) return hit;
+      if (!cands.length) continue;
+      // 제목답게 글자가 큰 것 우선 → 일치도 → 더 안쪽 요소
+      cands.sort((a, b) => (b.fs - a.fs) || (b.rank - a.rank) || (a.el.contains(b.el) ? 1 : b.el.contains(a.el) ? -1 : 0));
+      return cands[0].el;
     }
     return null;
   };
   const allTitles = [...opt.tenantTitles, ...opt.registryTitles, '토지등기', '매각사례', '감정평가', '현황조사', '매각물건명세', '예상배당', '관련사건', '인근', '물건사진', '사진', '주의사항', '건축물대장'];
-  const headingsBelow = (y) => {
+  const headingsBelow = (y, minFs = 0) => {
     const hs = [];
-    for (const t of allTitles) { const h = findHeading([t]); if (h) { const r = rectOf(h); if (r.t > y + 5) hs.push(r.t); } }
+    for (const t of allTitles) { const h = findHeading([t]); if (h && fsOf(h) >= minFs * 0.85) { const r = rectOf(h); if (r.t > y + 5) hs.push(r.t); } }
     return hs.length ? Math.min(...hs) : Infinity;
   };
 
@@ -560,15 +633,14 @@ function pagePrepare(cs, opt) {
       let head = title;
       while (head.parentElement && norm(head.parentElement.innerText).length <= norm(title.innerText).length + 6) head = head.parentElement;
       const tr = rectOf(head);
-      const dateTable = tables.find(t => { const x = norm(t.innerText); return x.includes('최저매각가격') && x.includes('매각기일') && rectOf(t).t > tr.t; })
-        || tables.find(t => norm(t.innerText).includes('최저매각') && rectOf(t).t > tr.t);
-      const kv = tables.find(t => { const x = norm(t.innerText); return x.includes('감정가') && x.includes('최저가') && rectOf(t).t > tr.t; });
+      const dateTable = leafTables.find(t => { const x = norm(t.innerText); return x.includes('최저매각가격') && x.includes('매각기일') && rectOf(t).t > tr.t; })
+        || leafTables.find(t => norm(t.innerText).includes('최저매각') && rectOf(t).t > tr.t);
+      const kv = leafTables.find(t => { const x = norm(t.innerText); return x.includes('감정가') && x.includes('최저가') && rectOf(t).t > tr.t; });
       const parts = [head, ...(dateTable ? [dateTable] : []), ...(kv ? [kv] : [])];
       let box = union(parts);
       // 좌우 폭은 공통 컨테이너 기준
       let anc = head; while (anc && parts.some(p => !anc.contains(p))) anc = anc.parentElement;
       auctionAnc = anc && anc !== document.body ? anc : head.parentElement;
-      if (anc && anc !== document.body) { const a = rectOf(anc); if (a.r - a.l <= 1600) { box.l = Math.min(box.l, a.l); box.r = Math.max(box.r, a.r); } }
       if (!dateTable) { box.b = Math.min(Math.max(box.b, tr.t + 900), headingsBelow(tr.t) - 12); log.push('매각기일 표 못 찾음 → 제목 아래 고정 높이'); }
       auctionBox = box;
       pushRegion('auction', '경매정보', box);
@@ -582,8 +654,9 @@ function pagePrepare(cs, opt) {
     let head = h;
     while (head.parentElement && !head.parentElement.querySelector('table') && norm(head.parentElement.innerText).length < 120) head = head.parentElement;
     const hr = rectOf(head);
-    const limit = headingsBelow(hr.t);
-    const below = tables.map(t => ({ t, r: rectOf(t) })).filter(x => x.r.t >= hr.t - 2 && x.r.t < limit && !x.t.parentElement.closest('table')).sort((a, b) => a.r.t - b.r.t);
+    let limit = headingsBelow(hr.t, fsOf(h));
+    if (limit < hr.b + 40) limit = Infinity;
+    const below = leafTables.map(t => ({ t, r: rectOf(t) })).filter(x => x.r.t >= hr.t - 2 && x.r.t < limit).sort((a, b) => a.r.t - b.r.t);
     const picked = [];
     for (const x of below) {
       if (!picked.length) { if (x.r.t - hr.b > 250) break; picked.push(x); continue; }
@@ -593,7 +666,9 @@ function pagePrepare(cs, opt) {
     }
     let box = picked.length ? union([head, ...picked.map(x => x.t)]) : { ...hr, b: Math.min(hr.b + 160, limit - 12) };
     if (box.b > limit - 4) box.b = limit - 12;
+    const n0 = regions.length;
     pushRegion(key, label, box);
+    if (regions.length === n0) { missing.push(label); log.push(`${label}: 영역 크기 이상 (${Math.round(box.r - box.l)}×${Math.round(box.b - box.t)})`); }
     if (!picked.length) log.push(`${label}: 표 없음(제목 아래만 캡처)`);
   };
   if (opt.capTenant) sectionBox(opt.tenantTitles, 'tenant', '임차인 현황');
@@ -610,7 +685,7 @@ function pagePrepare(cs, opt) {
   if (court) fields.court = court;
   const ap = kvCell('감정가'); if (ap) fields.appraisal = firstMoney(ap.innerText);
   const mp = kvCell('최저가'); if (mp) fields.min_price = firstMoney(mp.innerText);
-  const dt = tables.find(t => norm(t.innerText).includes('최저매각가격'));
+  const dt = leafTables.find(t => norm(t.innerText).includes('최저매각가격'));
   if (dt) {
     const tx = dt.innerText;
     const skipped = (tx.match(/(\d+)\s*개\s*항목\]?\s*생략/) || [])[1];
@@ -632,7 +707,7 @@ function pagePrepare(cs, opt) {
   const colOf = (t, re) => { const h = t.rows[0] ? [...t.rows[0].cells] : []; let col = 0; for (const c of h) { if (re.test(norm(c.innerText))) return col; col += c.colSpan || 1; } return -1; };
   const cellAt = (row, i) => { let col = 0; for (const c of row.cells) { if (col === i) return (c.innerText || '').replace(/\s+/g, ' ').trim(); col += c.colSpan || 1; } return ''; };
   // 등기: 말소기준권리와 소멸되지 않는(인수) 권리
-  for (const t of tables) {
+  for (const t of leafTables) {
     const ki = colOf(t, /^권리종류/), di = colOf(t, /^접수일/), xi = colOf(t, /^소멸/);
     if (ki < 0 || di < 0) continue;
     const assumed = [];
@@ -644,7 +719,7 @@ function pagePrepare(cs, opt) {
     if (facts.baseRight) { if (xi >= 0) facts.assumedRights = assumed; break; }
   }
   // 임차인 현황: 인원·대항력
-  const tt = tables.find(t => colOf(t, /^임차인/) >= 0 && colOf(t, /대항력/) >= 0);
+  const tt = leafTables.find(t => colOf(t, /^임차인/) >= 0 && colOf(t, /대항력/) >= 0);
   if (tt) {
     const ni = colOf(tt, /^임차인/), di = colOf(tt, /대항력/);
     let n = 0, dh = 0;
@@ -662,7 +737,7 @@ function pagePrepare(cs, opt) {
 
   // 인근 낙찰가율: '매각사례' 표(구분 | 평균감정가 | 평균매각가 | 평균매각가율 | …)에서
   // 기간별 평균매각가율의 최저~최고를 범위로 표시. 예) 83.4% ~ 87.2% (최근 12개월 17건 · 경기 고양시 … 아파트)
-  const rateTables = tables.filter(t => t.rows[0] && [...t.rows[0].cells].some(c => /매각가율|낙찰가율/.test(norm(c.innerText))));
+  const rateTables = leafTables.filter(t => t.rows[0] && [...t.rows[0].cells].some(c => /매각가율|낙찰가율/.test(norm(c.innerText))));
   for (const t of rateTables) {
     const hdr = [...t.rows[0].cells].map(c => norm(c.innerText));
     const ri = hdr.findIndex(h => /매각가율|낙찰가율/.test(h));

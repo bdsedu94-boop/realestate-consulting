@@ -273,7 +273,7 @@ function editorHtml(r){
           <textarea data-reason="${i}" data-k="body" rows="2" placeholder="${esc(REASON_HINTS[i].body)}">${esc(x.body)}</textarea>
         </div>
       </div>`).join('')}
-    <h4>입찰 전략</h4>
+    <h4 style="display:flex;align-items:center;gap:10px">입찰 전략<button onclick="RecReport.autoBid()" style="font-size:11px;padding:3px 10px;border-color:${PURPLE};color:${PURPLE};font-weight:600">🧮 낙찰가율로 입찰가 계산</button><span style="font-size:11px;color:#888;font-weight:400">감정가 × 인근 낙찰가율 범위 · 자동 캡처 시 빈 칸이면 자동 계산</span></h4>
     <div class="fg">
       ${field('권장 입찰가 하한 (만원)','bid_low',{type:'number',ph:'10000'})}
       ${field('권장 입찰가 상한 (만원)','bid_high',{type:'number',ph:'10300',calc:'bid'})}
@@ -344,6 +344,25 @@ function regionOf(r){
   return null;
 }
 function rateRange(txt){const m=(txt||'').match(/(\d{1,3}(?:\.\d+)?)%(?:\s*~\s*(\d{1,3}(?:\.\d+)?)%)?/);return m?{lo:+m[1],hi:+(m[2]||m[1])}:null;}
+// 권장 입찰가 = 감정가 × 인근 낙찰가율 범위 (10만원 단위 반올림, 최저가 미만이면 최저가로)
+function calcBid(r){
+  const ap=num(r.appraisal), wr=rateRange(r.win_rate), min=num(r.min_price);
+  if(!ap||!wr) return null;
+  const rd=v=>Math.round(v/10)*10;
+  let lo=rd(ap*wr.lo/100), hi=rd(ap*wr.hi/100);
+  if(min){ if(lo<min) lo=min; if(hi<min) hi=min; }
+  return {bid_low:lo,bid_high:hi,belowMin:!!(min&&rd(ap*wr.hi/100)<min)};
+}
+async function autoBid(){
+  if(!st.cur) return;
+  readEditor();
+  const b=calcBid(st.cur);
+  if(!b){alert('감정가와 인근 낙찰가율이 있어야 계산할 수 있습니다. 먼저 [🤖 탱크옥션 자동 캡처]를 해주세요.');return;}
+  if((num(st.cur.bid_low)||num(st.cur.bid_high))&&!confirm(`권장 입찰가를 ${man(b.bid_low,'원')} ~ ${man(b.bid_high,'원')}로 바꿀까요?`)) return;
+  Object.assign(st.cur,{bid_low:b.bid_low,bid_high:b.bid_high,bid_auto:`${b.bid_low}-${b.bid_high}`});
+  await save();
+  if(b.belowMin) alert('인근 낙찰가율로 계산한 금액이 최저가보다 낮아 최저가 기준으로 맞췄습니다. 입찰 여부를 다시 검토해주세요.');
+}
 function genReasons(s,r){
   const f=facts(r), rg=regionOf(r), prop=f.propType||r.prop_type||'물건';
   const seed=s.seed_amount||0, cr=s.credit_amount||0, min=num(r.min_price), dep=deposit(r);
@@ -614,6 +633,12 @@ async function captureInto(rec,status){
   if(res.fields&&res.fields.win_rate&&(patch.win_rate||!rec.win_rate)) patch.win_rate_auto=patch.win_rate||res.fields.win_rate;
   if(!rec.image_note) patch.image_note=`※ 출처: 탱크옥션 (${todayStr()} 캡처) · 개인정보는 가림 처리`;
   if(res.fields&&res.fields.auto_facts) patch.auto_facts=res.fields.auto_facts;
+  // 권장 입찰가: 비어 있거나 이전 자동 계산값 그대로면 낙찰가율로 다시 계산 (직접 고친 값은 유지)
+  {
+    const m0={...rec,...patch}, b=calcBid(m0);
+    const untouched=!num(rec.bid_low)&&!num(rec.bid_high) || (rec.bid_auto&&rec.bid_auto===`${num(rec.bid_low)}-${num(rec.bid_high)}`);
+    if(b&&untouched) Object.assign(patch,{bid_low:b.bid_low,bid_high:b.bid_high,bid_auto:`${b.bid_low}-${b.bid_high}`});
+  }
   // 추천 사유가 비어 있으면 자동 작성 (직접 쓴 내용은 그대로 둠)
   const merged={...rec,...patch};
   if(!(rec.reasons||[]).some(x=>(x.title||'').trim()||(x.body||'').trim())){
@@ -694,6 +719,7 @@ async function renderRecPage(s,r,idx){
   const minPct=pct(r.min_price,r.appraisal);
   // 캡처에 이미 나오는 정보는 중복 입력하지 않아도 되므로, 6칸이 모두 비어 있으면 숨김
   const hasTiles=[r.prop_type,r.floor_main,r.occupancy,r.rights].some(v=>(v||'').trim());
+  const pill=`<span style="display:inline-block;vertical-align:middle;background:${PURPLE};color:#fff;font-size:11.5px;font-weight:700;border-radius:12px;padding:3px 11px;line-height:16px">추천 #${String(idx+1).padStart(2,'0')}</span>`;
   const failTxt=num(r.fail_count)?`유찰 ${num(r.fail_count)}회`:'신건';
   const bidTxt=num(r.bid_low)
     ?`${man(r.bid_low)}${num(r.bid_high)&&num(r.bid_high)!==num(r.bid_low)?' ~ '+man(r.bid_high,'원'):'원'}${num(r.appraisal)?` (감정가 ${pct(r.bid_low,r.appraisal)}${num(r.bid_high)&&num(r.bid_high)!==num(r.bid_low)?'~'+pct(r.bid_high,r.appraisal):''}%)`:''}`
@@ -758,11 +784,11 @@ async function renderRecPage(s,r,idx){
       </table>
     </div>
     <div style="padding:0 28px 22px">
-      ${secTitle('추천 물건 개요',18)}
+      ${imgs.length?'':`${secTitle('추천 물건 개요',18)}
       <table style="border-collapse:collapse;margin-bottom:8px"><tr>
-        <td style="padding:0;white-space:nowrap"><div style="background:${PURPLE};color:#fff;font-size:12px;font-weight:700;border-radius:12px;padding:5px 12px">추천 #${String(idx+1).padStart(2,'0')}</div></td>
+        <td style="padding:0;white-space:nowrap">${pill}</td>
         <td style="padding:0 0 0 10px;font-size:13px;color:#333">${esc(r.headline)}</td>
-      </tr></table>
+      </tr></table>`}
       ${caseLine&&!imgs.length?`<div style="font-size:11.5px;color:#777;margin:0 0 10px 2px">${caseLine}</div>`:''}
       ${hasTiles?`<table style="width:100%;border-collapse:collapse;margin:0 -3px;width:calc(100% + 6px)"><tr>
         ${tile('물건종류',r.prop_type,r.area)}
@@ -772,7 +798,7 @@ async function renderRecPage(s,r,idx){
         ${tile('점유 / 임차인',r.occupancy,r.occupancy_sub)}
         ${tile('인수 권리',r.rights,r.rights_sub)}
       </tr></table>`:''}
-      ${imgHtml?secTitle('탱크옥션 물건 정보')+imgHtml:''}
+      ${imgHtml?secTitle(`탱크옥션 물건 정보 &nbsp;${pill}`,18)+imgHtml:''}
       ${reasonsHtml?secTitle('추천 사유')+reasonsHtml:''}
       ${stratHtml}
     </div>
@@ -887,5 +913,5 @@ async function importRecSheet(input){
 function init(){injectUI();bindMask();pingExt();window.addEventListener('resize',()=>{if(document.getElementById('maskModal').classList.contains('show'))fitMask();});}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 
-window.RecReport={autoReasons,genReasons,autoCapture,autoCaptureAll,imgEdit,open,close,select,add,save,remove,move,pdf,imgDel,imgMove,maskMode,maskUndo,maskCropApply,maskDone,maskCancel,loadSummary,cardLine,parseRecCell,checkRec,buildRecPDF};
+window.RecReport={autoBid,calcBid,autoReasons,genReasons,autoCapture,autoCaptureAll,imgEdit,open,close,select,add,save,remove,move,pdf,imgDel,imgMove,maskMode,maskUndo,maskCropApply,maskDone,maskCancel,loadSummary,cardLine,parseRecCell,checkRec,buildRecPDF};
 })();
