@@ -68,6 +68,10 @@ app.use(express.json({ limit: '10mb' }));
 app.use(requireAuth);
 app.use(express.static(path.join(__dirname, 'public')));
 
+/* ── 추천물건 리포트 API (로그인 필요) ── */
+const recommendRouter = require('./recommend-api')({ readDB: (...a) => readDB(...a), writeDB: (...a) => writeDB(...a), dataDir: DATA_DIR });
+app.use('/api', recommendRouter);
+
 /* ── 로그인 ── */
 app.post('/login', (req, res) => {
   if (req.body.password === SITE_PASSWORD) {
@@ -147,6 +151,7 @@ app.delete('/api/students/:id', (req, res) => {
     const idx = db.students.findIndex(s => s.id === id);
     if (idx === -1) return res.status(404).json({ error: '수강생을 찾을 수 없습니다.' });
     db.students.splice(idx, 1);
+    recommendRouter.cleanupStudent(db, id);
     writeDB(db);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }

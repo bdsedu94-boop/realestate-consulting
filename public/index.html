@@ -265,6 +265,7 @@ button:hover{background:#f0ede6}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="/investment-rules.js"></script>
+<script src="/recommend.js"></script>
 <script>
 const {fmt,tierLabel,formatBidNarrative,appendCreditCheckNote,formatBidNarrativeCSV,consult}=InvestmentRules;
 /* ── 투자 유형 ── */
@@ -318,6 +319,7 @@ async function loadStudents(){
     if(c)params.set('cohort',c);if(h)params.set('housing_type',h);
     if(st)params.set('status',st);if(q)params.set('search',q);
     students=await api('/api/students?'+params);
+    if(window.RecReport) await RecReport.loadSummary();
     setSyncBar('sync-ok','마지막 동기화: '+timeStr());
     await loadCohorts();
     render();
@@ -1052,6 +1054,7 @@ function render(){
       ${d.note?`<div class="note-text">※ ${d.note}</div>`:''}
       ${d.consult_note?`<div class="consult-note">💬 ${d.consult_note}</div>`:''}
       ${d.consult_date?`<div class="consult-date">상담일: ${d.consult_date}</div>`:''}
+      ${window.RecReport&&!previewMode?RecReport.cardLine(d):''}
     </div>`;
   }).join('')||'<p style="color:#aaa;padding:2rem;text-align:center">조건에 맞는 수강생이 없습니다.</p>';
 }

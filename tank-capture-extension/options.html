@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>추천물건 캡처 도우미</title>
+<style>
+body{font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;font-size:13px;color:#1a1a1a;margin:0;padding:16px;min-width:420px;max-width:720px;background:#f7f6f2}
+h1{font-size:16px;margin:0 0 4px;color:#9314cc}
+p.sub{margin:0 0 14px;color:#777;font-size:12px}
+.box{background:#fff;border:1px solid #e6e3dc;border-radius:10px;padding:12px 14px;margin-bottom:12px}
+label{display:block;font-size:12px;color:#555;margin:8px 0 4px}
+input[type=text],select,textarea{width:100%;box-sizing:border-box;border:1px solid #ccc;border-radius:6px;padding:6px 8px;font-size:12px;font-family:inherit}
+.chk label{display:inline-flex;gap:5px;margin-right:12px;color:#222}
+.hint{font-size:11px;color:#888;margin-top:3px;line-height:1.5}
+button{border:1px solid #9314cc;background:#9314cc;color:#fff;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer}
+button.sec{background:#fff;color:#9314cc}
+#msg{font-size:12px;color:#27500a;margin-left:8px}
+pre{white-space:pre-wrap;background:#1e1e1e;color:#ddd;border-radius:8px;padding:10px;font-size:11px;max-height:320px;overflow:auto}
+</style></head>
+<body>
+<h1>🏠 추천물건 캡처 도우미</h1>
+<p class="sub">컨설팅 사이트에서 [🤖 탱크옥션 자동 캡처]를 누르면 이 크롬에 로그인된 탱크옥션으로 사건을 검색해 캡처합니다.</p>
+
+<div class="box">
+  <b>캡처할 영역</b>
+  <div class="chk" style="margin-top:6px">
+    <label><input type="checkbox" id="capAuction"> 경매정보 (상단~매각기일 표)</label>
+    <label><input type="checkbox" id="capTenant"> 임차인 현황</label>
+    <label><input type="checkbox" id="capRegistry"> 등기</label>
+  </div>
+  <div class="chk" style="margin-top:8px">
+    <label><input type="checkbox" id="maskNames"> 소유자·임차인 등 개인 이름 자동 가림 (예: 홍○○)</label>
+  </div>
+  <label>임차인 섹션 제목 (쉼표로 구분)</label><input type="text" id="tenantTitles">
+  <label>등기 섹션 제목 (쉼표로 구분, 앞에서부터 먼저 찾음)</label><input type="text" id="registryTitles">
+</div>
+
+<div class="box">
+  <b>검색 방식</b>
+  <label>검색 주소 (선택)</label>
+  <input type="text" id="searchUrlTemplate" placeholder="비워두면 검색 화면에서 사건번호를 자동 입력합니다">
+  <div class="hint">탱크옥션에서 사건번호로 한 번 검색한 뒤 주소창 주소에 사건번호가 들어 있다면, 그 부분을 {year}(2024), {num}(53537), {case}(2024타경53537)로 바꿔 붙여넣으세요. 가장 안정적인 방법입니다.</div>
+  <label>사건번호 입력 형식 (자동 입력 시)</label>
+  <select id="caseInputFormat">
+    <option value="auto">자동 (연도 선택칸이 있으면 번호만)</option>
+    <option value="full">2024타경53537</option>
+    <option value="dash">2024-53537</option>
+    <option value="num">53537 (연도는 선택칸)</option>
+  </select>
+  <label>탱크옥션 주소</label><input type="text" id="tankBase">
+  <div class="chk" style="margin-top:8px"><label><input type="checkbox" id="keepWindow"> 캡처 후 탱크옥션 창 닫지 않기 (확인용)</label></div>
+</div>
+
+<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+  <button id="save">설정 저장</button><button class="sec" id="reset">기본값</button><span id="msg"></span>
+</div>
+
+<div class="box">
+  <b>진단</b>
+  <div class="hint">탱크옥션 물건 상세 페이지를 열어둔 상태에서 누르면, 캡처 영역을 제대로 찾는지 확인합니다. 문제가 있으면 이 결과를 개발 담당자에게 전달해주세요.</div>
+  <div style="margin-top:8px"><button class="sec" id="diag">열린 탱크옥션 탭 진단</button></div>
+  <pre id="out" style="display:none"></pre>
+</div>
+<script src="options.js"></script>
+</body></html>

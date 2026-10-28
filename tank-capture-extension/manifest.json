@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "추천물건 캡처 도우미 (월급추월 부동산재테크)",
+  "version": "1.0.0",
+  "description": "수강생 컨설팅 사이트에서 [탱크옥션 자동 캡처]를 누르면, 로그인된 탱크옥션에서 사건번호를 검색해 경매정보·임차인 현황·등기 영역을 캡처합니다.",
+  "permissions": ["debugger", "tabs", "scripting", "storage"],
+  "host_permissions": [
+    "https://www.tankauction.com/*",
+    "https://tankauction.com/*",
+    "https://realestate-consulting-production-5a24.up.railway.app/*",
+    "http://localhost/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [{
+    "matches": [
+      "https://realestate-consulting-production-5a24.up.railway.app/*",
+      "http://localhost/*"
+    ],
+    "js": ["bridge.js"],
+    "run_at": "document_idle"
+  }],
+  "options_page": "options.html",
+  "action": { "default_title": "추천물건 캡처 도우미", "default_popup": "options.html" }
+}
