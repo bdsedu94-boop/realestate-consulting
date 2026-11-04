@@ -1,6 +1,6 @@
 const DEFAULTS = {
   tankBase: 'https://www.tankauction.com', searchPath: '/ca/caList.php', searchUrlTemplate: '', caseInputFormat: 'auto',
-  capAuction: true, capTenant: true, capRegistry: true,
+  capAuction: true, capTenant: true, capRegistry: false,
   tenantTitles: '임차인 현황, 임차인현황', registryTitles: '건물등기, 집합건물등기, 건물 등기, 토지등기, 등기부 현황',
   maskNames: true, keepWindow: false, stepDelay: 900
 };

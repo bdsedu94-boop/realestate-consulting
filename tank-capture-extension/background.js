@@ -15,13 +15,19 @@ const DEFAULTS = {
   caseInputFormat: 'auto', // auto | full(2024타경53537) | dash(2024-53537) | num(53537, 연도는 선택칸)
   capAuction: true,
   capTenant: true,
-  capRegistry: true,
+  capRegistry: false, // 등기는 리포트가 너무 길어져 기본으로 캡처하지 않음 (설정에서 켤 수 있음)
   tenantTitles: '임차인 현황, 임차인현황',
   registryTitles: '건물등기, 집합건물등기, 건물 등기, 토지등기, 등기부 현황',
   maskNames: true,
   keepWindow: false,
   stepDelay: 900
 };
+
+// 1.0.13: 등기 캡처 기본값을 끔. 이전 버전에서 저장된 설정도 한 번만 끄고, 이후 사용자가 다시 켜면 유지
+chrome.runtime.onInstalled.addListener(async () => {
+  const { regOffMigrated } = await chrome.storage.sync.get('regOffMigrated');
+  if (!regOffMigrated) await chrome.storage.sync.set({ capRegistry: false, regOffMigrated: true });
+});
 
 async function getSettings() {
   const s = await chrome.storage.sync.get(DEFAULTS);
@@ -830,10 +836,15 @@ function pagePrepare(cs, opt) {
     if (!picked.length) log.push(`${label}: 표 없음(제목 아래만 캡처)`);
   };
   if (opt.capTenant) sectionBox(opt.tenantTitles, 'tenant', '임차인 현황');
-  if (opt.capRegistry) sectionBox(opt.registryTitles, 'registry', '등기');
-  // 임차인 캡처에 등기 표가 같이 들어가 PDF에 두 번 나오지 않도록, 겹치면 등기 시작 전에서 자름
+  // 등기는 캡처하지 않더라도 위치를 계산해 임차인 영역의 아래 경계로 사용
+  if (opt.capRegistry || opt.capTenant) sectionBox(opt.registryTitles, 'registry', '등기');
+  // 임차인 캡처에 등기 표가 같이 들어가지 않도록, 겹치면 등기 시작 전에서 자름
   const ten = regions.find(r => r.key === 'tenant'), reg = regions.find(r => r.key === 'registry');
   if (ten && reg && reg.y > ten.y && ten.y + ten.h > reg.y) { ten.h = reg.y - ten.y; log.push('임차인 현황: 등기 영역과 겹쳐 아래를 잘라냄'); }
+  if (!opt.capRegistry) {
+    const i = regions.findIndex(r => r.key === 'registry'); if (i >= 0) regions.splice(i, 1);
+    const m = missing.indexOf('등기'); if (m >= 0) missing.splice(m, 1);
+  }
 
   // ── 5. 주요 값 읽기 (리포트 발송 전 체크·한 줄 요약용, 빈 칸만 채움) ──
   const fields = {};
