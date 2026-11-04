@@ -426,7 +426,7 @@ function pageInspect(cs) {
   const ki = keys.map(k => txt.indexOf(k)).find(i => i >= 0);
   const ctx = ki >= 0 ? txt.slice(Math.max(0, ki - 12), ki + 30) : '';
   // 법원 단서가 있으면 상세 상단에 그 법원 이름이 있어야 같은 물건으로 인정
-  const courtOk = !cs.court || (document.body.innerText || '').slice(0, 4000).replace(/\s/g, '').includes(cs.court);
+  const courtOk = !cs.court || (document.body.innerText || '').slice(0, 8000).replace(/\s/g, '').includes(cs.court);
   return { isDetail: has && bigTitle && detailMarks >= 2 && courtOk, hasResult: resultLinks > 0 && !(bigTitle && detailMarks >= 2), url: location.href,
     // 아래는 실패 시 진단용
     has, marks: detailMarks, titleFs: Math.round(titleFs), links: resultLinks, ctx,
@@ -517,6 +517,13 @@ async function pageOpenResult(cs) {
   // 단서가 없거나 맞는 줄이 없으면 예정물건·미확정(-20)을 피함
   const score = x => { const t = rowText(x); let v = 0; if (cs.court && t.includes(cs.court)) v += 40; for (const w of cs.words || []) if (t.includes(w)) v += 25; if (/예정물건|미확정/.test(t)) v -= 20; return v; };
   const pick = list => list.map((x, i) => ({ x, i, v: score(x) })).sort((a, b) => b.v - a.v || a.i - b.i)[0];
+  // 탱크옥션 목록: 결과 한 건 = <tr data-tid="물건번호">. 맞는 줄을 골라 그 tid로 상세 팝업 주소를 바로 엶
+  // (줄 클릭은 페이지 스크립트가 처리해 링크가 없고, 위쪽 '최근열람'·검색기록에도 같은 사건번호가 있음)
+  const tidRows = [...document.querySelectorAll('tr[data-tid]')].filter(r => /^\d+$/.test(r.dataset.tid) && keys.some(k => norm(r.innerText).includes(k)));
+  if (tidRows.length) {
+    const r = pick(tidRows).x, tid = r.dataset.tid;
+    return { ok: true, href: `${location.origin}/ca/inc/component/popup/caView.php?tid=${tid}&chkNo=1&TotNo=1&opener_1st_no=${tid}`, how: `tid ${tid} · ` + rowText(r).slice(0, 30) };
+  }
   let el = null, how = '';
   try {
     if (cands.length) {
