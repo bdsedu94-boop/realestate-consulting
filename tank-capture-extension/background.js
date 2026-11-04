@@ -92,7 +92,7 @@ async function capture({ reqId, caseNo, hint }, sender) {
         if (cfg.searchUrlTemplate) throw new Error('검색 주소로 열었지만 결과에서 사건을 찾지 못했습니다. 확장프로그램 설정의 검색 주소를 확인해주세요.');
         const searchUrl = cfg.tankBase.replace(/\/$/, '') + cfg.searchPath;
         const tried = [];
-        for (let attempt = 0; attempt < 3; attempt++) {
+        for (let attempt = 0; attempt < 5; attempt++) {
           progress(`사건번호 ${cs.full} 검색 중...` + (attempt ? ` (다른 검색칸으로 재시도 ${attempt + 1})` : ''));
           if (attempt) { await chrome.tabs.update(tabId, { url: searchUrl }); await waitSettle(tabId, 20000); await sleep(cfg.stepDelay); }
           const before = new Set((await chrome.tabs.query({})).map(t => t.id));
@@ -421,7 +421,10 @@ function pageInspect(cs) {
     if ([...el.children].some(c => keys.some(k => (c.textContent || '').replace(/\s/g, '').includes(k)))) return false;
     return el.getClientRects().length > 0 && !nearForm(el);
   }).length : 0;
-  const resultLinks = linkCount + cells;
+  // 탱크옥션 검색 목록: 결과 줄(tr[data-tid])만 인정 (위쪽 '최근열람'·검색기록의 같은 사건번호는 결과가 아님)
+  const listPage = /caList\.php/i.test(location.pathname);
+  const tidRows = [...document.querySelectorAll('tr[data-tid]')].filter(r => keys.some(k => (r.innerText || '').replace(/\s/g, '').includes(k))).length;
+  const resultLinks = listPage ? tidRows : linkCount + cells;
   // 진단용: 사건번호 앞뒤 글자
   const ki = keys.map(k => txt.indexOf(k)).find(i => i >= 0);
   const ctx = ki >= 0 ? txt.slice(Math.max(0, ki - 12), ki + 30) : '';
@@ -443,6 +446,21 @@ function pageSearch(cs, fmt, attempt) {
   const idx = el => all.indexOf(el);
   const yearSel = [...document.querySelectorAll('select')].filter(vis).filter(s => [...s.options].filter(o => /^\s*(19|20)\d{2}/.test(o.text)).length >= 3);
   const isText = i => i.tagName === 'INPUT' && /^(text|search|tel|number|)$/.test((i.getAttribute('type') || '').toLowerCase()) && vis(i) && !i.readOnly;
+  // 탱크옥션 검색칸(실제 페이지 구조): 본문 상세검색 #sn1/#sn2 + 표 아래 [검 색](#btnSrch), 상단 #num1_Top1/#num2_Top1 + 돋보기
+  const KNOWN = [
+    { sel: '#sn1', input: '#sn2', btn: '#btnSrch', label: '상세검색' },
+    { sel: '#num1_Top1', input: '#num2_Top1', btn: '[data-action="snb-search"]', label: '상단검색' }
+  ].filter(k => document.querySelector(k.sel) && document.querySelector(k.input) && document.querySelector(k.btn));
+  if (attempt < KNOWN.length) {
+    const k = KNOWN[attempt], sel = document.querySelector(k.sel), input = document.querySelector(k.input), btn = document.querySelector(k.btn);
+    const opt = [...sel.options].find(o => o.value.trim() === cs.year || o.text.trim().startsWith(cs.year));
+    if (!opt) return { ok: false, detail: `${k.label}: 연도 ${cs.year} 없음` };
+    sel.value = opt.value; fire(sel);
+    input.focus(); input.value = cs.num; fire(input);
+    btn.click();
+    return { ok: true, detail: `${k.label} ${k.input}+${k.btn}` };
+  }
+  attempt -= KNOWN.length;
   const pairs = [];
   for (const sel of yearSel) {
     // 연도칸 뒤 10개 요소 안의 첫 번째 텍스트 입력칸 = 번호칸
@@ -524,6 +542,7 @@ async function pageOpenResult(cs) {
     const r = pick(tidRows).x, tid = r.dataset.tid;
     return { ok: true, href: `${location.origin}/ca/inc/component/popup/caView.php?tid=${tid}&chkNo=1&TotNo=1&opener_1st_no=${tid}`, how: `tid ${tid} · ` + rowText(r).slice(0, 30) };
   }
+  if (/caList\.php/i.test(location.pathname)) return { ok: false, error: '검색 결과 목록에 해당 사건이 없습니다.' };
   let el = null, how = '';
   try {
     if (cands.length) {
