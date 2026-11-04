@@ -97,7 +97,7 @@ function injectUI(){
 <div class="modal-bg" id="recModal">
   <div class="modal">
     <button class="modal-close" onclick="RecReport.close()">✕</button>
-    <h3 id="recTitle">경매 물건 리포트</h3>
+    <h3 id="recTitle">추천물건</h3>
     <div id="recBody"></div>
   </div>
 </div>
@@ -126,7 +126,7 @@ function injectUI(){
   const ctrls=document.querySelector('.ctrls');
   if(ctrls){
     const b=document.createElement('button');
-    b.textContent='🏠 경매 물건 시트 가져오기';
+    b.textContent='🏠 추천물건 시트 가져오기';
     b.style.cssText=`background:#fff;color:${PURPLE};border-color:${PURPLE}`;
     b.title='구글시트 요약 탭(엑셀로 다운로드)의 추천물건1~3 사건번호로 초안을 만듭니다';
     b.onclick=()=>document.getElementById('recXlsxInput').click();
@@ -153,8 +153,8 @@ async function loadSummary(){
 }
 function cardLine(d){
   const s=REC_SUMMARY[d.id];
-  const chips=s?REC_STATUS.filter(k=>s[k]).map(k=>`<span class="rec-chip" style="${REC_ST_STYLE[k]}">${k} ${s[k]}</span>`).join(''):'<span>경매 물건 없음</span>';
-  return `<div class="rec-line"><span style="font-weight:600;color:#555">🏠 경매 물건 ${s?s.total+'건':''}</span>${chips}<span style="flex:1"></span><button onclick="RecReport.open(${d.id})">경매 물건 리포트 · PDF</button></div>`;
+  const chips=s?REC_STATUS.filter(k=>s[k]).map(k=>`<span class="rec-chip" style="${REC_ST_STYLE[k]}">${k} ${s[k]}</span>`).join(''):'<span>추천물건 없음</span>';
+  return `<div class="rec-line"><span style="font-weight:600;color:#555">🏠 추천물건 ${s?s.total+'건':''}</span>${chips}<span style="flex:1"></span><button onclick="RecReport.open(${d.id})">추천물건 관리 · PDF</button></div>`;
 }
 
 /* ── 모달 열기/닫기 ── */
@@ -162,7 +162,7 @@ async function open(studentId){
   const s=(typeof students!=='undefined'?students:[]).find(x=>x.id===studentId);
   if(!s){alert('수강생 정보를 찾을 수 없습니다.');return;}
   st.student=s;st.cur=null;st.dirty=false;
-  document.getElementById('recTitle').textContent=`${s.cohort} ${s.name}님 · 경매 물건 리포트`;
+  document.getElementById('recTitle').textContent=`${s.cohort} ${s.name}님 · 추천물건`;
   document.getElementById('recModal').classList.add('show');
   await reload();
 }
@@ -185,14 +185,14 @@ function renderBody(){
   const ctx=InvestmentRules.getReportContext(s);
   const list=st.recs.map((r,i)=>`
     <div class="rec-item ${st.cur&&st.cur.id===r.id?'on':''}" onclick="RecReport.select(${r.id})">
-      <span class="ri-no">물건 #${String(i+1).padStart(2,'0')}</span>
+      <span class="ri-no">추천 #${String(i+1).padStart(2,'0')}</span>
       <div class="ri-main">
         <div class="ri-case">${esc(r.case_no||'(사건번호 미입력)')} <span style="font-weight:400;color:#888;font-size:11px">${esc(r.court||'')}</span></div>
         <div class="ri-sub">${esc(r.headline||'')}${r.sale_date?' · 매각기일 '+fmtDate(r.sale_date):''}${r.min_price?' · 최저가 '+man(r.min_price,'원'):''}</div>
       </div>
       <span class="rec-chip" style="${REC_ST_STYLE[r.status]||''}">${esc(r.status)}</span>
       <button onclick="event.stopPropagation();RecReport.pdf([${r.id}])" title="이 물건만 PDF">📄</button>
-    </div>`).join('')||'<div style="font-size:12px;color:#aaa;padding:10px">아직 등록된 물건이 없습니다. [+ 물건 추가] 또는 상단 [🏠 경매 물건 시트 가져오기]로 시작하세요.</div>';
+    </div>`).join('')||'<div style="font-size:12px;color:#aaa;padding:10px">아직 추천물건이 없습니다. [+ 추천물건 추가] 또는 상단 [🏠 추천물건 시트 가져오기]로 시작하세요.</div>';
 
   document.getElementById('recBody').innerHTML=`
     <div style="font-size:12px;color:#666;background:#f7f6f2;border-radius:8px;padding:8px 12px;margin-bottom:12px">
@@ -201,8 +201,8 @@ function renderBody(){
     </div>
     <div class="rec-list">${list}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button onclick="RecReport.add()">+ 물건 추가</button>
-      ${st.recs.length?`<button class="rec-p" onclick="RecReport.pdf()">📄 전체 물건 PDF (${st.recs.length}건)</button>`:''}
+      <button onclick="RecReport.add()">+ 추천물건 추가</button>
+      ${st.recs.length?`<button class="rec-p" onclick="RecReport.pdf()">📄 전체 추천물건 PDF (${st.recs.length}건)</button>`:''}
       ${(()=>{const n=st.recs.filter(r=>!(r.images||[]).some(i=>i.source==='auto')&&r.case_no).length;return n?`<button onclick="RecReport.autoCaptureAll()" style="border-color:${PURPLE};color:${PURPLE}">🤖 캡처 없는 물건 자동 캡처 (${n}건)</button>`:'';})()}
       <span id="recBulkStatus" class="rec-auto-st"></span>
     </div>
@@ -264,7 +264,7 @@ function editorHtml(r){
         </div>
       </div>`).join('')}</div>
     <div style="margin-top:8px">${field('캡처 하단 안내문','image_note',{ph:'※ 출처: 탱크옥션 (2026.10.27 캡처)'})}</div>
-    <h4 style="display:flex;align-items:center;gap:10px">검토 포인트 (3가지: 조건 적합 / 권리 / 가격)<button onclick="RecReport.autoReasons()" style="font-size:11px;padding:3px 10px;border-color:${PURPLE};color:${PURPLE};font-weight:600">✨ 자동 작성</button><span style="font-size:11px;color:#888;font-weight:400">자동 캡처하면 빈 칸은 자동으로 채워집니다</span></h4>
+    <h4 style="display:flex;align-items:center;gap:10px">추천 사유 (3가지: 조건 적합 / 권리 / 가격)<button onclick="RecReport.autoReasons()" style="font-size:11px;padding:3px 10px;border-color:${PURPLE};color:${PURPLE};font-weight:600">✨ 자동 작성</button><span style="font-size:11px;color:#888;font-weight:400">자동 캡처하면 빈 칸은 자동으로 채워집니다</span></h4>
     ${reasons.map((x,i)=>`
       <div style="display:grid;grid-template-columns:24px 1fr;gap:8px;margin-bottom:10px">
         <div style="width:22px;height:22px;border-radius:50%;background:${PURPLE};color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:4px">${i+1}</div>
@@ -395,7 +395,7 @@ async function autoReasons(){
   if(!st.cur) return;
   readEditor();
   const has=(st.cur.reasons||[]).some(x=>(x.title||'').trim()||(x.body||'').trim());
-  if(has&&!confirm('이미 입력된 검토 포인트를 자동 작성 내용으로 바꿀까요?')) return;
+  if(has&&!confirm('이미 입력된 추천 사유를 자동 작성 내용으로 바꿀까요?')) return;
   if(!st.cur.auto_facts&&!confirm('자동 캡처 정보가 없어 일부 문장만 만들어집니다. 먼저 [🤖 탱크옥션 자동 캡처]를 하면 더 정확합니다. 그래도 작성할까요?')) return;
   st.cur.reasons=genReasons(st.student,st.cur);
   await save();
@@ -407,7 +407,7 @@ function checkRec(r){
   if(!/^\d{4}타경\d+/.test((r.case_no||'').replace(/\s/g,''))) out.push('사건번호를 "2025타경12345" 형식으로 입력하세요.');
   if(r.sale_date&&new Date(r.sale_date+'T23:59:59')<new Date()) out.push('매각기일이 이미 지났습니다. 변경·유찰 여부를 확인하세요.');
   if(num(r.min_price)&&num(r.appraisal)&&num(r.min_price)>num(r.appraisal)) out.push('최저가가 감정가보다 큽니다.');
-  if((r.reasons||[]).filter(x=>x.title&&x.title.trim()).length<3) out.push('검토 포인트 3가지를 모두 입력하세요.');
+  if((r.reasons||[]).filter(x=>x.title&&x.title.trim()).length<3) out.push('추천 사유 3가지를 모두 입력하세요.');
   if(num(r.bid_low)){
     if(num(r.min_price)&&num(r.bid_low)<num(r.min_price)) out.push('권장 입찰가 하한이 최저가보다 낮습니다.');
     if(num(r.bid_high)&&num(r.bid_high)<num(r.bid_low)) out.push('권장 입찰가 상한이 하한보다 낮습니다.');
@@ -419,8 +419,8 @@ function checkRec(r){
   }
   if(!(r.images||[]).length) out.push('탱크옥션 캡처 이미지가 없습니다. [🤖 탱크옥션 자동 캡처]를 눌러주세요.');
   const f=facts(r);
-  if(f.tenantsWithPriority>0) out.push(`대항력 있는 임차인 ${f.tenantsWithPriority}명 — 선정 기준(권리상 문제 없음)에 맞는지 확인하세요.`);
-  if((f.assumedRights||[]).length) out.push(`소멸되지 않는 권리(${f.assumedRights.join(', ')}) — 선정 기준에 맞는지 확인하세요.`);
+  if(f.tenantsWithPriority>0) out.push(`대항력 있는 임차인 ${f.tenantsWithPriority}명 — 추천 기준(권리상 문제 없음)에 맞는지 확인하세요.`);
+  if((f.assumedRights||[]).length) out.push(`소멸되지 않는 권리(${f.assumedRights.join(', ')}) — 추천 기준에 맞는지 확인하세요.`);
   return out;
 }
 
@@ -447,7 +447,7 @@ async function save(silent){
   }catch(e){alert('저장 오류: '+e.message);throw e;}
 }
 async function remove(){
-  if(!st.cur||!confirm(`${st.cur.case_no||'이 물건'}을(를) 삭제할까요? 첨부 이미지도 함께 삭제됩니다.`)) return;
+  if(!st.cur||!confirm(`${st.cur.case_no||'이 추천물건'}을(를) 삭제할까요? 첨부 이미지도 함께 삭제됩니다.`)) return;
   await recApi(`/api/recommendations/${st.cur.id}`,'DELETE');
   await reload();
 }
@@ -848,7 +848,7 @@ async function pdf(ids){
   try{
     if(st.dirty) await save(true);
     const recs=ids?st.recs.filter(r=>ids.includes(r.id)):st.recs;
-    if(!recs.length){alert('등록된 물건이 없습니다.');return;}
+    if(!recs.length){alert('추천물건이 없습니다.');return;}
     const issues=recs.flatMap(r=>checkRec(r).map(x=>`[${r.case_no||'사건번호 없음'}] ${x}`));
     const notReviewed=recs.filter(r=>r.status==='작성중');
     if(issues.length||notReviewed.length){
@@ -899,9 +899,9 @@ async function importRecSheet(input){
         for(const p of parseRecCell(row[ci])) items.push({cohort,name,manager,...p});
       }
     }
-    if(!items.length){alert('사건번호가 입력된 물건이 없습니다.');return;}
+    if(!items.length){alert('사건번호가 입력된 추천물건이 없습니다.');return;}
     const people=new Set(items.map(x=>x.cohort+x.name)).size;
-    if(!confirm(`'${sheetName}' 시트에서 물건 ${items.length}건 (수강생 ${people}명)을 찾았습니다.\n이미 등록된 사건번호는 건너뛰고, 새 물건만 '작성중' 초안으로 만듭니다. 진행할까요?`)) return;
+    if(!confirm(`'${sheetName}' 시트에서 추천물건 ${items.length}건 (수강생 ${people}명)을 찾았습니다.\n이미 등록된 사건번호는 건너뛰고, 새 물건만 '작성중' 초안으로 만듭니다. 진행할까요?`)) return;
     const res=await recApi('/api/recommendations/import','POST',{items});
     let msg=`새 초안 ${res.created}건 생성 · 중복/형식오류 ${res.skipped}건 건너뜀`;
     if(res.unmatched.length) msg+=`\n\n사이트에 없는 수강생 ${res.unmatched.length}명 (기수·이름 확인 필요):\n${res.unmatched.slice(0,15).join(', ')}${res.unmatched.length>15?' 외':''}`;

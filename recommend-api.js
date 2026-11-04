@@ -164,7 +164,7 @@ module.exports = function recommendApi({ readDB, writeDB, dataDir }) {
     const db = loadDB();
     const rid = parseInt(req.params.rid);
     const idx = db.recommendations.findIndex(r => r.id === rid);
-    if (idx === -1) return res.status(404).json({ error: '물건을 찾을 수 없습니다.' });
+    if (idx === -1) return res.status(404).json({ error: '추천물건을 찾을 수 없습니다.' });
     const patch = sanitize(req.body);
     const rec = { ...db.recommendations[idx], ...patch, updated_at: new Date().toISOString() };
     if (patch.case_no) rec.case_no = normalizeCaseNo(patch.case_no) || patch.case_no;
@@ -186,7 +186,7 @@ module.exports = function recommendApi({ readDB, writeDB, dataDir }) {
     const db = loadDB();
     const rid = parseInt(req.params.rid);
     const idx = db.recommendations.findIndex(r => r.id === rid);
-    if (idx === -1) return res.status(404).json({ error: '물건을 찾을 수 없습니다.' });
+    if (idx === -1) return res.status(404).json({ error: '추천물건을 찾을 수 없습니다.' });
     removeImageFiles(db.recommendations[idx]);
     db.recommendations.splice(idx, 1);
     writeDB(db);
@@ -198,7 +198,7 @@ module.exports = function recommendApi({ readDB, writeDB, dataDir }) {
     const db = loadDB();
     const rid = parseInt(req.params.rid);
     const rec = db.recommendations.find(r => r.id === rid);
-    if (!rec) return res.status(404).json({ error: '물건을 찾을 수 없습니다.' });
+    if (!rec) return res.status(404).json({ error: '추천물건을 찾을 수 없습니다.' });
     if ((rec.images || []).length >= MAX_IMAGES) return res.status(400).json({ error: `이미지는 최대 ${MAX_IMAGES}장까지 첨부할 수 있습니다.` });
     const m = String(req.body?.dataUrl || '').match(/^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/);
     if (!m) return res.status(400).json({ error: '이미지 형식이 올바르지 않습니다.' });
@@ -219,7 +219,7 @@ module.exports = function recommendApi({ readDB, writeDB, dataDir }) {
     const db = loadDB();
     const rid = parseInt(req.params.rid);
     const rec = db.recommendations.find(r => r.id === rid);
-    if (!rec) return res.status(404).json({ error: '물건을 찾을 수 없습니다.' });
+    if (!rec) return res.status(404).json({ error: '추천물건을 찾을 수 없습니다.' });
     const img = (rec.images || []).find(i => i.file === req.params.file);
     if (!img) return res.status(404).json({ error: '이미지를 찾을 수 없습니다.' });
     removeImageFiles({ images: [img] });
