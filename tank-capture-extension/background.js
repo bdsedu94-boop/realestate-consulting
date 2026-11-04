@@ -90,25 +90,19 @@ async function capture({ reqId, caseNo }, sender) {
           await waitSettle(tabId, 15000);
           await sleep(cfg.stepDelay);
           const found = await waitFor(tabId, async () => {
-            const all = await chrome.tabs.query({});
-            for (const t of all.filter(t => !before.has(t.id))) {
-              try { const p = await exec(t.id, pageInspect, [cs]); if (p.isDetail) return { id: t.id, p }; } catch (e) {}
-            }
+            const other = await findDetailAnywhere(cfg, cs, tabId);
+            if (other) return other;
             const p = await exec(tabId, pageInspect, [cs]);
             return (p.isDetail || p.hasResult) ? { id: tabId, p } : null;
           }, x => !!x, 12000);
           if (found) {
-            if (found.id !== tabId) {
-              const t = await chrome.tabs.get(found.id);
-              if (ownWindow) { try { await chrome.tabs.remove(tabId); } catch (e) {} }
-              tabId = found.id; winId = t.windowId; ownWindow = true;
-              try { await chrome.windows.update(winId, { width: 1480, height: 1000, focused: true }); } catch (e) {}
-            }
+            if (found.id !== tabId) ({ tabId, winId, ownWindow } = await switchTo(found.id, before, tabId, winId, ownWindow));
             page = found.p;
             break;
           }
+          tried.push('검색 후 화면: ' + await inspectSummary(cfg, cs));
         }
-        if (!page || (!page.isDetail && !page.hasResult)) throw new Error(`검색 결과에서 ${cs.full}을(를) 찾지 못했습니다. 종결/취하된 사건이거나 검색 화면 인식에 실패했습니다. [진단: ${tried.filter(Boolean).join(' / ')}]`);
+        if (!page || (!page.isDetail && !page.hasResult)) throw new Error(`검색 결과에서 ${cs.full}을(를) 찾지 못했습니다. 해당 사건의 탱크옥션 상세 페이지를 열어 둔 채 다시 누르면 검색 없이 캡처합니다. [진단: ${tried.filter(Boolean).join(' / ')}]`);
       }
       if (!page.isDetail) {
         progress('검색 결과에서 물건을 여는 중...');
@@ -119,22 +113,13 @@ async function capture({ reqId, caseNo }, sender) {
         if (clicked.href) await chrome.tabs.update(tabId, { url: clicked.href });
         // 상세가 새 탭/팝업으로 열리는 경우와 같은 탭에서 열리는 경우 모두 대응
         const detail = await waitFor(tabId, async () => {
-          const all = await chrome.tabs.query({});
-          const fresh = all.filter(t => !beforeIds.has(t.id) && t.status === 'complete');
-          for (const t of [...fresh, { id: tabId }]) {
-            try { const p = await exec(t.id, pageInspect, [cs]); if (p.isDetail) return { id: t.id, p }; } catch (e) { /* 아직 로딩 중 */ }
-          }
-          return null;
+          const other = await findDetailAnywhere(cfg, cs, tabId);
+          if (other) return other;
+          const p = await exec(tabId, pageInspect, [cs]);
+          return p.isDetail ? { id: tabId, p } : null;
         }, x => !!x, 25000);
-        if (!detail) throw new Error('물건 상세 페이지가 열리지 않았습니다. 팝업 차단 여부를 확인해주세요.');
-        if (detail.id !== tabId) {
-          const t = await chrome.tabs.get(detail.id);
-          if (ownWindow) { try { await chrome.tabs.remove(tabId); } catch (e) {} }
-          tabId = detail.id; winId = t.windowId;
-          // 팝업 창이면 폭을 넓혀 PC 화면 기준으로 캡처
-          try { await chrome.windows.update(winId, { width: 1480, height: 1000, focused: true }); } catch (e) {}
-          ownWindow = true;
-        }
+        if (!detail) throw new Error('물건 상세 페이지가 열리지 않았습니다. 팝업 차단 여부를 확인해주세요. [진단: ' + await inspectSummary(cfg, cs) + ']');
+        if (detail.id !== tabId) ({ tabId, winId, ownWindow } = await switchTo(detail.id, beforeIds, tabId, winId, ownWindow));
       }
     } else {
       const t = await chrome.tabs.get(tabId);
@@ -181,10 +166,24 @@ async function capture({ reqId, caseNo }, sender) {
     };
   } finally {
     if (ownWindow && winId && !cfg.keepWindow) { try { await chrome.windows.remove(winId); } catch (e) {} }
+    if (searchWinToClose && !cfg.keepWindow) { try { await chrome.windows.remove(searchWinToClose); } catch (e) {} }
+    searchWinToClose = null;
     if (siteTab) {
       try { await chrome.windows.update(siteTab.windowId, { focused: true }); await chrome.tabs.update(siteTab.id, { active: true }); } catch (e) {}
     }
   }
+}
+
+// 상세가 다른 탭에 열렸을 때 그 탭으로 전환. 이미 있던 창(사용자 창)은 캡처 후 닫지 않고, 검색용으로 연 창만 닫음
+let searchWinToClose = null;
+async function switchTo(newId, beforeIds, tabId, winId, ownWindow) {
+  const t = await chrome.tabs.get(newId);
+  const preexisting = beforeIds.has(newId);
+  if (ownWindow && winId && winId !== t.windowId) searchWinToClose = winId;
+  else if (ownWindow) { try { await chrome.tabs.remove(tabId); } catch (e) {} }
+  try { await chrome.windows.update(t.windowId, preexisting ? { focused: true } : { width: 1480, height: 1000, focused: true }); } catch (e) {}
+  try { await chrome.tabs.update(newId, { active: true }); } catch (e) {}
+  return { tabId: newId, winId: t.windowId, ownWindow: !preexisting };
 }
 
 function splitList(s) { return String(s || '').split(/[,\n]/).map(x => x.trim()).filter(Boolean); }
@@ -226,6 +225,30 @@ async function assertLoggedIn(tabId) {
     return { loginForm: pw && /로그인/.test(t) && !/로그아웃/.test(t), loggedOut: !/로그아웃|마이페이지/.test(t) && /로그인/.test(t) };
   }, []);
   if (r.loginForm) throw new Error('탱크옥션 로그인이 필요합니다. 이 크롬에서 탱크옥션에 로그인한 뒤 다시 시도해주세요.');
+}
+
+// 탱크옥션 탭 중 이 사건의 상세 페이지 찾기 (팝업이 이미 열린 창을 재사용하는 경우 포함)
+async function findDetailAnywhere(cfg, cs, skipId) {
+  const host = new URL(cfg.tankBase).host.replace(/^www\./, '');
+  for (const t of await chrome.tabs.query({})) {
+    if (t.id === skipId || !t.url) continue;
+    let h = ''; try { h = new URL(t.url).host.replace(/^www\./, ''); } catch (e) { continue; }
+    if (h !== host) continue;
+    try { const p = await exec(t.id, pageInspect, [cs]); if (p.isDetail) return { id: t.id, p }; } catch (e) {}
+  }
+  return null;
+}
+// 실패 시 진단: 탱크옥션 탭마다 사건번호·상세 표지·제목 글자 크기
+async function inspectSummary(cfg, cs) {
+  const host = new URL(cfg.tankBase).host.replace(/^www\./, '');
+  const out = [];
+  for (const t of await chrome.tabs.query({})) {
+    let u; try { u = new URL(t.url); } catch (e) { continue; }
+    if (u.host.replace(/^www\./, '') !== host) continue;
+    try { const p = await exec(t.id, pageInspect, [cs]); out.push(`${u.pathname.split('/').pop()} 사건번호${p.has ? 'O' : 'X'} 표지${p.marks} 제목${p.titleFs}px 링크${p.links}`); }
+    catch (e) { out.push(`${u.pathname.split('/').pop()} 확인불가`); }
+  }
+  return out.join(', ');
 }
 
 async function findOpenDetailTab(cfg, cs) {
@@ -355,12 +378,15 @@ function pageInspect(cs) {
   const has = txt.includes(cs.full) || txt.includes(`${cs.year}-${cs.num}`);
   const detailMarks = ['최저매각가격', '임차인현황', '매각기일', '감정가'].filter(k => txt.includes(k)).length;
   // 상세: 큰 제목에 사건번호 + 상세 표지 2개 이상
-  let bigTitle = false;
+  let titleFs = 0;
   for (const el of document.querySelectorAll('h1,h2,h3,div,span,strong,b,p,td')) {
     const t = (el.innerText || '').replace(/\s/g, '');
     if (t.length > 40 || !t.includes(cs.full)) continue;
-    if (parseFloat(getComputedStyle(el).fontSize) >= 20) { bigTitle = true; break; }
+    titleFs = Math.max(titleFs, parseFloat(getComputedStyle(el).fontSize) || 0);
   }
+  // 탱크옥션 물건 상세 팝업(caView.php)은 제목 글자가 작아도 상세로 인정
+  const detailView = /caView\.php/i.test(location.pathname);
+  const bigTitle = titleFs >= 20 || detailView;
   const keys = [cs.full, `${cs.year}-${cs.num}`];
   // 레이아웃용 큰 표의 행은 제외하고, 실제 결과 표의 행(다른 표를 품지 않은 행)만 본다
   const rowOf = a => { let r = a.closest('tr'); while (r && r.querySelector('table')) r = null; return r || a.closest('li'); };
@@ -369,7 +395,9 @@ function pageInspect(cs) {
     const t = row ? (row.innerText || '').replace(/\s/g, '') : '';
     return keys.some(k => t.includes(k));
   }).length : 0;
-  return { isDetail: has && bigTitle && detailMarks >= 2, hasResult: resultLinks > 0 && !(bigTitle && detailMarks >= 2), url: location.href };
+  return { isDetail: has && bigTitle && detailMarks >= 2, hasResult: resultLinks > 0 && !(bigTitle && detailMarks >= 2), url: location.href,
+    // 아래는 실패 시 진단용
+    has, marks: detailMarks, titleFs: Math.round(titleFs), links: resultLinks };
 }
 
 // 검색 화면에서 사건번호 입력 후 검색
