@@ -474,7 +474,8 @@ function consult(d){
     const l60bid=Math.min(Math.round(total/0.4/100)*100,CAP);
     if(!noHouse){ // 1주택·다주택: LTV 60% 기준
       if(l60bid<MIN_BID) return fmt(bAmt)+' (올현금)';
-      return fmt(l60bid)+' (LTV 60%)'+(oneHouse?'':' · 공시가2억이하');
+      // 실제 대출 비율은 개인 상황마다 달라 금액 옆에 LTV%를 표시하지 않음
+      return fmt(l60bid)+' 이하'+(oneHouse?'':' · 공시가2억이하');
     }
     const l80bidRaw=Math.min(Math.round(total/0.2/100)*100,CAP);
     // 80% LTV 최소입찰가(8300) 감당 가능하면 최대는 최소 1억3천 보장

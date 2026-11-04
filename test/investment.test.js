@@ -85,7 +85,8 @@ test('non-metro uses LTV 60% for one-home and multi-home owners but keeps 60~80%
   const one = rules.diagnose({ ...base, housing_type:'1주택' });
   assert.match(one.narrative, /비수도권 APT 2억 5천만원 이하/);
   assert.doesNotMatch(one.narrative, /비수도권 APT 2억 5천만원 ~/);
-  assert.match(rules.consult({ ...base, housing_type:'1주택' }).bid, /비수도권 2억 5,000만원 \(LTV 60%\)$/);
+  assert.match(rules.consult({ ...base, housing_type:'1주택' }).bid, /비수도권 2억 5,000만원 이하$/);
+  assert.doesNotMatch(rules.consult({ ...base, housing_type:'다주택' }).bid, /LTV/);
   const multi = rules.diagnose({ ...base, housing_type:'다주택' });
   assert.match(multi.narrative, /비수도권 APT 2억 5천만원 이하 \(공시가 2억이하\)/);
   assert.ok(multi.notes.some(n => n.includes('경락잔금대출(LTV 60%)')));
