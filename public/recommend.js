@@ -587,11 +587,12 @@ window.addEventListener('message',e=>{
   else if(d.type==='RESULT'){const p=ext.pending[d.reqId];if(p){delete ext.pending[d.reqId];p.resolve(d);}}
 });
 function pingExt(){window.postMessage({source:'rec-site',type:'PING'},location.origin);}
-function extCapture(caseNo,progress){
+// hint: 같은 사건번호가 여러 법원에 있을 때 고르기 위한 법원·한 줄 요약
+function extCapture(caseNo,progress,hint){
   return new Promise(resolve=>{
     const reqId=Date.now().toString(36)+Math.random().toString(36).slice(2);
     ext.pending[reqId]={resolve,progress};
-    window.postMessage({source:'rec-site',type:'CAPTURE',reqId,caseNo},location.origin);
+    window.postMessage({source:'rec-site',type:'CAPTURE',reqId,caseNo,hint:hint||{}},location.origin);
     setTimeout(()=>{if(ext.pending[reqId]){delete ext.pending[reqId];resolve({ok:false,error:'시간 초과 (3분). 탱크옥션 창을 확인해주세요.'});}},180000);
   });
 }
@@ -616,7 +617,7 @@ async function captureInto(rec,status){
   if(!ext.ready){alert(EXT_GUIDE);throw new Error('확장프로그램 미설치');}
   if(!/^\d{4}타경\d+/.test((rec.case_no||'').replace(/\s/g,''))) throw new Error('사건번호를 먼저 입력·저장해주세요.');
   const manual=(rec.images||[]).filter(i=>i.source!=='auto').length;
-  const res=await extCapture(rec.case_no,m=>status(m));
+  const res=await extCapture(rec.case_no,m=>status(m),{court:rec.court||'',headline:rec.headline||''});
   if(!res.ok) throw new Error(res.error||'자동 캡처 실패');
   if(!res.images||!res.images.length) throw new Error('캡처할 영역을 찾지 못했습니다.');
   if(manual+res.images.length>6) throw new Error(`이미지는 최대 6장입니다. 직접 올린 이미지(${manual}장)를 줄여주세요.`);

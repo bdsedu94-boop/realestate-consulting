@@ -43,15 +43,26 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 });
 
+// 같은 사건번호가 여러 법원에 있을 때 고르기 위한 단서: 법원 약칭(광주·안산 등)과 한 줄 요약의 지역어
+const KIND_WORDS = ['아파트', '오피스텔', '다세대', '다세대주택', '빌라', '연립', '다가구', '단독주택', '주택', '상가', '토지', '근린', '공장', '창고', '임야', '대지'];
+function hintWords(hint) {
+  const court = String((hint && hint.court) || '').replace(/\s/g, '');
+  // '수원지방법원 여주지원' → 여주, '여주지원' → 여주, '광주지방법원' → 광주
+  const m = court.replace(/^.*법원(?=.+지원)/, '').match(/^([가-힣]+?)지원/) || court.match(/^([가-힣]+?)(?:지방)?법원/);
+  const words = String((hint && hint.headline) || '').replace(/\([^)]*\)/g, ' ').split(/[\s,·/]+/)
+    .filter(w => /^[가-힣]{2,}$/.test(w) && !KIND_WORDS.includes(w)).slice(0, 4);
+  return { court: m ? m[1] : '', words };
+}
+
 function parseCase(caseNo) {
   const m = String(caseNo).replace(/\s/g, '').match(/(\d{4})타경(\d+)/);
   if (!m) throw new Error('사건번호 형식이 올바르지 않습니다: ' + caseNo);
   return { year: m[1], num: m[2], full: `${m[1]}타경${m[2]}` };
 }
 
-async function capture({ reqId, caseNo }, sender) {
+async function capture({ reqId, caseNo, hint }, sender) {
   const cfg = await getSettings();
-  const cs = parseCase(caseNo);
+  const cs = { ...parseCase(caseNo), ...hintWords(hint) };
   const siteTab = sender.tab;
   const log = [];
   const progress = message => { log.push(message); if (siteTab) chrome.tabs.sendMessage(siteTab.id, { type: 'PROGRESS', reqId, message }).catch(() => {}); };
@@ -414,7 +425,9 @@ function pageInspect(cs) {
   // 진단용: 사건번호 앞뒤 글자
   const ki = keys.map(k => txt.indexOf(k)).find(i => i >= 0);
   const ctx = ki >= 0 ? txt.slice(Math.max(0, ki - 12), ki + 30) : '';
-  return { isDetail: has && bigTitle && detailMarks >= 2, hasResult: resultLinks > 0 && !(bigTitle && detailMarks >= 2), url: location.href,
+  // 법원 단서가 있으면 상세 상단에 그 법원 이름이 있어야 같은 물건으로 인정
+  const courtOk = !cs.court || (document.body.innerText || '').slice(0, 4000).replace(/\s/g, '').includes(cs.court);
+  return { isDetail: has && bigTitle && detailMarks >= 2 && courtOk, hasResult: resultLinks > 0 && !(bigTitle && detailMarks >= 2), url: location.href,
     // 아래는 실패 시 진단용
     has, marks: detailMarks, titleFs: Math.round(titleFs), links: resultLinks, ctx,
     loggedOut: /로그인/.test(document.body.innerText || '') && !/로그아웃|마이페이지/.test(document.body.innerText || '') };
@@ -489,14 +502,31 @@ async function pageOpenResult(cs) {
   const origOpen = window.open;
   window.open = function (u) { if (u && !popupUrl) popupUrl = new URL(u, location.href).href; return { focus() {}, close() {}, blur() {}, closed: false, document: null }; };
   const press = el => { ['mousedown', 'mouseup'].forEach(t => el.dispatchEvent(new MouseEvent(t, { bubbles: true, cancelable: true, view: window }))); el.click(); };
+  // 결과 한 건 전체(사건번호가 한 번만 나오는 가장 큰 상위 요소)의 글자
+  const keyCount = t => Math.max(...keys.map(k => t.split(k).length - 1));
+  const rowText = x => {
+    let best = '';
+    for (let r = x; r && r !== document.body; r = r.parentElement) {
+      const t = norm(r.innerText);
+      if (t.length > 1500 || keyCount(t) > 1) break;
+      if (keyCount(t) === 1) best = t;
+    }
+    return best;
+  };
+  // 같은 사건번호가 여러 법원에 있을 때: 법원 약칭 일치(+40)와 한 줄 요약 지역어 일치(+25)를 우선하고,
+  // 단서가 없거나 맞는 줄이 없으면 예정물건·미확정(-20)을 피함
+  const score = x => { const t = rowText(x); let v = 0; if (cs.court && t.includes(cs.court)) v += 40; for (const w of cs.words || []) if (t.includes(w)) v += 25; if (/예정물건|미확정/.test(t)) v -= 20; return v; };
+  const pick = list => list.map((x, i) => ({ x, i, v: score(x) })).sort((a, b) => b.v - a.v || a.i - b.i)[0];
   let el = null, how = '';
   try {
     if (cands.length) {
-      // 사건번호 글자가 직접 있는 링크 > 그 행의 첫 링크
-      el = cands.find(a => keys.some(k => norm(a.innerText).includes(k))) || cands.find(a => a.tagName === 'A') || cands[0];
+      const best = pick(cands);
+      const same = cands.filter(a => score(a) === best.v);
+      // 고른 결과 안에서: 사건번호 글자가 직접 있는 링크 > 일반 링크 > 그 외
+      el = same.find(a => keys.some(k => norm(a.innerText).includes(k))) || same.find(a => a.tagName === 'A') || best.x;
       const href = el.tagName === 'A' ? el.getAttribute('href') : null;
-      if (href && !/^javascript:|^#/.test(href) && !el.target && !el.getAttribute('onclick')) return { ok: true, href: new URL(href, location.href).href };
-      how = '링크';
+      if (href && !/^javascript:|^#/.test(href) && !el.target && !el.getAttribute('onclick')) return { ok: true, href: new URL(href, location.href).href, how: '링크 · ' + rowText(el).slice(0, 30) };
+      how = '링크 · ' + rowText(el).slice(0, 30);
     } else {
       // 링크가 없는 목록: 사건번호 글자가 든 가장 안쪽 칸을 누름 (검색칸 근처의 검색조건 표시는 제외)
       const nearForm = x => { for (let r = x, d = 0; r && d < 4; r = r.parentElement, d++) if (norm(r.textContent).length < 300 && r.querySelector('input[type=text],input[type=search],input:not([type]),select')) return true; return false; };
@@ -509,9 +539,9 @@ async function pageOpenResult(cs) {
       if (!cells.length) return { ok: false, error: '검색 결과에서 물건 링크를 찾지 못했습니다.' };
       // 누를 수 있는 모양(cursor:pointer)인 가장 가까운 상위 요소가 있는 칸을 우선으로 누름
       const clickable = x => { for (let r = x, d = 0; r && d < 8 && r !== document.body; r = r.parentElement, d++) if (getComputedStyle(r).cursor === 'pointer') return r; return null; };
-      const withPtr = cells.map(c => ({ c, t: clickable(c) })).find(x => x.t);
-      el = withPtr ? withPtr.t : cells[0];
-      how = '사건번호 칸';
+      const best = pick(cells).x;
+      el = clickable(best) || best;
+      how = '사건번호 칸 · ' + rowText(best).slice(0, 30);
     }
     press(el);
     // 클릭 뒤 조금 늦게 여는 팝업도 받기 위해 최대 1.5초 대기

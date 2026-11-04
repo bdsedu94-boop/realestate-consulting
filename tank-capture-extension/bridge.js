@@ -8,7 +8,8 @@
     const d = e.data;
     if (d.type === 'PING') return send({ type: 'PONG', version });
     if (d.type === 'CAPTURE') {
-      chrome.runtime.sendMessage({ type: 'CAPTURE', reqId: d.reqId, caseNo: String(d.caseNo || '') }, res => {
+      const hint = { court: String((d.hint && d.hint.court) || '').slice(0, 50), headline: String((d.hint && d.hint.headline) || '').slice(0, 100) };
+      chrome.runtime.sendMessage({ type: 'CAPTURE', reqId: d.reqId, caseNo: String(d.caseNo || ''), hint }, res => {
         if (chrome.runtime.lastError) return send({ type: 'RESULT', reqId: d.reqId, ok: false, error: '확장프로그램 오류: ' + chrome.runtime.lastError.message });
         send({ type: 'RESULT', reqId: d.reqId, ...(res || { ok: false, error: '응답 없음' }) });
       });
