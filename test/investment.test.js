@@ -79,3 +79,16 @@ test('one-home short-term investor with stated credit amount omits confusing all
   assert.doesNotMatch(result.narrative, /올현금/);
   assert.match(result.narrative, /신용대출 활용 시 경락잔금대출까지 함께 나오는지 항상 확인 필요/);
 });
+
+test('non-metro uses LTV 60% for one-home and multi-home owners but keeps 60~80% for no-house', () => {
+  const base = { investment_purpose:'단타', transfer_available:'N', seed_amount:8000, credit_amount:2000 };
+  const one = rules.diagnose({ ...base, housing_type:'1주택' });
+  assert.match(one.narrative, /비수도권 APT 2억 5천만원 이하/);
+  assert.doesNotMatch(one.narrative, /비수도권 APT 2억 5천만원 ~/);
+  assert.match(rules.consult({ ...base, housing_type:'1주택' }).bid, /비수도권 2억 5,000만원 \(LTV 60%\)$/);
+  const multi = rules.diagnose({ ...base, housing_type:'다주택' });
+  assert.match(multi.narrative, /비수도권 APT 2억 5천만원 이하 \(공시가 2억이하\)/);
+  assert.ok(multi.notes.some(n => n.includes('경락잔금대출(LTV 60%)')));
+  const none = rules.diagnose({ ...base, housing_type:'무주택' });
+  assert.match(none.narrative, /비수도권 APT 5억원 이하/);
+});

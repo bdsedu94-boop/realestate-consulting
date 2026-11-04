@@ -117,7 +117,9 @@ function formatBidNarrative(d,forceDanta,forceResidence){
   const l60bid=Math.min(Math.round(total/0.4/100)*100,CAP);
   const l80bid=Math.min(Math.round(total/0.2/100)*100,CAP);
   const localMin=Math.max(8300,l60bid);
-  const hasLocal=l80bid>=8300;
+  // 비수도권 경락잔금대출: 무주택은 LTV 60~80% 범위, 1주택·다주택은 LTV 60% 기준
+  const local60Only=oneHouse||multi;
+  const hasLocal=(local60Only?l60bid:l80bid)>=8300;
   const snr70=tY?Math.min(Math.round(total/0.3/100)*100,CAP):null;
   // 자기자금 3,000만원 미만은 레버리지 계산 자체를 적용하지 않음
   const snrOk=snr70&&total>=3000&&snr70*0.7>=5000;
@@ -131,9 +133,10 @@ function formatBidNarrative(d,forceDanta,forceResidence){
   // allFail 지역: 무주택=규제·비규제(현금+신용), 1주택/다주택=비규제만
   const areaF=noHouse?'수도권 규제·비규제':'수도권 비규제';
   if(allFail){
+    const multiNote=multi?' (공시가 1억이하)':'';
     lines.push(needsCrCheck
-      ?areaF+'지역 현금+신용대출 활용해 올현금 입찰 가능 물건 (신용대출 가능금액 확인 필요)'
-      :areaF+' 빌라 시드+신용대출 합산 금액으로 입찰 검토'+region);
+      ?areaF+'지역 현금+신용대출 활용해 올현금 입찰 가능 물건'+multiNote+' (신용대출 가능금액 확인 필요)'
+      :areaF+' 빌라 시드+신용대출 합산 금액으로 입찰 검토'+multiNote+region);
     return lines.map((l,i)=>(i+1)+'. '+l).join('\n');
   }
   if(multi){
@@ -196,7 +199,9 @@ function formatBidNarrative(d,forceDanta,forceResidence){
   }
   if(hasLocal){
     const note=multi?' (공시가 2억이하)':'';
-    if(total>10000){
+    if(local60Only){
+      lines.push((needsCrCheck&&!multi?'비수도권 APT 입찰가 기준: ':'비수도권 APT ')+fs(l60bid)+' 이하'+note);
+    }else if(total>10000){
       // 합산자금 1억 초과면 구체적 범위 대신 상한선만 안내
       lines.push('비수도권 APT '+fs(CAP)+' 이하'+note);
     }else{
@@ -467,6 +472,10 @@ function consult(d){
     const MIN_BID=8300; // 경락잔금대출 최소 입찰가
     const MAX_STD=13000; // 표 기준: 소액투자자 최대 입찰가 기준(1억3천)
     const l60bid=Math.min(Math.round(total/0.4/100)*100,CAP);
+    if(!noHouse){ // 1주택·다주택: LTV 60% 기준
+      if(l60bid<MIN_BID) return fmt(bAmt)+' (올현금)';
+      return fmt(l60bid)+' (LTV 60%)'+(oneHouse?'':' · 공시가2억이하');
+    }
     const l80bidRaw=Math.min(Math.round(total/0.2/100)*100,CAP);
     // 80% LTV 최소입찰가(8300) 감당 가능하면 최대는 최소 1억3천 보장
     const canAffordMin=total>=1660;
@@ -482,7 +491,7 @@ function consult(d){
   // LTV 기준 레이블
   let ltvLabel;
   if(lN)
-    ltvLabel=oneHouse?'수도권 비규제 신용/현금 · 비수도권 LTV 60~80% (신용대출 미활용)':noHouse?'수도권 LTV 70% · 비수도권 LTV 60~80% (신용대출 미활용)':'비수도권 LTV 60~80% (신용대출 미활용)';
+    ltvLabel=oneHouse?'수도권 비규제 신용/현금 · 비수도권 LTV 60% (신용대출 미활용)':noHouse?'수도권 LTV 70% · 비수도권 LTV 60~80% (신용대출 미활용)':'비수도권 LTV 60% (신용대출 미활용)';
   else if(total<1000)
     ltvLabel='신용대출 합산 필요';
   else if(isFirst&&hasBig)
@@ -492,9 +501,9 @@ function consult(d){
       ?(total>=15000?'수도권 올현금 추천 (규제지역 빌라) · 비수도권 LTV 60~80%':'수도권 LTV 70% · 비수도권 LTV 60~80%')
       :'수도권 올현금 (전입필요) · 비수도권 LTV 60~80%';
   else if(oneHouse)
-    ltvLabel='수도권 비규제 신용/현금 · 비수도권 LTV 60~80%';
+    ltvLabel='수도권 비규제 신용/현금 · 비수도권 LTV 60%';
   else
-    ltvLabel='비수도권 LTV 60~80% (수도권 불가)';
+    ltvLabel='비수도권 LTV 60% (수도권 불가)';
 
   return{reg,nreg,local,bid,primary,dirLabel,ltvLabel};
 }
@@ -581,7 +590,7 @@ function getReportContext(d){
       단타매매 역시 수도권에서 주택 구입 시 경락잔금대출(낙찰 받은 집을 담보로 대출) 받는다면 기존 주택 처분 조건 + 전입을 충족해야합니다.<br>
       반면 수도권 내 주택을 현금과 신용대출로 매수하는 방식이라면 기존 주택 처분과 전입 조건은 사라지게 됩니다.<br><br>
       ※ 기존 주택을 보유하고 있는 분은 규제지역에서 매매사업자 인정을 받을 수 없기때문에, 단타매매 시 규제지역을 꼭 제외시켜주세요.<br><br>
-      비수도권은 경락잔금대출 낙찰가의 60~80%가 대부분 적용되므로, 수도권 보단 더 높은 금액대에 도전할 수 있습니다.
+      비수도권은 경락잔금대출 낙찰가의 60%가 대부분 적용되므로, 수도권 보단 더 높은 금액대에 도전할 수 있습니다.
     </div>`:'';
 
   // 실거주+전입가능이 아닌 1주택자(단타매매 목적만 또는 전입불가)는 하나의 박스로 합쳐서 하단에 배치
@@ -591,7 +600,7 @@ function getReportContext(d){
       수도권에서 주택 구입 시 경락잔금대출(낙찰 받은 집을 담보로 대출) 받는다면 기존 주택 처분 조건 + 전입을 충족해야합니다.<br>
       반면 수도권 내 주택을 현금과 신용대출로 매수하는 방식이라면 기존 주택 처분과 전입 조건은 사라지게 됩니다.<br><br>
       ※ 기존 주택을 보유하고 있는 분은 규제지역에서 매매사업자 인정을 받을 수 없기때문에, 단타매매 시 규제지역을 꼭 제외시켜주세요.<br><br>
-      비수도권은 경락잔금대출 낙찰가의 60~80%가 대부분 적용되므로, 수도권 보단 더 높은 금액대에 도전할 수 있습니다.
+      비수도권은 경락잔금대출 낙찰가의 60%가 대부분 적용되므로, 수도권 보단 더 높은 금액대에 도전할 수 있습니다.
     </div>`:'';
 
   const multiNoteTop=multi?`
@@ -607,7 +616,7 @@ function getReportContext(d){
       <div style="font-weight:700;color:#222;margin-bottom:8px;font-size:12.5px">※ 참고사항</div>
       다주택자는 수도권에서는 경락잔금대출을 받을 수 없으며, 규제지역에서는 매매사업자 세제 혜택도 적용받을 수 없습니다.<br><br>
       다만 수도권 비규제지역의 공시가격 1억 원 이하 주택은 현금과 신용대출을 활용해 투자할 수 있습니다. 공시가격 1억 원 이하 주택은 다주택자도 취득세 1%가 적용되어 추가 매수 시 세금 부담을 줄일 수 있습니다.<br><br>
-      또한 비수도권의 공시가격 2억 원 이하 주택도 취득세 1%가 적용됩니다. 여기에 경락잔금대출(LTV 60~80%)을 활용할 수 있어, 같은 자금으로 더 높은 금액대의 물건에 투자할 수 있습니다.<br><br>
+      또한 비수도권의 공시가격 2억 원 이하 주택도 취득세 1%가 적용됩니다. 여기에 경락잔금대출(LTV 60%)을 활용할 수 있어, 같은 자금으로 더 높은 금액대의 물건에 투자할 수 있습니다.<br><br>
       세금은 개인의 상황에 따라 달라질 수 있으므로, 자세한 내용은 세무사와 상담하시기를 권장드립니다.
     </div>`:'';
 
@@ -616,7 +625,7 @@ function getReportContext(d){
       <div style="font-weight:700;color:#222;margin-bottom:8px;font-size:12.5px">※ 참고사항</div>
       다주택자는 수도권에서는 경락잔금대출을 받을 수 없으며, 규제지역에서는 매매사업자 세제 혜택도 적용받을 수 없습니다.<br><br>
       다만 수도권 비규제지역의 공시가격 1억 원 이하 주택은 현금과 신용대출을 활용해 투자할 수 있습니다. 공시가격 1억 원 이하 주택은 다주택자도 취득세 1%가 적용되어 추가 매수 시 세금 부담을 줄일 수 있습니다.<br><br>
-      또한 비수도권의 공시가격 2억 원 이하 주택도 취득세 1%가 적용됩니다. 여기에 경락잔금대출(LTV 60~80%)을 활용할 수 있어, 같은 자금으로 더 높은 금액대의 물건에 투자할 수 있습니다.<br><br>
+      또한 비수도권의 공시가격 2억 원 이하 주택도 취득세 1%가 적용됩니다. 여기에 경락잔금대출(LTV 60%)을 활용할 수 있어, 같은 자금으로 더 높은 금액대의 물건에 투자할 수 있습니다.<br><br>
       세금은 개인의 상황에 따라 달라질 수 있으므로, 자세한 내용은 세무사와 상담하시기를 권장드립니다.
     </div>`:'';
 
