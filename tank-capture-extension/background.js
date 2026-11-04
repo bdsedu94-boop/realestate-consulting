@@ -245,7 +245,7 @@ async function inspectSummary(cfg, cs) {
   for (const t of await chrome.tabs.query({})) {
     let u; try { u = new URL(t.url); } catch (e) { continue; }
     if (u.host.replace(/^www\./, '') !== host) continue;
-    try { const p = await exec(t.id, pageInspect, [cs]); out.push(`${u.pathname.split('/').pop()} 사건번호${p.has ? 'O' : 'X'} 표지${p.marks} 제목${p.titleFs}px 링크${p.links}`); }
+    try { const p = await exec(t.id, pageInspect, [cs]); out.push(`${u.pathname.split('/').pop()} 사건번호${p.has ? 'O' : 'X'} 표지${p.marks} 제목${p.titleFs}px 링크${p.links}${p.ctx ? ` 주변:"${p.ctx}"` : ''}`); }
     catch (e) { out.push(`${u.pathname.split('/').pop()} 확인불가`); }
   }
   return out.join(', ');
@@ -388,16 +388,22 @@ function pageInspect(cs) {
   const detailView = /caView\.php/i.test(location.pathname);
   const bigTitle = titleFs >= 20 || detailView;
   const keys = [cs.full, `${cs.year}-${cs.num}`];
-  // 레이아웃용 큰 표의 행은 제외하고, 실제 결과 표의 행(다른 표를 품지 않은 행)만 본다
-  const rowOf = a => { let r = a.closest('tr'); while (r && r.querySelector('table')) r = null; return r || a.closest('li'); };
-  const resultLinks = has ? [...document.querySelectorAll('a,[onclick]')].filter(a => {
-    const row = rowOf(a);
-    const t = row ? (row.innerText || '').replace(/\s/g, '') : '';
-    return keys.some(k => t.includes(k));
-  }).length : 0;
+  // 링크에서 위로 올라가며 사건번호가 처음 나오는 덩어리 = 결과 한 건 (화면 전체만큼 큰 덩어리는 제외)
+  const rowOf = a => {
+    for (let r = a; r && r !== document.body; r = r.parentElement) {
+      const t = (r.innerText || '').replace(/\s/g, '');
+      // 검색칸(입력·선택칸)이 있는 덩어리는 검색 조건 표시일 뿐 결과가 아님
+      if (keys.some(k => t.includes(k))) return t.length <= 1500 && !r.querySelector('input[type=text],input[type=search],input:not([type]),select') ? r : null;
+    }
+    return null;
+  };
+  const resultLinks = has ? [...document.querySelectorAll('a,[onclick]')].filter(a => rowOf(a)).length : 0;
+  // 진단용: 사건번호 앞뒤 글자
+  const ki = keys.map(k => txt.indexOf(k)).find(i => i >= 0);
+  const ctx = ki >= 0 ? txt.slice(Math.max(0, ki - 12), ki + 30) : '';
   return { isDetail: has && bigTitle && detailMarks >= 2, hasResult: resultLinks > 0 && !(bigTitle && detailMarks >= 2), url: location.href,
     // 아래는 실패 시 진단용
-    has, marks: detailMarks, titleFs: Math.round(titleFs), links: resultLinks };
+    has, marks: detailMarks, titleFs: Math.round(titleFs), links: resultLinks, ctx };
 }
 
 // 검색 화면에서 사건번호 입력 후 검색
@@ -454,11 +460,16 @@ function pageSearch(cs, fmt, attempt) {
 function pageOpenResult(cs) {
   const norm = s => (s || '').replace(/\s/g, '');
   const keys = [cs.full, `${cs.year}-${cs.num}`];
-  const rowOf = a => { let r = a.closest('tr'); if (r && r.querySelector('table')) r = null; return r || a.closest('li'); };
-  const cands = [...document.querySelectorAll('a,[onclick]')].filter(a => {
-    const row = rowOf(a);
-    return row && keys.some(k => norm(row.innerText).includes(k));
-  }).sort((x, y) => norm(rowOf(x).innerText).length - norm(rowOf(y).innerText).length);
+  // 링크에서 위로 올라가며 사건번호가 처음 나오는 덩어리 = 결과 한 건 (pageInspect와 같은 기준)
+  const rowOf = a => {
+    for (let r = a; r && r !== document.body; r = r.parentElement) {
+      const t = norm(r.innerText);
+      if (keys.some(k => t.includes(k))) return t.length <= 1500 && !r.querySelector('input[type=text],input[type=search],input:not([type]),select') ? r : null;
+    }
+    return null;
+  };
+  const cands = [...document.querySelectorAll('a,[onclick]')].filter(a => rowOf(a))
+    .sort((x, y) => norm(rowOf(x).innerText).length - norm(rowOf(y).innerText).length);
   if (!cands.length) return { ok: false, error: '검색 결과에서 물건 링크를 찾지 못했습니다.' };
   // 사건번호 글자가 직접 있는 링크 > 그 행의 첫 링크
   const el = cands.find(a => keys.some(k => norm(a.innerText).includes(k))) || cands.find(a => a.tagName === 'A') || cands[0];
