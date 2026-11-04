@@ -397,7 +397,17 @@ function pageInspect(cs) {
     }
     return null;
   };
-  const resultLinks = has ? [...document.querySelectorAll('a,[onclick]')].filter(a => rowOf(a)).length : 0;
+  const linkCount = has ? [...document.querySelectorAll('a,[onclick]')].filter(a => rowOf(a)).length : 0;
+  // 결과 줄 클릭을 페이지 스크립트가 따로 처리해 링크가 없는 목록: 사건번호 글자가 든 가장 안쪽 칸을 셈
+  // 검색칸과 같은 작은 상자 안에 있으면 검색조건 표시로 봄 (화면 전체를 감싼 큰 폼은 해당 없음)
+  const nearForm = el => { for (let r = el, d = 0; r && d < 4; r = r.parentElement, d++) if ((r.textContent || '').replace(/\s/g, '').length < 300 && r.querySelector('input[type=text],input[type=search],input:not([type]),select')) return true; return false; };
+  const cells = has && !linkCount ? [...document.querySelectorAll('body *')].filter(el => {
+    const t = (el.textContent || '').replace(/\s/g, '');
+    if (!keys.some(k => t.includes(k))) return false;
+    if ([...el.children].some(c => keys.some(k => (c.textContent || '').replace(/\s/g, '').includes(k)))) return false;
+    return el.getClientRects().length > 0 && !nearForm(el);
+  }).length : 0;
+  const resultLinks = linkCount + cells;
   // 진단용: 사건번호 앞뒤 글자
   const ki = keys.map(k => txt.indexOf(k)).find(i => i >= 0);
   const ctx = ki >= 0 ? txt.slice(Math.max(0, ki - 12), ki + 30) : '';
@@ -457,7 +467,7 @@ function pageSearch(cs, fmt, attempt) {
 }
 
 // 검색 결과 목록에서 해당 사건 열기
-function pageOpenResult(cs) {
+async function pageOpenResult(cs) {
   const norm = s => (s || '').replace(/\s/g, '');
   const keys = [cs.full, `${cs.year}-${cs.num}`];
   // 링크에서 위로 올라가며 사건번호가 처음 나오는 덩어리 = 결과 한 건 (pageInspect와 같은 기준)
@@ -470,13 +480,43 @@ function pageOpenResult(cs) {
   };
   const cands = [...document.querySelectorAll('a,[onclick]')].filter(a => rowOf(a))
     .sort((x, y) => norm(rowOf(x).innerText).length - norm(rowOf(y).innerText).length);
-  if (!cands.length) return { ok: false, error: '검색 결과에서 물건 링크를 찾지 못했습니다.' };
-  // 사건번호 글자가 직접 있는 링크 > 그 행의 첫 링크
-  const el = cands.find(a => keys.some(k => norm(a.innerText).includes(k))) || cands.find(a => a.tagName === 'A') || cands[0];
-  const href = el.tagName === 'A' ? el.getAttribute('href') : null;
-  if (href && !/^javascript:|^#/.test(href) && !el.target && !el.getAttribute('onclick')) return { ok: true, href: new URL(href, location.href).href };
-  el.click();
-  return { ok: true };
+  // 상세가 팝업(window.open)으로 열리면 크롬 팝업 차단에 걸릴 수 있으므로 주소만 받아 같은 탭에서 엶
+  let popupUrl = null;
+  const origOpen = window.open;
+  window.open = function (u) { if (u && !popupUrl) popupUrl = new URL(u, location.href).href; return { focus() {}, close() {}, blur() {}, closed: false, document: null }; };
+  const press = el => { ['mousedown', 'mouseup'].forEach(t => el.dispatchEvent(new MouseEvent(t, { bubbles: true, cancelable: true, view: window }))); el.click(); };
+  let el = null, how = '';
+  try {
+    if (cands.length) {
+      // 사건번호 글자가 직접 있는 링크 > 그 행의 첫 링크
+      el = cands.find(a => keys.some(k => norm(a.innerText).includes(k))) || cands.find(a => a.tagName === 'A') || cands[0];
+      const href = el.tagName === 'A' ? el.getAttribute('href') : null;
+      if (href && !/^javascript:|^#/.test(href) && !el.target && !el.getAttribute('onclick')) return { ok: true, href: new URL(href, location.href).href };
+      how = '링크';
+    } else {
+      // 링크가 없는 목록: 사건번호 글자가 든 가장 안쪽 칸을 누름 (검색칸 근처의 검색조건 표시는 제외)
+      const nearForm = x => { for (let r = x, d = 0; r && d < 4; r = r.parentElement, d++) if (norm(r.textContent).length < 300 && r.querySelector('input[type=text],input[type=search],input:not([type]),select')) return true; return false; };
+      const cells = [...document.querySelectorAll('body *')].filter(x => {
+        const t = norm(x.textContent);
+        if (!keys.some(k => t.includes(k))) return false;
+        if ([...x.children].some(c => keys.some(k => norm(c.textContent).includes(k)))) return false;
+        return x.getClientRects().length > 0 && !nearForm(x);
+      });
+      if (!cells.length) return { ok: false, error: '검색 결과에서 물건 링크를 찾지 못했습니다.' };
+      // 누를 수 있는 모양(cursor:pointer)인 가장 가까운 상위 요소가 있는 칸을 우선으로 누름
+      const clickable = x => { for (let r = x, d = 0; r && d < 8 && r !== document.body; r = r.parentElement, d++) if (getComputedStyle(r).cursor === 'pointer') return r; return null; };
+      const withPtr = cells.map(c => ({ c, t: clickable(c) })).find(x => x.t);
+      el = withPtr ? withPtr.t : cells[0];
+      how = '사건번호 칸';
+    }
+    press(el);
+    // 클릭 뒤 조금 늦게 여는 팝업도 받기 위해 최대 1.5초 대기
+    for (let i = 0; i < 15 && !popupUrl; i++) await new Promise(r => setTimeout(r, 100));
+  } finally {
+    window.open = origOpen;
+  }
+  if (popupUrl) return { ok: true, href: popupUrl, how: how + '→팝업주소' };
+  return { ok: true, how };
 }
 
 // 탱크옥션 상세 상단의 물건종류 배지(예: '아파트')를 누르면 주소·소유자 등 개인정보가 ○○○로 가려짐.
