@@ -93,3 +93,11 @@ test('non-metro uses LTV 60% for one-home and multi-home owners but keeps 60~80%
   const none = rules.diagnose({ ...base, housing_type:'무주택' });
   assert.match(none.narrative, /비수도권 APT 2억 5천만원 ~ 5억원/);
 });
+
+test('all-cash flag follows the same amount tier table as other directions', () => {
+  const line = seed => rules.formatBidNarrative({ housing_type:'1주택', investment_purpose:'단타', transfer_available:'N', seed_amount:seed, credit_amount:0, flags:['올현금'] }).split('\n')[0];
+  assert.equal(line(6000), '1. 수도권 비규제 빌라 6천만원 이하 (인천, 부천) (올현금)');
+  assert.equal(line(12000), '1. 수도권 비규제 APT·빌라 1억 2천만원 이하 (올현금)');
+  assert.equal(line(20000), '1. 수도권 비규제 APT 2억원 이하 (인천, 경기외곽) (올현금)');
+  assert.equal(line(40000), '1. 수도권 비규제 APT 4억원 이하 (올현금)');
+});

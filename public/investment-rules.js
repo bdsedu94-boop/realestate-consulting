@@ -66,9 +66,10 @@ function formatBidNarrative(d,forceDanta,forceResidence){
   // 올현금 플래그: 경락잔금대출 미활용 → 올현금 투자만
   if(isOlhyun){
     const area=tY?'수도권 규제·비규제':'수도권 비규제';
-    const regionOh=total<=15000?' (인천, 부천)':' (인천, 경기외곽)';
+    // 표기·지역 태그는 금액 구간표(tierLabel)를 그대로 따름
+    const t=tierLabel(Math.min(total,CAP));
     const lines=[];
-    lines.push(area+' 빌라 '+fs(total)+' 이하'+regionOh+' (올현금)');
+    lines.push(area+' '+t.propType+' '+fs(total)+' 이하'+t.regionTag+' (올현금)');
     lines.push('비수도권 APT '+fs(total)+' (올현금)');
     return lines.map((l,i)=>(i+1)+'. '+l).join('\n');
   }
@@ -123,9 +124,6 @@ function formatBidNarrative(d,forceDanta,forceResidence){
   const snr70=tY?Math.min(Math.round(total/0.3/100)*100,CAP):null;
   // 자기자금 3,000만원 미만은 레버리지 계산 자체를 적용하지 않음
   const snrOk=snr70&&total>=3000&&snr70*0.7>=5000;
-  // 인천·부천 추천: 실제 입찰가 기준 (LTV 가능시 입찰가, 불가시 시드)
-  const bidForRegion=snrOk&&snr70?snr70:total;
-  const region=bidForRegion<=15000?' (인천, 부천)':'';
   const lines=[];
   const needsCrCheck=cr===0; // 신용대출 금액 미확인 → 새 형식
   // 전체 LTV 불가 케이스 (수도권 LTV 미달 + 비수도권 최소입찰가 미달)
@@ -136,7 +134,7 @@ function formatBidNarrative(d,forceDanta,forceResidence){
     const multiNote=multi?' (공시가 1억이하)':'';
     lines.push(needsCrCheck
       ?areaF+'지역 현금+신용대출 활용해 올현금 입찰 가능 물건'+multiNote+' (신용대출 가능금액 확인 필요)'
-      :areaF+' 빌라 시드+신용대출 합산 금액으로 입찰 검토'+multiNote+region);
+      :areaF+' '+tierLabel(Math.min(total,CAP)).propType+' 시드+신용대출 합산 금액으로 입찰 검토'+multiNote+tierLabel(Math.min(total,CAP)).regionTag);
     return lines.map((l,i)=>(i+1)+'. '+l).join('\n');
   }
   if(multi){
