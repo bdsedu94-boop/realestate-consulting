@@ -57,6 +57,7 @@ async function capture({ reqId, caseNo }, sender) {
   const progress = message => { log.push(message); if (siteTab) chrome.tabs.sendMessage(siteTab.id, { type: 'PROGRESS', reqId, message }).catch(() => {}); };
 
   let tabId = null, winId = null, ownWindow = false;
+  loggedOutSeen = false;
   try {
     // 1) 이미 열려 있는 탱크옥션 탭 중 해당 사건 상세 페이지가 있으면 그대로 사용
     progress('열려 있는 탱크옥션 탭 확인 중...');
@@ -102,7 +103,7 @@ async function capture({ reqId, caseNo }, sender) {
           }
           tried.push('검색 후 화면: ' + await inspectSummary(cfg, cs));
         }
-        if (!page || (!page.isDetail && !page.hasResult)) throw new Error(`검색 결과에서 ${cs.full}을(를) 찾지 못했습니다. 해당 사건의 탱크옥션 상세 페이지를 열어 둔 채 다시 누르면 검색 없이 캡처합니다. [진단: ${tried.filter(Boolean).join(' / ')}]`);
+        if (!page || (!page.isDetail && !page.hasResult)) throw new Error((loggedOutSeen ? LOGIN_HINT : '') + `검색 결과에서 ${cs.full}을(를) 찾지 못했습니다. 해당 사건의 탱크옥션 상세 페이지를 열어 둔 채 다시 누르면 검색 없이 캡처합니다. [진단: ${tried.filter(Boolean).join(' / ')}]`);
       }
       if (!page.isDetail) {
         progress('검색 결과에서 물건을 여는 중...');
@@ -118,7 +119,7 @@ async function capture({ reqId, caseNo }, sender) {
           const p = await exec(tabId, pageInspect, [cs]);
           return p.isDetail ? { id: tabId, p } : null;
         }, x => !!x, 25000);
-        if (!detail) throw new Error('물건 상세 페이지가 열리지 않았습니다. 팝업 차단 여부를 확인해주세요. [진단: ' + await inspectSummary(cfg, cs) + ']');
+        if (!detail) { const diag = await inspectSummary(cfg, cs); throw new Error((loggedOutSeen ? LOGIN_HINT : '') + '물건 상세 페이지가 열리지 않았습니다. 팝업 차단 여부를 확인해주세요. [진단: ' + diag + ']'); }
         if (detail.id !== tabId) ({ tabId, winId, ownWindow } = await switchTo(detail.id, beforeIds, tabId, winId, ownWindow));
       }
     } else {
@@ -239,13 +240,15 @@ async function findDetailAnywhere(cfg, cs, skipId) {
   return null;
 }
 // 실패 시 진단: 탱크옥션 탭마다 사건번호·상세 표지·제목 글자 크기
+let loggedOutSeen = false;
+const LOGIN_HINT = '탱크옥션에 로그인되어 있지 않은 것 같습니다. 이 크롬에서 탱크옥션에 로그인한 뒤 다시 시도해주세요. ';
 async function inspectSummary(cfg, cs) {
   const host = new URL(cfg.tankBase).host.replace(/^www\./, '');
   const out = [];
   for (const t of await chrome.tabs.query({})) {
     let u; try { u = new URL(t.url); } catch (e) { continue; }
     if (u.host.replace(/^www\./, '') !== host) continue;
-    try { const p = await exec(t.id, pageInspect, [cs]); out.push(`${u.pathname.split('/').pop()} 사건번호${p.has ? 'O' : 'X'} 표지${p.marks} 제목${p.titleFs}px 링크${p.links}${p.ctx ? ` 주변:"${p.ctx}"` : ''}`); }
+    try { const p = await exec(t.id, pageInspect, [cs]); if (p.loggedOut) loggedOutSeen = true; out.push(`${u.pathname.split('/').pop()}${p.loggedOut ? ' 로그인안됨' : ''} 사건번호${p.has ? 'O' : 'X'} 표지${p.marks} 제목${p.titleFs}px 링크${p.links}${p.ctx ? ` 주변:"${p.ctx}"` : ''}`); }
     catch (e) { out.push(`${u.pathname.split('/').pop()} 확인불가`); }
   }
   return out.join(', ');
@@ -413,7 +416,8 @@ function pageInspect(cs) {
   const ctx = ki >= 0 ? txt.slice(Math.max(0, ki - 12), ki + 30) : '';
   return { isDetail: has && bigTitle && detailMarks >= 2, hasResult: resultLinks > 0 && !(bigTitle && detailMarks >= 2), url: location.href,
     // 아래는 실패 시 진단용
-    has, marks: detailMarks, titleFs: Math.round(titleFs), links: resultLinks, ctx };
+    has, marks: detailMarks, titleFs: Math.round(titleFs), links: resultLinks, ctx,
+    loggedOut: /로그인/.test(document.body.innerText || '') && !/로그아웃|마이페이지/.test(document.body.innerText || '') };
 }
 
 // 검색 화면에서 사건번호 입력 후 검색
