@@ -119,8 +119,9 @@ function formatBidNarrative(d,forceDanta,forceResidence){
   const l80bid=Math.min(Math.round(total/0.2/100)*100,CAP);
   const localMin=Math.max(8300,l60bid);
   // 비수도권 경락잔금대출: 무주택은 LTV 60~80% 범위, 1주택·다주택은 LTV 60% 기준
+  // 투자금 기준표(60%): 2,000만원부터 최소 입찰가 8,300만원 적용, 그 이상은 투자금 ÷ 0.4
   const local60Only=oneHouse||multi;
-  const hasLocal=(local60Only?l60bid:l80bid)>=8300;
+  const hasLocal=local60Only?total>=2000:l80bid>=8300;
   const snr70=tY?Math.min(Math.round(total/0.3/100)*100,CAP):null;
   // 자기자금 3,000만원 미만은 레버리지 계산 자체를 적용하지 않음
   const snrOk=snr70&&total>=3000&&snr70*0.7>=5000;
@@ -198,7 +199,7 @@ function formatBidNarrative(d,forceDanta,forceResidence){
   if(hasLocal){
     const note=multi?' (공시가 2억이하)':'';
     if(local60Only){
-      lines.push((needsCrCheck&&!multi?'비수도권 APT 입찰가 기준: ':'비수도권 APT ')+fs(l60bid)+' 이하'+note);
+      lines.push((needsCrCheck&&!multi?'비수도권 APT 입찰가 기준: ':'비수도권 APT ')+fs(Math.max(8300,l60bid))+' 이하'+note);
     }else if(total>10000){
       // 합산자금 1억 초과면 구체적 범위 대신 상한선만 안내
       lines.push('비수도권 APT '+fs(CAP)+' 이하'+note);
@@ -470,10 +471,10 @@ function consult(d){
     const MIN_BID=8300; // 경락잔금대출 최소 입찰가
     const MAX_STD=13000; // 표 기준: 소액투자자 최대 입찰가 기준(1억3천)
     const l60bid=Math.min(Math.round(total/0.4/100)*100,CAP);
-    if(!noHouse){ // 1주택·다주택: LTV 60% 기준
-      if(l60bid<MIN_BID) return fmt(bAmt)+' (올현금)';
+    if(!noHouse){ // 1주택·다주택: LTV 60% 기준 (투자금 2,000만원부터 최소 입찰가 8,300만원)
+      if(total<2000) return fmt(bAmt)+' (올현금)';
       // 실제 대출 비율은 개인 상황마다 달라 금액 옆에 LTV%를 표시하지 않음
-      return fmt(l60bid)+' 이하'+(oneHouse?'':' · 공시가2억이하');
+      return fmt(Math.max(MIN_BID,l60bid))+' 이하'+(oneHouse?'':' · 공시가2억이하');
     }
     const l80bidRaw=Math.min(Math.round(total/0.2/100)*100,CAP);
     // 80% LTV 최소입찰가(8300) 감당 가능하면 최대는 최소 1억3천 보장

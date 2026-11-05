@@ -101,3 +101,12 @@ test('all-cash flag follows the same amount tier table as other directions', () 
   assert.equal(line(20000), '1. 수도권 비규제 APT 2억원 이하 (인천, 경기외곽) (올현금)');
   assert.equal(line(40000), '1. 수도권 비규제 APT 4억원 이하 (올현금)');
 });
+
+test('one-home and multi-home non-metro follow the 60% table: 8,300만원 floor from 2,000만원', () => {
+  const local = (h, seed) => rules.formatBidNarrative({ housing_type:h, investment_purpose:'단타', transfer_available:'N', seed_amount:seed, credit_amount:0, flags:[] }).split('\n').find(l => /비수도권/.test(l)) || '';
+  assert.equal(local('1주택', 1900), '');
+  assert.match(local('1주택', 2000), /비수도권 APT 입찰가 기준: 8,300만원 이하/);
+  assert.match(local('1주택', 3000), /비수도권 APT 입찰가 기준: 8,300만원 이하/);
+  assert.match(local('1주택', 4000), /비수도권 APT 입찰가 기준: 1억원 이하/);
+  assert.match(local('다주택', 3000), /비수도권 APT 8,300만원 이하 \(공시가 2억이하\)/);
+});
