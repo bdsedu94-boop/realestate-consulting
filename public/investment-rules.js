@@ -15,6 +15,20 @@ function tierLabel(amt){
   return{propType:'APT',regionTag:''};
 }
 
+// 무주택(생애최초 아님)·전입가능 단타의 수도권 줄: 규제 LTV 40%(투자금 5,000만원부터 대출 가능), 비규제 70%
+// 투자금 기준표: 40%는 5,000만원 → 8,333만원, 1억 → 1억 6,667만원 / 70%는 3,000만원 → 1억, 1억 → 3억 3,333만원
+function noHouseMetroDantaLines(total,fs){
+  const CAP=50000;
+  const reg40=Math.min(Math.round(total/0.6/100)*100,CAP);
+  const nreg70=Math.min(Math.round(total/0.3/100)*100,CAP);
+  const firstNote=' (생애최초인 경우 '+fs(nreg70)+' 이하)';
+  const t=tierLabel(nreg70);
+  return [
+    total>=5000?'수도권 규제 '+fs(reg40)+' 이하'+firstNote:'수도권 규제 현금+신용대출 활용해 올현금 입찰 가능 물건'+firstNote,
+    '수도권 비규제 '+t.propType+' '+fs(nreg70)+' 이하'+t.regionTag
+  ];
+}
+
 // 수도권·규제지역 주택구입목적 주담대 총액한도 반영.
 // 주택가격 15억원 이하 6억원 / 15억원 초과~25억원 이하 4억원 / 25억원 초과 2억원.
 // LTV로 계산한 입찰가와 자기자금+해당 구간 대출한도 중 실제 가능한 최대 금액을 사용합니다.
@@ -155,6 +169,9 @@ function formatBidNarrative(d,forceDanta,forceResidence){
       const bid60=Math.round(total/0.4/100)*100;
       const bid70=Math.round(total/0.3/100)*100;
       lines.push('입찰가능한 금액 : '+fsNoCap(bid60)+' ~ '+fsNoCap(bid70));
+    }else if(tY&&snrOk&&!isFirst){
+      // 전입가능 단타: 규제(40%)·비규제(70%)를 두 줄로 (생애최초는 둘 다 70%라 아래 한 줄 유지)
+      lines.push(...noHouseMetroDantaLines(total,fs));
     }else if(aptBid>15000){
       const t=tierLabel(Math.min(aptBid,50000));
       lines.push(area+' '+t.propType+' '+fs(Math.min(aptBid,50000))+' 이하'+t.regionTag);
@@ -320,8 +337,10 @@ function formatBidNarrativeCSV(d){
     // 단타 목적이었다면 나왔을 5억 상한 버전 수도권 줄을 [단타] 아래에 추가
     const aptBid=snr70;
     const t=tierLabel(aptBid);
-    const dantaLine='수도권 규제·비규제 '+t.propType+' '+fsCap(aptBid)+' 이하'+t.regionTag;
-    items=[{h:true,text:'[실거주]'},rawLines[0],{h:true,text:'[단타]'},dantaLine,...rawLines.slice(1)];
+    const dantaLines=d.housing_type==='생애최초'
+      ?['수도권 규제·비규제 '+t.propType+' '+fsCap(aptBid)+' 이하'+t.regionTag]
+      :noHouseMetroDantaLines(total,fsCap);
+    items=[{h:true,text:'[실거주]'},rawLines[0],{h:true,text:'[단타]'},...dantaLines,...rawLines.slice(1)];
   }else{
     items=[{h:true,text:'[실거주]'},rawLines[0],{h:true,text:'[단타]'},...rawLines.slice(1)];
   }
@@ -427,15 +446,19 @@ function consult(d){
   const bigInv=noHouse&&total>=15000;
 
   // 수도권 규제 (서울 전역·경기 12곳)
+  // 무주택 수도권 규제: LTV 40%(투자금 5,000만원부터), 생애최초 70% / 비규제: 70%
+  // 실제 대출 비율은 개인 상황마다 달라 카드 금액 옆에 LTV%를 표시하지 않음
+  function nhMetro(ltv){
+    if(ltv===0.4) return total>=5000?fmt(Math.min(Math.round(total/0.6/100)*100,CAP))+' 이하':fmt(bAmt)+' (올현금)';
+    const s=cLtv(0.3,0.7);
+    return s.ok?fmt(s.bid)+' 이하':fmt(bAmt)+' (올현금)';
+  }
   function bidReg(){
     if(!noHouse&&!wantsResidence) return '불가';
-    if(noHouse&&wantsResidenceNH){
-      const bid60=Math.round(total/0.4/100)*100;
-      const bid70=Math.round(total/0.3/100)*100;
-      return fmt(bid60)+' ~ '+fmt(bid70);
-    }
+    if(noHouse&&wantsResidenceNH) return nhMetro(isFirst?0.7:0.4);
     if(noHouse&&bigInv) return fmt(bAmt)+' (올현금 추천)';
     if(!tY) return fmt(bAmt)+' (신용/현금·조건부)';
+    if(noHouse) return nhMetro(isFirst?0.7:0.4);
     if(wantsResidence){
       const bid60=Math.round(total/0.4/100)*100;
       const bid70=Math.round(total/0.3/100)*100;
@@ -453,16 +476,11 @@ function consult(d){
     if(oneHouse){ // 1주택
       return fmt(bAmt)+' (신용/현금·조건부)';
     }
-    // 무주택/생애최초
-    if(wantsResidenceNH){
-      const bid60=Math.round(total/0.4/100)*100;
-      const bid70=Math.round(total/0.3/100)*100;
-      return fmt(bid60)+' ~ '+fmt(bid70);
-    }
+    // 무주택/생애최초: 비규제 70%
+    if(wantsResidenceNH) return nhMetro(0.7);
     if(bigInv) return fmt(bAmt)+' (올현금 추천)';
     if(!tY) return fmt(bAmt)+' (신용/현금·조건부)';
-    const s=cLtv(0.3,0.7);
-    return s.ok?fmt(s.bid)+' ('+s.label+')':fmt(bAmt)+' (올현금)';
+    return nhMetro(0.7);
   }
 
   // 비수도권 지방APT (경락잔금대출: 최소 입찰가 8,300만원)
@@ -490,15 +508,16 @@ function consult(d){
   bid='수도권 규제 '+bidReg()+' / 수도권 비규제 '+bidNreg()+' / 비수도권 '+bidLocal();
   // LTV 기준 레이블
   let ltvLabel;
+  const nhMetroLabel=isFirst?'수도권 LTV 70%':'수도권 규제 LTV 40%·비규제 70%';
   if(lN)
-    ltvLabel=oneHouse?'수도권 비규제 신용/현금 · 비수도권 LTV 60% (신용대출 미활용)':noHouse?'수도권 LTV 70% · 비수도권 LTV 60~80% (신용대출 미활용)':'비수도권 LTV 60% (신용대출 미활용)';
+    ltvLabel=oneHouse?'수도권 비규제 신용/현금 · 비수도권 LTV 60% (신용대출 미활용)':noHouse?nhMetroLabel+' · 비수도권 LTV 60~80% (신용대출 미활용)':'비수도권 LTV 60% (신용대출 미활용)';
   else if(total<1000)
     ltvLabel='신용대출 합산 필요';
   else if(isFirst&&hasBig)
     ltvLabel=tY?'수도권 LTV 70% · 비수도권 LTV 60~80% (기대출 확인 필요)':'수도권 올현금 (전입필요) · 비수도권 LTV 60~80% (기대출 확인 필요)';
   else if(noHouse)
     ltvLabel=tY
-      ?(total>=15000?'수도권 올현금 추천 (규제지역 빌라) · 비수도권 LTV 60~80%':'수도권 LTV 70% · 비수도권 LTV 60~80%')
+      ?(total>=15000?'수도권 올현금 추천 (규제지역 빌라) · 비수도권 LTV 60~80%':nhMetroLabel+' · 비수도권 LTV 60~80%')
       :'수도권 올현금 (전입필요) · 비수도권 LTV 60~80%';
   else if(oneHouse)
     ltvLabel='수도권 비규제 신용/현금 · 비수도권 LTV 60%';

@@ -110,3 +110,14 @@ test('one-home and multi-home non-metro follow the 60% table: 8,300만원 floor 
   assert.match(local('1주택', 4000), /비수도권 APT 입찰가 기준: 1억원 이하/);
   assert.match(local('다주택', 3000), /비수도권 APT 8,300만원 이하 \(공시가 2억이하\)/);
 });
+
+test('no-house short-term metro splits regulated 40% (from 5,000만원) and non-regulated 70%', () => {
+  const n = seed => rules.diagnose({ housing_type:'무주택', investment_purpose:'단타', transfer_available:'Y', seed_amount:seed, credit_amount:0, flags:[] }).narrative;
+  assert.match(n(4000), /1\. 수도권 규제 현금\+신용대출 활용해 올현금 입찰 가능 물건 \(생애최초인 경우 1억 3,300만원 이하\)\n2\. 수도권 비규제 APT·빌라 1억 3,300만원 이하/);
+  assert.match(n(5000), /1\. 수도권 규제 8,300만원 이하 \(생애최초인 경우 1억 6,700만원 이하\)\n2\. 수도권 비규제 APT 1억 6,700만원 이하 \(인천, 경기외곽\)/);
+  assert.match(n(10000), /1\. 수도권 규제 1억 6,700만원 이하 \(생애최초인 경우 3억 3,300만원 이하\)\n2\. 수도권 비규제 APT 3억 3,300만원 이하/);
+  const first = rules.diagnose({ housing_type:'생애최초', investment_purpose:'단타', transfer_available:'Y', seed_amount:10000, credit_amount:0, flags:[] }).narrative;
+  assert.match(first, /^1\. 수도권 규제·비규제 APT 3억 3,300만원 이하/);
+  const card = rules.consult({ housing_type:'무주택', investment_purpose:'실거주', transfer_available:'Y', seed_amount:10000, credit_amount:0, flags:[] }).bid;
+  assert.equal(card.split(' / ').slice(0, 2).join(' / '), '수도권 규제 1억 6,700만원 이하 / 수도권 비규제 3억 3,300만원 이하');
+});
