@@ -142,3 +142,14 @@ test('residence regulated 40% starts at 5,000만원 like the table, and residenc
   assert.equal(rules.consult({ ...d('1주택', 10000), investment_purpose:'단타' }).bid.split(' / ').slice(0, 2).join(' / '),
     '수도권 규제 불가 / 수도권 비규제 1억원 (신용/현금·조건부)');
 });
+
+test('short-term lines cut by the 5억 cap carry the efficiency note once, on the last cut line', () => {
+  const n = (h, seed, t = 'N') => rules.diagnose({ housing_type:h, investment_purpose:'단타', transfer_available:t, seed_amount:seed, credit_amount:0, flags:[] }).narrative;
+  const NOTE = '(단타 시 5억 초과 물건은 수익률 측면에서 비효율적)';
+  assert.match(n('1주택', 50000), /2\. 비수도권 APT 입찰가 기준: 5억원 이하 \(단타 시 5억 초과 물건은 수익률 측면에서 비효율적\)/);
+  assert.ok(!n('1주택', 20000).includes(NOTE), '2억이면 정확히 5억이라 잘리지 않음');
+  assert.ok(!n('1주택', 10000).includes(NOTE));
+  const nh = n('무주택', 20000, 'Y');
+  assert.equal(nh.split(NOTE).length - 1, 1);
+  assert.match(nh, /3\. 비수도권 APT 5억원 이하 \(단타 시 5억 초과 물건은 수익률 측면에서 비효율적\)/);
+});

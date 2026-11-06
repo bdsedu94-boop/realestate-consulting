@@ -15,6 +15,9 @@ function tierLabel(amt){
   return{propType:'APT',regionTag:''};
 }
 
+// 단타 입찰가 5억 상한에 걸려 금액이 잘린 줄 끝에 붙이는 안내 (잘린 줄이 여러 개면 마지막 줄에 한 번)
+const DANTA_CAP_NOTE=' (단타 시 5억 초과 물건은 수익률 측면에서 비효율적)';
+
 // 금액 표기
 function fsWon(v){
   if(v>=10000){const a=Math.floor(v/10000),r=v%10000;
@@ -113,7 +116,7 @@ function formatBidNarrative(d,forceDanta,forceResidence){
     const t=tierLabel(Math.min(total,CAP));
     const lines=[];
     lines.push(area+' '+t.propType+' '+fs(total)+' 이하'+t.regionTag+' (올현금)');
-    lines.push('비수도권 APT '+fs(total)+' (올현금)');
+    lines.push('비수도권 APT '+fs(total)+' (올현금)'+(total>50000?DANTA_CAP_NOTE:''));
     return lines.map((l,i)=>(i+1)+'. '+l).join('\n');
   }
 
@@ -158,6 +161,8 @@ function formatBidNarrative(d,forceDanta,forceResidence){
   // 자기자금 3,000만원 미만은 레버리지 계산 자체를 적용하지 않음
   const snrOk=snr70&&total>=3000&&snr70*0.7>=5000;
   const lines=[];
+  let capIdx=-1; // 단타 5억 상한에 걸린 마지막 줄
+  const markCap=cut=>{if(cut)capIdx=lines.length-1;};
   const needsCrCheck=cr===0; // 신용대출 금액 미확인 → 새 형식
   // 전체 LTV 불가 케이스 (수도권 LTV 미달 + 비수도권 최소입찰가 미달)
   const allFail=!snrOk&&!hasLocal;
@@ -176,6 +181,7 @@ function formatBidNarrative(d,forceDanta,forceResidence){
     }else{
       const t=tierLabel(Math.min(total,50000));
       lines.push('수도권 비규제 '+t.propType+' '+fs(Math.min(total,50000))+' 이하 (공시가 1억이하)'+t.regionTag);
+      markCap(total>50000);
     }
   }else if(noHouse){
     const wantsResidenceNH=!forceDanta&&tY&&(d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주');
@@ -189,10 +195,13 @@ function formatBidNarrative(d,forceDanta,forceResidence){
       lines.push('입찰가능한 금액 : '+fsNoCap(bid60)+' ~ '+fsNoCap(bid70));
     }else if(tY&&snrOk){
       // 전입가능 단타: 규제(40%)·비규제(70%)를 두 줄로 (생애최초는 둘 다 70%라 한 줄)
-      lines.push(...noHouseMetroDantaLines(total,isFirst));
+      // 생애최초는 한 줄(70%), 그 외는 규제(40%)·비규제(70%) 두 줄
+      const cut=isFirst?[total/0.3>50000]:[total/0.6>50000,total/0.3>50000];
+      noHouseMetroDantaLines(total,isFirst).forEach((l,i)=>{lines.push(l);markCap(cut[i]);});
     }else if(aptBid>15000){
       const t=tierLabel(Math.min(aptBid,50000));
       lines.push(area+' '+t.propType+' '+fs(Math.min(aptBid,50000))+' 이하'+t.regionTag);
+      markCap(aptBid>50000);
     }else{
       if(needsCrCheck&&(!snrOk||!tY)){
         lines.push(area+'지역 현금+신용대출 활용해 올현금 입찰 가능 물건 (신용대출 가능금액 확인 필요)');
@@ -229,15 +238,18 @@ function formatBidNarrative(d,forceDanta,forceResidence){
     }else{
       const t=tierLabel(Math.min(total,50000));
       lines.push('수도권 비규제 '+t.propType+' '+fs(total)+' 이하'+t.regionTag);
+      markCap(total>50000);
     }
   }
   if(hasLocal){
     const note=multi?' (공시가 2억이하)':'';
     if(local60Only){
       lines.push((needsCrCheck&&!multi?'비수도권 APT 입찰가 기준: ':'비수도권 APT ')+fs(Math.max(8300,l60bid))+' 이하'+note);
+      markCap(total/0.4>50000);
     }else if(total>10000){
       // 합산자금 1억 초과면 구체적 범위 대신 상한선만 안내
       lines.push('비수도권 APT '+fs(CAP)+' 이하'+note);
+      markCap(total/0.2>50000);
     }else{
       const localPrefix=needsCrCheck&&!multi?'비수도권 APT 입찰가 기준: ':'비수도권 APT ';
       lines.push(localMin===l80bid
@@ -245,6 +257,7 @@ function formatBidNarrative(d,forceDanta,forceResidence){
         :localPrefix+fs(localMin)+' ~ '+fs(l80bid)+note);
     }
   }
+  if(capIdx>=0) lines[capIdx]+=DANTA_CAP_NOTE;
   return lines.map((l,i)=>(i+1)+'. '+l).join('\n');
 }
 
