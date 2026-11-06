@@ -41,6 +41,23 @@ function noHouseMetroDantaLines(total,isFirst){
   ];
 }
 
+// 실거주(전입가능) 정밀 계산: 낙찰가 = 자기자금 ÷ (1-LTV%), 최소 8,300만원.
+// 8,300만원으로 끌어올려진 경우에만 그 시점의 자기부담분(8,300×(1-LTV%))이 실제 보유 자기자금을 넘는지 검사.
+// 수도권 규제 40%는 투자금 기준표대로 5,000만원부터 계산 (단타와 동일)
+function residenceLtvBid(total,ltv,isMetro){
+  if(isMetro&&ltv===0.4) return total>=5000?{ok:true,bid:metroBidWithLoanCap(total,0.4)}:{ok:false,bid:null};
+  const raw=Math.round(total/(1-ltv)/100)*100;
+  let bid=isMetro?metroBidWithLoanCap(total,ltv):raw;
+  if(bid<8300){
+    const selfBurden=Math.round(8300*(1-ltv));
+    if(selfBurden>total) return{ok:false,bid:null};
+    bid=8300;
+  }
+  const loanAmt=Math.max(0,bid-total);
+  if(loanAmt<5000) return{ok:false,bid:null}; // 대출실행액 5,000만원 미만이면 실제 대출 자체가 안 나옴
+  return{ok:true,bid:bid};
+}
+
 // 수도권·규제지역 주택구입목적 주담대 총액한도 반영.
 // 주택가격 15억원 이하 6억원 / 15억원 초과~25억원 이하 4억원 / 25억원 초과 2억원.
 // LTV로 계산한 입찰가와 자기자금+해당 구간 대출한도 중 실제 가능한 최대 금액을 사용합니다.
@@ -105,18 +122,7 @@ function formatBidNarrative(d,forceDanta,forceResidence){
   if(wantsResidenceAny&&total>=3000){
     // 낙찰가 = 자기자금 ÷ (1-LTV%), 최소 8,300만원. 8,300만원으로 끌어올려진 경우에만
     // 그 시점의 자기부담분(8,300×(1-LTV%))이 실제 보유 자기자금을 넘는지 검사
-    function ltvLine(ltv,isMetro){
-      const raw=Math.round(total/(1-ltv)/100)*100;
-      let bid=isMetro?metroBidWithLoanCap(total,ltv):raw;
-      if(bid<8300){
-        const selfBurden=Math.round(8300*(1-ltv));
-        if(selfBurden>total) return{ok:false,bid:null};
-        bid=8300;
-      }
-      const loanAmt=Math.max(0,bid-total);
-      if(loanAmt<5000) return{ok:false,bid:null}; // 대출실행액 5,000만원 미만이면 실제 대출 자체가 안 나옴
-      return{ok:true,bid:bid};
-    }
+    const ltvLine=(ltv,isMetro)=>residenceLtvBid(total,ltv,isMetro);
     function fmtLine(r){
       return r.ok?fsNoCap(r.bid)+' 이하':'현금+신용대출 활용해 올현금 입찰 가능 물건';
     }
@@ -463,17 +469,18 @@ function consult(d){
     const s=cLtv(0.3,0.7); // 5억 상한 포함
     return s.ok?fmt(s.bid)+' 이하':fmt(bAmt)+' (올현금)';
   }
+  // 실거주(전입가능) 카드: 방향성 문구와 같은 정밀 계산
+  function resMetro(ltv,note){
+    const r=residenceLtvBid(total,ltv,true);
+    return r.ok?fmt(r.bid)+' 이하'+(note||''):fmt(bAmt)+' (올현금)';
+  }
   function bidReg(){
     if(!noHouse&&!wantsResidence) return '불가';
-    if(noHouse&&wantsResidenceNH) return nhMetro(isFirst?0.7:0.4);
+    if(noHouse&&wantsResidenceNH) return resMetro(isFirst?0.7:0.4);
     if(noHouse&&bigInv&&!tY) return fmt(bAmt)+' (올현금 추천)';
     if(!tY) return fmt(bAmt)+' (신용/현금·조건부)';
     if(noHouse) return nhMetro(isFirst?0.7:0.4);
-    if(wantsResidence){
-      const bid60=Math.round(total/0.4/100)*100;
-      const bid70=Math.round(total/0.3/100)*100;
-      return fmt(bid60)+' ~ '+fmt(bid70)+' (기존주택 처분조건부·전입조건부)';
-    }
+    if(wantsResidence) return resMetro(0.4,' (기존주택 처분조건부·전입조건부)');
     const s=cLtv(0.3,0.7);
     return s.ok?fmt(s.bid)+' ('+s.label+')':fmt(bAmt)+' (올현금)';
   }
@@ -483,11 +490,12 @@ function consult(d){
     if(!noHouse&&!oneHouse){ // 다주택
       return cr===0?'현금+신용대출 합산금액 (공시가 1억이하)':fmt(bAmt)+' (공시가 1억이하)';
     }
-    if(oneHouse){ // 1주택
+    if(oneHouse){ // 1주택: 실거주(전입가능)는 처분조건부 70%, 단타는 현금+신용
+      if(wantsResidence) return resMetro(0.7,' (기존주택 처분조건부·전입조건부)');
       return fmt(bAmt)+' (신용/현금·조건부)';
     }
     // 무주택/생애최초: 비규제 70%
-    if(wantsResidenceNH) return nhMetro(0.7);
+    if(wantsResidenceNH) return resMetro(0.7);
     if(bigInv&&!tY) return fmt(bAmt)+' (올현금 추천)';
     if(!tY) return fmt(bAmt)+' (신용/현금·조건부)';
     return nhMetro(0.7);

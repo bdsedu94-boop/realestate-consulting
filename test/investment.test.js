@@ -131,3 +131,14 @@ test('no-house metro follows the 40%/70% table up to the common 5억 bid cap wit
   assert.match(c.bid, /^수도권 규제 3억 3,300만원 이하 \/ 수도권 비규제 5억원 이하/);
   assert.doesNotMatch(c.ltvLabel, /올현금/);
 });
+
+test('residence regulated 40% starts at 5,000만원 like the table, and residence cards match the narrative', () => {
+  const d = (h, seed) => ({ housing_type:h, investment_purpose:'실거주', transfer_available:'Y', seed_amount:seed, credit_amount:0, flags:[] });
+  assert.match(rules.formatBidNarrative(d('무주택', 5000)), /^1\. 수도권 규제 8,300만원 이하 \(생애최초인 경우 1억 6,700만원 이하\)/);
+  assert.match(rules.formatBidNarrative(d('1주택', 5000)), /^1\. 수도권 규제 8,300만원 이하 \(기존주택 처분조건부\)/);
+  assert.match(rules.formatBidNarrative(d('1주택', 4900)), /^1\. 수도권 규제 현금\+신용대출 활용해 올현금 입찰 가능 물건/);
+  assert.equal(rules.consult(d('1주택', 10000)).bid.split(' / ').slice(0, 2).join(' / '),
+    '수도권 규제 1억 6,700만원 이하 (기존주택 처분조건부·전입조건부) / 수도권 비규제 3억 3,300만원 이하 (기존주택 처분조건부·전입조건부)');
+  assert.equal(rules.consult({ ...d('1주택', 10000), investment_purpose:'단타' }).bid.split(' / ').slice(0, 2).join(' / '),
+    '수도권 규제 불가 / 수도권 비규제 1억원 (신용/현금·조건부)');
+});
