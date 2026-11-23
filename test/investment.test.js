@@ -165,3 +165,10 @@ test('no-house (non-first) results no longer carry the "(생애최초인 경우 
     assert.ok(!r.narrative.includes('생애최초인 경우'), `${p}/${t}/${seed}`);
   }
 });
+
+test('first-home sentence in notes appears only for 생애최초, not for 무주택', () => {
+  const notes = h => rules.diagnose({ housing_type:h, investment_purpose:'실거주', transfer_available:'Y', seed_amount:10000, credit_amount:0, flags:[] }).notes.join('\n');
+  assert.ok(!notes('무주택').includes('생애최초'));
+  assert.ok(notes('생애최초').includes('생애최초 구입'));
+  assert.ok(!rules.getReportContext({ housing_type:'무주택', investment_purpose:'실거주', transfer_available:'Y', seed_amount:10000, credit_amount:0, flags:[] }).noHouseNoteTop.includes('생애최초'));
+});
