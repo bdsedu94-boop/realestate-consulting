@@ -38,9 +38,8 @@ function noHouseMetroDantaLines(total,isFirst){
   const t=tierLabel(nreg70);
   // 생애최초는 규제·비규제 모두 70%이지만, 규제지역(서울·경기 12곳)에 인천 등 지역 태그가 붙지 않도록 두 줄로
   if(isFirst) return ['수도권 규제 '+fs(nreg70)+' 이하','수도권 비규제 '+t.propType+' '+fs(nreg70)+' 이하'+t.regionTag];
-  const firstNote=' (생애최초인 경우 '+fs(nreg70)+' 이하)';
   return [
-    total>=5000?'수도권 규제 '+fs(reg40)+' 이하'+firstNote:'수도권 규제 현금+신용대출 활용해 올현금 입찰 가능 물건'+firstNote,
+    total>=5000?'수도권 규제 '+fs(reg40)+' 이하':'수도권 규제 현금+신용대출 활용해 올현금 입찰 가능 물건',
     '수도권 비규제 '+t.propType+' '+fs(nreg70)+' 이하'+t.regionTag
   ];
 }
@@ -144,9 +143,10 @@ function formatBidNarrative(d,forceDanta,forceResidence){
         rLines.push('수도권 비규제 '+fmtLine(ltvLine(0.7,true)));
         rLines.push('비수도권 '+fmtLine(ltvLine(0.8)));
       }else{
-        rLines.push('수도권 규제 '+fmtLine(ltvLine(0.4,true))+' (생애최초인 경우 '+fmtLine(ltvLine(0.7,true))+')');
+        // 설문에서 무주택·생애최초를 구분하므로 무주택자에게 '(생애최초인 경우 …)'는 붙이지 않음
+        rLines.push('수도권 규제 '+fmtLine(ltvLine(0.4,true)));
         rLines.push('수도권 비규제 '+fmtLine(ltvLine(0.7,true)));
-        rLines.push('비수도권 '+fmtLine(ltvLine(0.7))+' (생애최초인 경우 '+fmtLine(ltvLine(0.8))+')');
+        rLines.push('비수도권 '+fmtLine(ltvLine(0.7)));
       }
     }
     return rLines.map((l,i)=>(i+1)+'. '+l).join('\n');
