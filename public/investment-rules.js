@@ -36,7 +36,8 @@ function noHouseMetroDantaLines(total,isFirst){
   const reg40=Math.min(Math.round(total/0.6/100)*100,CAP);
   const nreg70=Math.min(Math.round(total/0.3/100)*100,CAP);
   const t=tierLabel(nreg70);
-  if(isFirst) return ['수도권 규제·비규제 '+t.propType+' '+fs(nreg70)+' 이하'+t.regionTag];
+  // 생애최초는 규제·비규제 모두 70%이지만, 규제지역(서울·경기 12곳)에 인천 등 지역 태그가 붙지 않도록 두 줄로
+  if(isFirst) return ['수도권 규제 '+fs(nreg70)+' 이하','수도권 비규제 '+t.propType+' '+fs(nreg70)+' 이하'+t.regionTag];
   const firstNote=' (생애최초인 경우 '+fs(nreg70)+' 이하)';
   return [
     total>=5000?'수도권 규제 '+fs(reg40)+' 이하'+firstNote:'수도권 규제 현금+신용대출 활용해 올현금 입찰 가능 물건'+firstNote,
@@ -194,9 +195,9 @@ function formatBidNarrative(d,forceDanta,forceResidence){
       const bid70=Math.round(total/0.3/100)*100;
       lines.push('입찰가능한 금액 : '+fsNoCap(bid60)+' ~ '+fsNoCap(bid70));
     }else if(tY&&snrOk){
-      // 전입가능 단타: 규제(40%)·비규제(70%)를 두 줄로 (생애최초는 둘 다 70%라 한 줄)
-      // 생애최초는 한 줄(70%), 그 외는 규제(40%)·비규제(70%) 두 줄
-      const cut=isFirst?[total/0.3>50000]:[total/0.6>50000,total/0.3>50000];
+      // 전입가능 단타: 수도권 규제·비규제를 두 줄로
+      // 생애최초는 규제·비규제 모두 70%, 그 외는 규제 40%·비규제 70%
+      const cut=isFirst?[total/0.3>50000,total/0.3>50000]:[total/0.6>50000,total/0.3>50000];
       noHouseMetroDantaLines(total,isFirst).forEach((l,i)=>{lines.push(l);markCap(cut[i]);});
     }else if(aptBid>15000){
       const t=tierLabel(Math.min(aptBid,50000));

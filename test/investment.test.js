@@ -117,7 +117,7 @@ test('no-house short-term metro splits regulated 40% (from 5,000만원) and non-
   assert.match(n(5000), /1\. 수도권 규제 8,300만원 이하 \(생애최초인 경우 1억 6,700만원 이하\)\n2\. 수도권 비규제 APT 1억 6,700만원 이하 \(인천, 경기외곽\)/);
   assert.match(n(10000), /1\. 수도권 규제 1억 6,700만원 이하 \(생애최초인 경우 3억 3,300만원 이하\)\n2\. 수도권 비규제 APT 3억 3,300만원 이하/);
   const first = rules.diagnose({ housing_type:'생애최초', investment_purpose:'단타', transfer_available:'Y', seed_amount:10000, credit_amount:0, flags:[] }).narrative;
-  assert.match(first, /^1\. 수도권 규제·비규제 APT 3억 3,300만원 이하/);
+  assert.match(first, /^1\. 수도권 규제 3억 3,300만원 이하\n2\. 수도권 비규제 APT 3억 3,300만원 이하/);
   const card = rules.consult({ housing_type:'무주택', investment_purpose:'실거주', transfer_available:'Y', seed_amount:10000, credit_amount:0, flags:[] }).bid;
   assert.equal(card.split(' / ').slice(0, 2).join(' / '), '수도권 규제 1억 6,700만원 이하 / 수도권 비규제 3억 3,300만원 이하');
 });
@@ -126,7 +126,7 @@ test('no-house metro follows the 40%/70% table up to the common 5억 bid cap wit
   const n = (h, seed) => rules.diagnose({ housing_type:h, investment_purpose:'단타', transfer_available:'Y', seed_amount:seed, credit_amount:0, flags:[] }).narrative;
   assert.match(n('무주택', 15000), /1\. 수도권 규제 2억 5천만원 이하 \(생애최초인 경우 5억원 이하\)\n2\. 수도권 비규제 APT 5억원 이하/);
   assert.match(n('무주택', 20000), /1\. 수도권 규제 3억 3,300만원 이하 \(생애최초인 경우 5억원 이하\)\n2\. 수도권 비규제 APT 5억원 이하/);
-  assert.match(n('생애최초', 20000), /^1\. 수도권 규제·비규제 APT 5억원 이하/);
+  assert.match(n('생애최초', 20000), /^1\. 수도권 규제 5억원 이하\n2\. 수도권 비규제 APT 5억원 이하/);
   const c = rules.consult({ housing_type:'무주택', investment_purpose:'단타', transfer_available:'Y', seed_amount:20000, credit_amount:0, flags:[] });
   assert.match(c.bid, /^수도권 규제 3억 3,300만원 이하 \/ 수도권 비규제 5억원 이하/);
   assert.doesNotMatch(c.ltvLabel, /올현금/);
@@ -152,4 +152,9 @@ test('short-term lines cut by the 5억 cap carry the efficiency note once, on th
   const nh = n('무주택', 20000, 'Y');
   assert.equal(nh.split(NOTE).length - 1, 1);
   assert.match(nh, /3\. 비수도권 APT 5억원 이하 \(단타 시 5억 초과 물건은 수익률 측면에서 비효율적\)/);
+});
+
+test('first-home short-term metro is split into regulated and non-regulated lines without region tags on the regulated line', () => {
+  const n = rules.diagnose({ housing_type:'생애최초', investment_purpose:'단타', transfer_available:'Y', seed_amount:2000, credit_amount:4400, flags:[] }).narrative;
+  assert.match(n, /^1\. 수도권 규제 2억 1,300만원 이하\n2\. 수도권 비규제 APT 2억 1,300만원 이하 \(인천, 경기외곽\)/);
 });
