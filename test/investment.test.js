@@ -10,7 +10,7 @@ const token = 'isolated-test-only-connection-token';
 
 test('current reference profile keeps exact amounts and credit guidance', () => {
   const result = rules.diagnose(input);
-  assert.equal(result.narrative, '[실거주&단타]\n1. 수도권 규제 1억 6,700만원 이하\n2. 수도권 비규제 3억 3,300만원 이하\n3. 비수도권 3억 3,300만원 이하\n** 단, 신용대출 활용 시 경락잔금대출까지 함께 나오는지 항상 확인 필요');
+  assert.equal(result.narrative, '[실거주&단타]\n1. 수도권 규제 1억 6,700만원 이하\n2. 수도권 비규제 3억 3,300만원 이하\n3. 비수도권 2억 5천만원 ~ 5억원\n** 단, 신용대출 활용 시 경락잔금대출까지 함께 나오는지 항상 확인 필요');
   assert.equal(result.cards.reg.st, 'O');
   assert.ok(result.notes[0].includes('전입 조건'));
   assert.ok(result.notes.every(note => !/<[^>]*>/.test(note)));
@@ -69,7 +69,7 @@ test('one-home short-term investor with unknown credit always gets cash+credit g
 
 test('high-cash no-house residence profile applies metro mortgage caps but keeps first-home reference', () => {
   const result = rules.diagnose({ housing_type:'무주택', transfer_available:'Y', investment_purpose:'단타+실거주', seed_amount:50000, credit_amount:0 });
-  assert.equal(result.narrative, '[실거주&단타]\n1. 수도권 규제 8억 3,300만원 이하\n2. 수도권 비규제 11억원 이하\n3. 비수도권 16억 6,700만원 이하');
+  assert.equal(result.narrative, '[실거주&단타]\n1. 수도권 규제 8억 3,300만원 이하\n2. 수도권 비규제 11억원 이하\n3. 비수도권 12억 5천만원 ~ 25억원');
 });
 
 
@@ -171,4 +171,11 @@ test('first-home sentence in notes appears only for 생애최초, not for 무주
   assert.ok(!notes('무주택').includes('생애최초'));
   assert.ok(notes('생애최초').includes('생애최초 구입'));
   assert.ok(!rules.getReportContext({ housing_type:'무주택', investment_purpose:'실거주', transfer_available:'Y', seed_amount:10000, credit_amount:0, flags:[] }).noHouseNoteTop.includes('생애최초'));
+});
+
+test('no-house and first-home residence non-metro shows the 60~80% range like short-term', () => {
+  const local = (h, seed) => rules.formatBidNarrative({ housing_type:h, investment_purpose:'실거주', transfer_available:'Y', seed_amount:seed, credit_amount:0, flags:[] }).split('\n').find(l => /비수도권/.test(l));
+  assert.equal(local('무주택', 3000), '3. 비수도권 8,300만원 ~ 1억 5천만원');
+  assert.equal(local('무주택', 6000), '3. 비수도권 1억 5천만원 ~ 3억원');
+  assert.equal(local('생애최초', 10000), '3. 비수도권 2억 5천만원 ~ 5억원');
 });

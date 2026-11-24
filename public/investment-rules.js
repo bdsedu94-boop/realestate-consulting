@@ -138,16 +138,20 @@ function formatBidNarrative(d,forceDanta,forceResidence){
       rLines.push('수도권 비규제 '+fmtLine(ltvLine(0.7,true))+' (기존주택 처분조건부)');
       rLines.push('비수도권 '+fmtLine(ltvLine(0.6)));
     }else{ // noHouse (무주택/생애최초)
+      // 무주택·생애최초 비수도권: 단타와 같이 60~80% 범위 (최소 입찰가 8,300만원, 실거주는 5억 상한 없음)
+      const hi=ltvLine(0.8);
+      const localRange=hi.ok
+        ?(()=>{const lo=Math.max(8300,Math.round(total/0.4/100)*100);return lo>=hi.bid?fsNoCap(hi.bid)+' 이하':fsNoCap(lo)+' ~ '+fsNoCap(hi.bid);})()
+        :'현금+신용대출 활용해 올현금 입찰 가능 물건';
       if(isFirst){
         rLines.push('수도권 규제 '+fmtLine(ltvLine(0.7,true)));
         rLines.push('수도권 비규제 '+fmtLine(ltvLine(0.7,true)));
-        rLines.push('비수도권 '+fmtLine(ltvLine(0.8)));
       }else{
         // 설문에서 무주택·생애최초를 구분하므로 무주택자에게 '(생애최초인 경우 …)'는 붙이지 않음
         rLines.push('수도권 규제 '+fmtLine(ltvLine(0.4,true)));
         rLines.push('수도권 비규제 '+fmtLine(ltvLine(0.7,true)));
-        rLines.push('비수도권 '+fmtLine(ltvLine(0.7)));
       }
+      rLines.push('비수도권 '+localRange);
     }
     return rLines.map((l,i)=>(i+1)+'. '+l).join('\n');
   }
