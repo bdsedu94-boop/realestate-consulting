@@ -8,10 +8,10 @@
 
 function fmt(v){if(v>=10000){const a=Math.floor(v/10000),r=v%10000;return r?`${a}억 ${r.toLocaleString()}만원`:`${a}억원`;}return `${v.toLocaleString()}만원`;}
 
-// 수도권 규제지역(서울 전역·경기 12곳) 금액대 표기
+// 수도권 규제지역(서울 전역·경기 12곳) 금액대 표기 (지역 태그는 붙이지 않음)
 function regTierLabel(amt){
   if(amt<=30000) return{propType:'빌라',regionTag:''};
-  if(amt<=60000) return{propType:'APT·빌라',regionTag:' (서울 외곽, 경기 규제지역)'};
+  if(amt<=60000) return{propType:'APT·빌라',regionTag:''};
   return{propType:'APT',regionTag:''};
 }
 
@@ -21,6 +21,9 @@ function tierLabel(amt){
   if(amt<=30000) return{propType:'APT',regionTag:' (인천, 경기외곽)'};
   return{propType:'APT',regionTag:''};
 }
+
+// 투자금 1,000만원대(어느 지역도 대출 계산이 안 되는 경우) 비수도권 소액 대출 안내
+const SMALL_LOAN_LINE='비수도권 APT 입찰가 5,000~8,000만원대';
 
 // 단타 입찰가 5억 상한에 걸려 금액이 잘린 줄 끝에 붙이는 안내 (잘린 줄이 여러 개면 마지막 줄에 한 번)
 const DANTA_CAP_NOTE=' (단타 시 5억 초과 물건은 수익률 측면에서 비효율적)';
@@ -196,6 +199,8 @@ function formatBidNarrative(d,forceDanta,forceResidence){
     lines.push(needsCrCheck
       ?areaF+'지역 현금+신용대출 활용해 올현금 입찰 가능 물건'+multiNote+' (신용대출 가능금액 확인 필요)'
       :areaF+' '+tierLabel(Math.min(total,CAP)).propType+' 시드+신용대출 합산 금액으로 입찰 검토'+multiNote+tierLabel(Math.min(total,CAP)).regionTag);
+    // 투자금 1,000만원대: 비수도권 소액 대출(대출 5,000만원 이하)로 입찰가 5,000~8,000만원대도 검토 (참고사항 SMALL_LOAN 안내와 함께)
+    if(total>=1000) lines.push(SMALL_LOAN_LINE+(multi?' (공시가 2억이하)':'')+' (소액 대출 가능 여부 입찰 전 확인 필요)');
     return lines.map((l,i)=>(i+1)+'. '+l).join('\n');
   }
   if(multi){
@@ -708,7 +713,17 @@ function getReportContext(d){
   const multiNoteFinal=multi?(usesNewScheme?multiNoteTop:(wantsResidenceMulti?'':multiNote)):'';
   const noteBox=noHouseNoteFinal||oneHouseNoteFinal||multiNoteFinal;
 
-  return {cr,total,isFirst,noHouse,narrative,numberedCountEarly,fmtAmt,seedLine,oneHouse,missingHousing,multi,wantsResidence,wantsResidenceNH,usesNewScheme,usesHypothetical,CAP,snr70NH,snrOkNH,fsCapPdf,noHouseNote,noHouseNoteTop,noHouseNoteBottom,oneHouseNoteTop,oneHouseNoteBottom,oneHouseNoteCombined,multiNoteTop,multiNoteBottom,multiNote,oneHouseNoteFinal,noHouseNoteFinal,wantsResidenceMulti,multiNoteFinal,noteBox};
+  // 투자금 1,000만원대: 수도권 현금+신용대출 안내만 있으면 부족해 비수도권 소액 대출 안내를 함께 표시
+  const smallLoanNote=narrative.includes(SMALL_LOAN_LINE)?`
+    <div style="margin-top:24px;padding:18px 20px;background:#f7f8fa;border-left:3px solid #4a4a4a;border-radius:4px;font-size:12px;line-height:1.85;color:#555">
+      <div style="font-weight:700;color:#222;margin-bottom:8px;font-size:12.5px">※ 참고사항</div>
+      수도권은 현금 + 신용대출 활용을 안내드렸지만, 실투자금 1,000만원대로 비수도권 APT 입찰가 5,000~8,000만원대도 시도해 보실 수 있습니다.<br><br>
+      1. 비수도권 APT도 현금 + 신용대출로 잔금을 치를 수 있는 금액이면 가장 안전합니다.<br><br>
+      2. 입찰가 5,000~8,000만원대 물건을 담보로 받는 대출은 대출금액이 5,000만원 이하인 소액 대출이라, 은행에서 잘 취급하지 않으려 합니다.
+      다만 최근 소액 대출을 받으신 수강생 사례가 있으니, 물건을 찾아보신 뒤 입찰 전에 저희와 함께 대출 가능 여부를 확인하고 입찰 여부를 결정하시면 좋겠습니다.${cr===0?'<br><br>우선 신용대출이 얼마나 나오는지부터 확인해 보세요.':''}
+    </div>`:'';
+
+  return {cr,total,isFirst,noHouse,narrative,numberedCountEarly,fmtAmt,seedLine,oneHouse,missingHousing,multi,wantsResidence,wantsResidenceNH,usesNewScheme,usesHypothetical,CAP,snr70NH,snrOkNH,fsCapPdf,noHouseNote,noHouseNoteTop,noHouseNoteBottom,oneHouseNoteTop,oneHouseNoteBottom,oneHouseNoteCombined,multiNoteTop,multiNoteBottom,multiNote,oneHouseNoteFinal,noHouseNoteFinal,wantsResidenceMulti,multiNoteFinal,noteBox,smallLoanNote};
 }
 
 // PDF와 동일한 조건으로 참고사항을 선택하고, 자료실에는 안전한 일반 텍스트만 전달합니다.
@@ -721,6 +736,7 @@ function getInvestmentNotes(d){
   else if(c.noHouse&&c.wantsResidenceNH&&c.snrOkNH) notes=[c.noHouseNoteTop,c.noHouseNoteBottom];
   else if(c.multi&&c.wantsResidenceMulti) notes=[c.multiNoteTop,c.multiNoteBottom];
   else notes=[c.noteBox];
+  if(c.smallLoanNote) notes=[c.smallLoanNote,...notes];
   return notes.filter(Boolean).map(html=>html
     .replace(/<br\s*\/?\s*>/gi,'\n')
     .replace(/<\/div>/gi,'\n')

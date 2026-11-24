@@ -668,7 +668,7 @@ async function importExcel(input){
 
 /* ── 리포트 PDF 생성 (카톡 양식 그대로) ── */
 async function buildReportPDF(d){
-  const {cr,total,isFirst,noHouse,narrative,numberedCountEarly,fmtAmt,seedLine,oneHouse,missingHousing,multi,wantsResidence,wantsResidenceNH,usesNewScheme,usesHypothetical,CAP,snr70NH,snrOkNH,fsCapPdf,noHouseNote,noHouseNoteTop,noHouseNoteBottom,oneHouseNoteTop,oneHouseNoteBottom,oneHouseNoteCombined,multiNoteTop,multiNoteBottom,multiNote,oneHouseNoteFinal,noHouseNoteFinal,wantsResidenceMulti,multiNoteFinal,noteBox}=InvestmentRules.getReportContext(d);
+  const {cr,total,isFirst,noHouse,narrative,numberedCountEarly,fmtAmt,seedLine,oneHouse,missingHousing,multi,wantsResidence,wantsResidenceNH,usesNewScheme,usesHypothetical,CAP,snr70NH,snrOkNH,fsCapPdf,noHouseNote,noHouseNoteTop,noHouseNoteBottom,oneHouseNoteTop,oneHouseNoteBottom,oneHouseNoteCombined,multiNoteTop,multiNoteBottom,multiNote,oneHouseNoteFinal,noHouseNoteFinal,wantsResidenceMulti,multiNoteFinal,noteBox,smallLoanNote}=InvestmentRules.getReportContext(d);
   const transferLabel=d.transfer_available==='Y'?'전입가능':d.transfer_available==='N'?'전입불가':'미확인';
   const today=new Date();
   const dateStr=`${today.getFullYear()}.${String(today.getMonth()+1).padStart(2,'0')}.${String(today.getDate()).padStart(2,'0')}`;
@@ -864,7 +864,7 @@ async function buildReportPDF(d){
           <td style="padding:0 0 0 8px"><div style="font-size:14.5px;font-weight:700;color:#9314cc;line-height:16px">${mainTitle}</div></td>
         </tr></table>`:''}
         ${bodyContent}
-        ${bottomNoteBox}
+        ${smallLoanNote||''}${bottomNoteBox}
       </div>
       <table style="width:100%;border-collapse:collapse;padding:14px 28px;background:#fafafa;border-top:1px solid #eee"><tr>
         <td style="padding:14px 28px;font-size:10.5px;color:#999;line-height:1.6">본 리포트는 설문지를 기준으로 산정된 투자 방향성 참고자료이며, 정확한 대출 조건 및 세부 사항은 별도 상담을 통해 확인하시기 바랍니다.</td>

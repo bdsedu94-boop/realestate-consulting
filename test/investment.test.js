@@ -104,7 +104,7 @@ test('all-cash flag follows the same amount tier table as other directions', () 
 
 test('one-home and multi-home non-metro follow the 60% table: 8,300만원 floor from 2,000만원', () => {
   const local = (h, seed) => rules.formatBidNarrative({ housing_type:h, investment_purpose:'단타', transfer_available:'N', seed_amount:seed, credit_amount:0, flags:[] }).split('\n').find(l => /비수도권/.test(l)) || '';
-  assert.equal(local('1주택', 1900), '');
+  assert.match(local('1주택', 1900), /비수도권 APT 입찰가 5,000~8,000만원대/); // 2,000만원 미만은 소액 대출 안내
   assert.match(local('1주택', 2000), /비수도권 APT 입찰가 기준: 8,300만원 이하/);
   assert.match(local('1주택', 3000), /비수도권 APT 입찰가 기준: 8,300만원 이하/);
   assert.match(local('1주택', 4000), /비수도권 APT 입찰가 기준: 1억원 이하/);
@@ -117,7 +117,7 @@ test('no-house short-term metro splits regulated 40% (from 5,000만원) and non-
   assert.match(n(5000), /1\. 수도권 규제 빌라 8,300만원 이하\n2\. 수도권 비규제 APT 1억 6,700만원 이하 \(인천, 경기외곽\)/);
   assert.match(n(10000), /1\. 수도권 규제 빌라 1억 6,700만원 이하\n2\. 수도권 비규제 APT 3억 3,300만원 이하/);
   const first = rules.diagnose({ housing_type:'생애최초', investment_purpose:'단타', transfer_available:'Y', seed_amount:10000, credit_amount:0, flags:[] }).narrative;
-  assert.match(first, /^1\. 수도권 규제 APT·빌라 3억 3,300만원 이하 \(서울 외곽, 경기 규제지역\)\n2\. 수도권 비규제 APT 3억 3,300만원 이하/);
+  assert.match(first, /^1\. 수도권 규제 APT·빌라 3억 3,300만원 이하\n2\. 수도권 비규제 APT 3억 3,300만원 이하/);
   const card = rules.consult({ housing_type:'무주택', investment_purpose:'실거주', transfer_available:'Y', seed_amount:10000, credit_amount:0, flags:[] }).bid;
   assert.equal(card.split(' / ').slice(0, 2).join(' / '), '수도권 규제 1억 6,700만원 이하 / 수도권 비규제 3억 3,300만원 이하');
 });
@@ -125,8 +125,8 @@ test('no-house short-term metro splits regulated 40% (from 5,000만원) and non-
 test('no-house metro follows the 40%/70% table up to the common 5억 bid cap without an all-cash switch', () => {
   const n = (h, seed) => rules.diagnose({ housing_type:h, investment_purpose:'단타', transfer_available:'Y', seed_amount:seed, credit_amount:0, flags:[] }).narrative;
   assert.match(n('무주택', 15000), /1\. 수도권 규제 빌라 2억 5천만원 이하\n2\. 수도권 비규제 APT 5억원 이하/);
-  assert.match(n('무주택', 20000), /1\. 수도권 규제 APT·빌라 3억 3,300만원 이하 \(서울 외곽, 경기 규제지역\)\n2\. 수도권 비규제 APT 5억원 이하/);
-  assert.match(n('생애최초', 20000), /^1\. 수도권 규제 APT·빌라 5억원 이하 \(서울 외곽, 경기 규제지역\)\n2\. 수도권 비규제 APT 5억원 이하/);
+  assert.match(n('무주택', 20000), /1\. 수도권 규제 APT·빌라 3억 3,300만원 이하\n2\. 수도권 비규제 APT 5억원 이하/);
+  assert.match(n('생애최초', 20000), /^1\. 수도권 규제 APT·빌라 5억원 이하\n2\. 수도권 비규제 APT 5억원 이하/);
   const c = rules.consult({ housing_type:'무주택', investment_purpose:'단타', transfer_available:'Y', seed_amount:20000, credit_amount:0, flags:[] });
   assert.match(c.bid, /^수도권 규제 3억 3,300만원 이하 \/ 수도권 비규제 5억원 이하/);
   assert.doesNotMatch(c.ltvLabel, /올현금/);
@@ -183,7 +183,18 @@ test('no-house and first-home residence non-metro shows the 60~80% range like sh
 test('regulated-area lines use the regulated tier table (no tag up to 3억) in short-term and residence', () => {
   const n = (h, p, seed) => rules.formatBidNarrative({ housing_type:h, investment_purpose:p, transfer_available:'Y', seed_amount:seed, credit_amount:0, flags:[] });
   assert.match(n('무주택', '단타', 10000), /^1\. 수도권 규제 빌라 1억 6,700만원 이하\n/);
-  assert.match(n('무주택', '실거주', 20000), /1\. 수도권 규제 APT·빌라 3억 3,300만원 이하 \(서울 외곽, 경기 규제지역\)/);
+  assert.match(n('무주택', '실거주', 20000), /1\. 수도권 규제 APT·빌라 3억 3,300만원 이하/);
   assert.match(n('1주택', '실거주', 50000), /1\. 수도권 규제 APT 8억 3,300만원 이하 \(기존주택 처분조건부\)/);
   assert.match(n('다주택', '실거주', 10000), /1\. 수도권 비규제 APT 2억 5천만원 이하 \(인천, 경기외곽\) \(기존주택 처분조건부\)/);
+});
+
+test('1,000만원대 with no loanable region gets the small-loan non-metro line and note', () => {
+  const r = (h, seed, credit = 0) => rules.diagnose({ housing_type:h, investment_purpose:'단타', transfer_available:'N', seed_amount:seed, credit_amount:credit, flags:[] });
+  const one = r('1주택', 1000);
+  assert.match(one.narrative, /2\. 비수도권 APT 입찰가 5,000~8,000만원대 \(소액 대출 가능 여부 입찰 전 확인 필요\)/);
+  assert.ok(one.notes[0].includes('소액 대출') && one.notes[0].includes('우선 신용대출이 얼마나 나오는지부터'));
+  assert.match(r('다주택', 1500).narrative, /5,000~8,000만원대 \(공시가 2억이하\)/);
+  assert.ok(!r('1주택', 900).narrative.includes('5,000~8,000'));
+  assert.ok(!r('1주택', 2000).narrative.includes('5,000~8,000'));
+  assert.ok(!r('무주택', 1200, 300).notes[0].includes('우선 신용대출'), '신용대출 금액을 알면 확인 문장 생략');
 });
