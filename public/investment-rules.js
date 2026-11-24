@@ -8,6 +8,13 @@
 
 function fmt(v){if(v>=10000){const a=Math.floor(v/10000),r=v%10000;return r?`${a}억 ${r.toLocaleString()}만원`:`${a}억원`;}return `${v.toLocaleString()}만원`;}
 
+// 수도권 규제지역(서울 전역·경기 12곳) 금액대 표기
+function regTierLabel(amt){
+  if(amt<=30000) return{propType:'빌라',regionTag:''};
+  if(amt<=60000) return{propType:'APT·빌라',regionTag:' (서울 외곽, 경기 규제지역)'};
+  return{propType:'APT',regionTag:''};
+}
+
 function tierLabel(amt){
   if(amt<=10000) return{propType:'빌라',regionTag:' (인천, 부천)'};
   if(amt<=15000) return{propType:'APT·빌라',regionTag:''};
@@ -37,9 +44,10 @@ function noHouseMetroDantaLines(total,isFirst){
   const nreg70=Math.min(Math.round(total/0.3/100)*100,CAP);
   const t=tierLabel(nreg70);
   // 생애최초는 규제·비규제 모두 70%이지만, 규제지역(서울·경기 12곳)에 인천 등 지역 태그가 붙지 않도록 두 줄로
-  if(isFirst) return ['수도권 규제 '+fs(nreg70)+' 이하','수도권 비규제 '+t.propType+' '+fs(nreg70)+' 이하'+t.regionTag];
+  const reg=v=>{const r=regTierLabel(v);return '수도권 규제 '+r.propType+' '+fs(v)+' 이하'+r.regionTag;};
+  if(isFirst) return [reg(nreg70),'수도권 비규제 '+t.propType+' '+fs(nreg70)+' 이하'+t.regionTag];
   return [
-    total>=5000?'수도권 규제 '+fs(reg40)+' 이하':'수도권 규제 현금+신용대출 활용해 올현금 입찰 가능 물건',
+    total>=5000?reg(reg40):'수도권 규제 현금+신용대출 활용해 올현금 입찰 가능 물건',
     '수도권 비규제 '+t.propType+' '+fs(nreg70)+' 이하'+t.regionTag
   ];
 }
@@ -129,14 +137,24 @@ function formatBidNarrative(d,forceDanta,forceResidence){
     function fmtLine(r){
       return r.ok?fsNoCap(r.bid)+' 이하':'현금+신용대출 활용해 올현금 입찰 가능 물건';
     }
+    // 실거주 줄에도 금액대 표기: 규제는 규제지역 표, 비규제는 비규제 표 (조건 문구는 뒤에)
+    function regLine(r,cond){
+      if(!r.ok) return '수도권 규제 '+fmtLine(r)+(cond||'');
+      const t=regTierLabel(r.bid);return '수도권 규제 '+t.propType+' '+fsNoCap(r.bid)+' 이하'+t.regionTag+(cond||'');
+    }
+    function nregLine(r,cond){
+      if(!r.ok) return '수도권 비규제 '+fmtLine(r)+(cond||'');
+      const t=tierLabel(r.bid);return '수도권 비규제 '+t.propType+' '+fsNoCap(r.bid)+' 이하'+t.regionTag+(cond||'');
+    }
+    const localLine=txt=>'비수도권 '+(/^현금/.test(txt)?'':'APT ')+txt;
     const rLines=[];
     if(multi){
-      rLines.push('수도권 비규제 '+fmtLine(ltvLine(0.6,true))+' (기존주택 처분조건부)');
-      rLines.push('비수도권 '+fmtLine(ltvLine(0.6)));
+      rLines.push(nregLine(ltvLine(0.6,true),' (기존주택 처분조건부)'));
+      rLines.push(localLine(fmtLine(ltvLine(0.6))));
     }else if(oneHouse){
-      rLines.push('수도권 규제 '+fmtLine(ltvLine(0.4,true))+' (기존주택 처분조건부)');
-      rLines.push('수도권 비규제 '+fmtLine(ltvLine(0.7,true))+' (기존주택 처분조건부)');
-      rLines.push('비수도권 '+fmtLine(ltvLine(0.6)));
+      rLines.push(regLine(ltvLine(0.4,true),' (기존주택 처분조건부)'));
+      rLines.push(nregLine(ltvLine(0.7,true),' (기존주택 처분조건부)'));
+      rLines.push(localLine(fmtLine(ltvLine(0.6))));
     }else{ // noHouse (무주택/생애최초)
       // 무주택·생애최초 비수도권: 단타와 같이 60~80% 범위 (최소 입찰가 8,300만원, 실거주는 5억 상한 없음)
       const hi=ltvLine(0.8);
@@ -144,14 +162,14 @@ function formatBidNarrative(d,forceDanta,forceResidence){
         ?(()=>{const lo=Math.max(8300,Math.round(total/0.4/100)*100);return lo>=hi.bid?fsNoCap(hi.bid)+' 이하':fsNoCap(lo)+' ~ '+fsNoCap(hi.bid);})()
         :'현금+신용대출 활용해 올현금 입찰 가능 물건';
       if(isFirst){
-        rLines.push('수도권 규제 '+fmtLine(ltvLine(0.7,true)));
-        rLines.push('수도권 비규제 '+fmtLine(ltvLine(0.7,true)));
+        rLines.push(regLine(ltvLine(0.7,true)));
+        rLines.push(nregLine(ltvLine(0.7,true)));
       }else{
         // 설문에서 무주택·생애최초를 구분하므로 무주택자에게 '(생애최초인 경우 …)'는 붙이지 않음
-        rLines.push('수도권 규제 '+fmtLine(ltvLine(0.4,true)));
-        rLines.push('수도권 비규제 '+fmtLine(ltvLine(0.7,true)));
+        rLines.push(regLine(ltvLine(0.4,true)));
+        rLines.push(nregLine(ltvLine(0.7,true)));
       }
-      rLines.push('비수도권 '+localRange);
+      rLines.push(localLine(localRange));
     }
     return rLines.map((l,i)=>(i+1)+'. '+l).join('\n');
   }

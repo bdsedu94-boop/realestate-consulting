@@ -10,7 +10,7 @@ const token = 'isolated-test-only-connection-token';
 
 test('current reference profile keeps exact amounts and credit guidance', () => {
   const result = rules.diagnose(input);
-  assert.equal(result.narrative, '[실거주&단타]\n1. 수도권 규제 1억 6,700만원 이하\n2. 수도권 비규제 3억 3,300만원 이하\n3. 비수도권 2억 5천만원 ~ 5억원\n** 단, 신용대출 활용 시 경락잔금대출까지 함께 나오는지 항상 확인 필요');
+  assert.equal(result.narrative, '[실거주&단타]\n1. 수도권 규제 빌라 1억 6,700만원 이하\n2. 수도권 비규제 APT 3억 3,300만원 이하\n3. 비수도권 APT 2억 5천만원 ~ 5억원\n** 단, 신용대출 활용 시 경락잔금대출까지 함께 나오는지 항상 확인 필요');
   assert.equal(result.cards.reg.st, 'O');
   assert.ok(result.notes[0].includes('전입 조건'));
   assert.ok(result.notes.every(note => !/<[^>]*>/.test(note)));
@@ -69,7 +69,7 @@ test('one-home short-term investor with unknown credit always gets cash+credit g
 
 test('high-cash no-house residence profile applies metro mortgage caps but keeps first-home reference', () => {
   const result = rules.diagnose({ housing_type:'무주택', transfer_available:'Y', investment_purpose:'단타+실거주', seed_amount:50000, credit_amount:0 });
-  assert.equal(result.narrative, '[실거주&단타]\n1. 수도권 규제 8억 3,300만원 이하\n2. 수도권 비규제 11억원 이하\n3. 비수도권 12억 5천만원 ~ 25억원');
+  assert.equal(result.narrative, '[실거주&단타]\n1. 수도권 규제 APT 8억 3,300만원 이하\n2. 수도권 비규제 APT 11억원 이하\n3. 비수도권 APT 12억 5천만원 ~ 25억원');
 });
 
 
@@ -114,19 +114,19 @@ test('one-home and multi-home non-metro follow the 60% table: 8,300만원 floor 
 test('no-house short-term metro splits regulated 40% (from 5,000만원) and non-regulated 70%', () => {
   const n = seed => rules.diagnose({ housing_type:'무주택', investment_purpose:'단타', transfer_available:'Y', seed_amount:seed, credit_amount:0, flags:[] }).narrative;
   assert.match(n(4000), /1\. 수도권 규제 현금\+신용대출 활용해 올현금 입찰 가능 물건\n2\. 수도권 비규제 APT·빌라 1억 3,300만원 이하/);
-  assert.match(n(5000), /1\. 수도권 규제 8,300만원 이하\n2\. 수도권 비규제 APT 1억 6,700만원 이하 \(인천, 경기외곽\)/);
-  assert.match(n(10000), /1\. 수도권 규제 1억 6,700만원 이하\n2\. 수도권 비규제 APT 3억 3,300만원 이하/);
+  assert.match(n(5000), /1\. 수도권 규제 빌라 8,300만원 이하\n2\. 수도권 비규제 APT 1억 6,700만원 이하 \(인천, 경기외곽\)/);
+  assert.match(n(10000), /1\. 수도권 규제 빌라 1억 6,700만원 이하\n2\. 수도권 비규제 APT 3억 3,300만원 이하/);
   const first = rules.diagnose({ housing_type:'생애최초', investment_purpose:'단타', transfer_available:'Y', seed_amount:10000, credit_amount:0, flags:[] }).narrative;
-  assert.match(first, /^1\. 수도권 규제 3억 3,300만원 이하\n2\. 수도권 비규제 APT 3억 3,300만원 이하/);
+  assert.match(first, /^1\. 수도권 규제 APT·빌라 3억 3,300만원 이하 \(서울 외곽, 경기 규제지역\)\n2\. 수도권 비규제 APT 3억 3,300만원 이하/);
   const card = rules.consult({ housing_type:'무주택', investment_purpose:'실거주', transfer_available:'Y', seed_amount:10000, credit_amount:0, flags:[] }).bid;
   assert.equal(card.split(' / ').slice(0, 2).join(' / '), '수도권 규제 1억 6,700만원 이하 / 수도권 비규제 3억 3,300만원 이하');
 });
 
 test('no-house metro follows the 40%/70% table up to the common 5억 bid cap without an all-cash switch', () => {
   const n = (h, seed) => rules.diagnose({ housing_type:h, investment_purpose:'단타', transfer_available:'Y', seed_amount:seed, credit_amount:0, flags:[] }).narrative;
-  assert.match(n('무주택', 15000), /1\. 수도권 규제 2억 5천만원 이하\n2\. 수도권 비규제 APT 5억원 이하/);
-  assert.match(n('무주택', 20000), /1\. 수도권 규제 3억 3,300만원 이하\n2\. 수도권 비규제 APT 5억원 이하/);
-  assert.match(n('생애최초', 20000), /^1\. 수도권 규제 5억원 이하\n2\. 수도권 비규제 APT 5억원 이하/);
+  assert.match(n('무주택', 15000), /1\. 수도권 규제 빌라 2억 5천만원 이하\n2\. 수도권 비규제 APT 5억원 이하/);
+  assert.match(n('무주택', 20000), /1\. 수도권 규제 APT·빌라 3억 3,300만원 이하 \(서울 외곽, 경기 규제지역\)\n2\. 수도권 비규제 APT 5억원 이하/);
+  assert.match(n('생애최초', 20000), /^1\. 수도권 규제 APT·빌라 5억원 이하 \(서울 외곽, 경기 규제지역\)\n2\. 수도권 비규제 APT 5억원 이하/);
   const c = rules.consult({ housing_type:'무주택', investment_purpose:'단타', transfer_available:'Y', seed_amount:20000, credit_amount:0, flags:[] });
   assert.match(c.bid, /^수도권 규제 3억 3,300만원 이하 \/ 수도권 비규제 5억원 이하/);
   assert.doesNotMatch(c.ltvLabel, /올현금/);
@@ -134,8 +134,8 @@ test('no-house metro follows the 40%/70% table up to the common 5억 bid cap wit
 
 test('residence regulated 40% starts at 5,000만원 like the table, and residence cards match the narrative', () => {
   const d = (h, seed) => ({ housing_type:h, investment_purpose:'실거주', transfer_available:'Y', seed_amount:seed, credit_amount:0, flags:[] });
-  assert.match(rules.formatBidNarrative(d('무주택', 5000)), /^1\. 수도권 규제 8,300만원 이하/);
-  assert.match(rules.formatBidNarrative(d('1주택', 5000)), /^1\. 수도권 규제 8,300만원 이하 \(기존주택 처분조건부\)/);
+  assert.match(rules.formatBidNarrative(d('무주택', 5000)), /^1\. 수도권 규제 빌라 8,300만원 이하/);
+  assert.match(rules.formatBidNarrative(d('1주택', 5000)), /^1\. 수도권 규제 빌라 8,300만원 이하 \(기존주택 처분조건부\)/);
   assert.match(rules.formatBidNarrative(d('1주택', 4900)), /^1\. 수도권 규제 현금\+신용대출 활용해 올현금 입찰 가능 물건/);
   assert.equal(rules.consult(d('1주택', 10000)).bid.split(' / ').slice(0, 2).join(' / '),
     '수도권 규제 1억 6,700만원 이하 (기존주택 처분조건부·전입조건부) / 수도권 비규제 3억 3,300만원 이하 (기존주택 처분조건부·전입조건부)');
@@ -156,7 +156,7 @@ test('short-term lines cut by the 5억 cap carry the efficiency note once, on th
 
 test('first-home short-term metro is split into regulated and non-regulated lines without region tags on the regulated line', () => {
   const n = rules.diagnose({ housing_type:'생애최초', investment_purpose:'단타', transfer_available:'Y', seed_amount:2000, credit_amount:4400, flags:[] }).narrative;
-  assert.match(n, /^1\. 수도권 규제 2억 1,300만원 이하\n2\. 수도권 비규제 APT 2억 1,300만원 이하 \(인천, 경기외곽\)/);
+  assert.match(n, /^1\. 수도권 규제 빌라 2억 1,300만원 이하\n2\. 수도권 비규제 APT 2억 1,300만원 이하 \(인천, 경기외곽\)/);
 });
 
 test('no-house (non-first) results no longer carry the "(생애최초인 경우 …)" hint', () => {
@@ -175,7 +175,15 @@ test('first-home sentence in notes appears only for 생애최초, not for 무주
 
 test('no-house and first-home residence non-metro shows the 60~80% range like short-term', () => {
   const local = (h, seed) => rules.formatBidNarrative({ housing_type:h, investment_purpose:'실거주', transfer_available:'Y', seed_amount:seed, credit_amount:0, flags:[] }).split('\n').find(l => /비수도권/.test(l));
-  assert.equal(local('무주택', 3000), '3. 비수도권 8,300만원 ~ 1억 5천만원');
-  assert.equal(local('무주택', 6000), '3. 비수도권 1억 5천만원 ~ 3억원');
-  assert.equal(local('생애최초', 10000), '3. 비수도권 2억 5천만원 ~ 5억원');
+  assert.equal(local('무주택', 3000), '3. 비수도권 APT 8,300만원 ~ 1억 5천만원');
+  assert.equal(local('무주택', 6000), '3. 비수도권 APT 1억 5천만원 ~ 3억원');
+  assert.equal(local('생애최초', 10000), '3. 비수도권 APT 2억 5천만원 ~ 5억원');
+});
+
+test('regulated-area lines use the regulated tier table (no tag up to 3억) in short-term and residence', () => {
+  const n = (h, p, seed) => rules.formatBidNarrative({ housing_type:h, investment_purpose:p, transfer_available:'Y', seed_amount:seed, credit_amount:0, flags:[] });
+  assert.match(n('무주택', '단타', 10000), /^1\. 수도권 규제 빌라 1억 6,700만원 이하\n/);
+  assert.match(n('무주택', '실거주', 20000), /1\. 수도권 규제 APT·빌라 3억 3,300만원 이하 \(서울 외곽, 경기 규제지역\)/);
+  assert.match(n('1주택', '실거주', 50000), /1\. 수도권 규제 APT 8억 3,300만원 이하 \(기존주택 처분조건부\)/);
+  assert.match(n('다주택', '실거주', 10000), /1\. 수도권 비규제 APT 2억 5천만원 이하 \(인천, 경기외곽\) \(기존주택 처분조건부\)/);
 });
