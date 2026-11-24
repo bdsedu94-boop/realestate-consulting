@@ -19,7 +19,7 @@ test('current reference profile keeps exact amounts and credit guidance', () => 
 test('residence and short-term scenarios keep their reference distinction', () => {
   for (const changes of [{ transfer_available: 'N' }, { housing_type: '1주택' }, { housing_type: '다주택' }]) {
     const result = rules.diagnose({ ...input, ...changes });
-    assert.match(result.narrative, /\[실거주\][\s\S]*\[단타\]/);
+    assert.match(result.narrative, /\[실거주( \(전입 가능 시\))?\][\s\S]*\[단타\]/);
     assert.ok(result.notes.length);
   }
 });
@@ -208,4 +208,16 @@ test('no-house residence merges with short-term only when both results match, an
   assert.equal(rules.consult(d(2500)).bid.split(' / ')[1], '수도권 비규제 2,500만원 (올현금)');
   const cash = rules.formatBidNarrative({ housing_type:'무주택', investment_purpose:'단타', transfer_available:'Y', seed_amount:60000, credit_amount:0, flags:['올현금'] });
   assert.match(cash, /2\. 비수도권 APT 5억원 이하 \(올현금\)/);
+});
+
+test('one-home residence card labels follow residence rules; 60% residence starts at 2,000만원; hypothetical residence is titled', () => {
+  const d = (h, p, t, seed) => ({ housing_type:h, investment_purpose:p, transfer_available:t, seed_amount:seed, credit_amount:0, flags:[] });
+  const c = rules.consult(d('1주택', '실거주', 'Y', 10000));
+  assert.equal(c.ltvLabel, '수도권 규제 LTV 40%·비규제 70% (처분조건부) · 비수도권 LTV 60%');
+  assert.equal(c.primary, '수도권 비규제 APT 1순위 (처분조건부)');
+  assert.equal(c.nreg.nt, '기존주택 처분조건부·전입조건부');
+  assert.equal(rules.consult(d('1주택', '단타', 'Y', 10000)).ltvLabel, '수도권 비규제 신용/현금 · 비수도권 LTV 60%');
+  assert.equal(rules.consult(d('1주택', '단타', 'N', 1800)).primary, '');
+  assert.match(rules.formatBidNarrative(d('1주택', '실거주', 'Y', 3000)), /3\. 비수도권 APT 8,300만원 이하/);
+  assert.match(rules.diagnose(d('무주택', '실거주', 'N', 5000)).narrative, /^\[실거주 \(전입 가능 시\)\]/);
 });

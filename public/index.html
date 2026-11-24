@@ -713,7 +713,7 @@ async function buildReportPDF(d){
     }
     let rn1=1,rn2=1;
     mainTitle='';
-    bodyContent=sectionTitleHtml('투자방향성 분석 - 실거주')
+    bodyContent=sectionTitleHtml('투자방향성 분석 - 실거주 (전입 가능 시)')
       +residenceRows.map(r=>r.plain
         ?`<div style="font-size:12.5px;line-height:1.6;color:#555;margin-top:6px">${r.text}</div>`
         :rowHtml(rn1++,r.text)

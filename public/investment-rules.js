@@ -60,6 +60,12 @@ function noHouseMetroDantaLines(total,isFirst){
 // 수도권 규제 40%는 투자금 기준표대로 5,000만원부터 계산 (단타와 동일)
 function residenceLtvBid(total,ltv,isMetro){
   if(isMetro&&ltv===0.4) return total>=5000?{ok:true,bid:metroBidWithLoanCap(total,0.4)}:{ok:false,bid:null};
+  // 60%(1주택·다주택): 투자금 기준표대로 2,000만원부터 최소 8,300만원 (단타와 동일)
+  if(ltv===0.6){
+    if(total<2000) return{ok:false,bid:null};
+    const raw=Math.round(total/0.4/100)*100;
+    return{ok:true,bid:Math.max(8300,isMetro?metroBidWithLoanCap(total,0.6):raw)};
+  }
   const raw=Math.round(total/(1-ltv)/100)*100;
   let bid=isMetro?metroBidWithLoanCap(total,ltv):raw;
   if(bid<8300){
@@ -331,7 +337,7 @@ function formatBidNarrativeCSV(d){
       const m=l.match(/^\d+\.\s*(.+)$/);
       return m?m[1]:l;
     });
-    const items=[{h:true,text:'[실거주]'},...residenceLines,{h:true,text:'[단타]'},...dantaLines];
+    const items=[{h:true,text:'[실거주 (전입 가능 시)]'},...residenceLines,{h:true,text:'[단타]'},...dantaLines];
     let n=1;
     const out=items.map(it=>(typeof it==='object'&&it.h)?it.text:(n++)+'. '+it);
     return appendCreditCheckNote(out.join('\n'),d);
@@ -446,6 +452,8 @@ function consult(d){
   // 수도권 비규제지역 (인천+경기 일부)
   if(noHouse){
     nreg = tY ? {st:'O',lb:'가능',nt:''} : {st:'T',lb:'조건부',nt:'신용대출 또는 현금 활용'};
+  } else if(oneHouse&&wantsResidence&&total>=3000){
+    nreg = {st:'T',lb:'조건부',nt:'기존주택 처분조건부·전입조건부'};
   } else if(oneHouse){
     nreg = {st:'T',lb:'조건부',nt:'신용대출 또는 현금 활용'};
   } else {
@@ -469,9 +477,11 @@ function consult(d){
       dirLabel='수도권 비규제';
     }
   } else if(oneHouse){
-    const l80bid=Math.min(Math.round(total/0.2/100)*100,50000);
-    if(total>10000){ primary='수도권 비규제 APT 1순위';dirLabel='수도권 비규제'; }
-    else if(l80bid>=8300){ primary='수도권 비규제 인천·부천 추천';dirLabel='수도권 비규제'; }
+    // 실거주(전입가능·3,000만원 이상): 처분조건부 70% 입찰가 기준 / 단타: 현금+신용 금액 기준 (비수도권 기준표 2,000만원부터)
+    const resBid=wantsResidence&&total>=3000?residenceLtvBid(total,0.7,true):null;
+    const base=resBid&&resBid.ok?resBid.bid:total, cond=resBid&&resBid.ok?' (처분조건부)':'';
+    if(base>10000){ primary='수도권 비규제 APT 1순위'+cond;dirLabel='수도권 비규제'; }
+    else if(total>=2000){ primary='수도권 비규제 인천·부천 추천'+cond;dirLabel='수도권 비규제'; }
     else { primary='';dirLabel='지방'; }
   } else {
     primary='';dirLabel='지방'; // 다주택 지방 → 빈칸
@@ -595,7 +605,9 @@ function consult(d){
       ?nhMetroLabel+' · 비수도권 LTV 60~80%'
       :'수도권 올현금 (전입필요) · 비수도권 LTV 60~80%';
   else if(oneHouse)
-    ltvLabel='수도권 비규제 신용/현금 · 비수도권 LTV 60%';
+    ltvLabel=wantsResidence&&total>=3000
+      ?'수도권 규제 LTV 40%·비규제 70% (처분조건부) · 비수도권 LTV 60%'
+      :'수도권 비규제 신용/현금 · 비수도권 LTV 60%';
   else
     ltvLabel='비수도권 LTV 60% (수도권 불가)';
 
