@@ -69,7 +69,7 @@ test('one-home short-term investor with unknown credit always gets cash+credit g
 
 test('high-cash no-house residence profile applies metro mortgage caps but keeps first-home reference', () => {
   const result = rules.diagnose({ housing_type:'무주택', transfer_available:'Y', investment_purpose:'단타+실거주', seed_amount:50000, credit_amount:0 });
-  assert.equal(result.narrative, '[실거주&단타]\n1. 수도권 규제 APT 8억 3,300만원 이하\n2. 수도권 비규제 APT 11억원 이하\n3. 비수도권 APT 12억 5천만원 ~ 25억원');
+  assert.equal(result.narrative, '[실거주]\n1. 수도권 규제 APT 8억 3,300만원 이하\n2. 수도권 비규제 APT 11억원 이하\n3. 비수도권 APT 12억 5천만원 ~ 25억원\n[단타]\n4. 수도권 규제 APT·빌라 5억원 이하\n5. 수도권 비규제 APT 5억원 이하\n6. 비수도권 APT 5억원 이하 (단타 시 5억 초과 물건은 수익률 측면에서 비효율적)');
 });
 
 
@@ -197,4 +197,15 @@ test('1,000만원대 with no loanable region gets the small-loan non-metro line 
   assert.ok(!r('1주택', 900).narrative.includes('5,000~8,000'));
   assert.ok(!r('1주택', 2000).narrative.includes('5,000~8,000'));
   assert.ok(!r('무주택', 1200, 300).notes[0].includes('우선 신용대출'), '신용대출 금액을 알면 확인 문장 생략');
+});
+
+test('no-house residence merges with short-term only when both results match, and cards follow the narrative', () => {
+  const d = seed => ({ housing_type:'무주택', investment_purpose:'실거주', transfer_available:'Y', seed_amount:seed, credit_amount:0, flags:[] });
+  assert.match(rules.diagnose(d(10000)).narrative, /^\[실거주&단타\]/);
+  assert.match(rules.diagnose(d(12000)).narrative, /^\[실거주\][\s\S]*\[단타\]/);
+  assert.equal(rules.consult(d(20000)).bid.split(' / ')[2], '비수도권 5억원 ~ 10억원');
+  assert.ok(!rules.consult(d(20000)).bid.includes('LTV'));
+  assert.equal(rules.consult(d(2500)).bid.split(' / ')[1], '수도권 비규제 2,500만원 (올현금)');
+  const cash = rules.formatBidNarrative({ housing_type:'무주택', investment_purpose:'단타', transfer_available:'Y', seed_amount:60000, credit_amount:0, flags:['올현금'] });
+  assert.match(cash, /2\. 비수도권 APT 5억원 이하 \(올현금\)/);
 });

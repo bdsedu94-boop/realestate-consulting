@@ -127,7 +127,7 @@ function formatBidNarrative(d,forceDanta,forceResidence){
     const t=tierLabel(Math.min(total,CAP));
     const lines=[];
     lines.push(area+' '+t.propType+' '+fs(total)+' 이하'+t.regionTag+' (올현금)');
-    lines.push('비수도권 APT '+fs(total)+' (올현금)'+(total>50000?DANTA_CAP_NOTE:''));
+    lines.push('비수도권 APT '+fs(total)+' 이하 (올현금)'+(total>50000?DANTA_CAP_NOTE:''));
     return lines.map((l,i)=>(i+1)+'. '+l).join('\n');
   }
 
@@ -300,6 +300,13 @@ function appendCreditCheckNote(text,d){
 // CSV 전용: (1주택자 또는 무주택자) + 실거주(또는 단타+실거주) + 전입가능자는 [실거주]/[단타] 라벨을 붙여서 구분 (PDF 리포트는 라벨 없이, 신용대출 문구만 공통 적용)
 // - 무주택자가 자기자금 3,000만원 미만이면 실거주/단타 구분이 의미 없으므로 [실거주,단타]로 통합
 // - 무주택자가 구분되는 경우([실거주]는 5억 상한 없이, [단타]는 원래 5억 상한 걸린 수도권 규제·비규제 줄도 추가)
+// 무주택·생애최초 실거주(전입가능·3,000만원 이상): 실거주 계산과 단타 계산 결과가 다르면 나눠서 보여줌
+// (실거주는 5억 상한이 없어, 단타 기준보다 큰 금액이 나오는 구간에서 '실거주&단타'로 합치면 단타도 가능한 것처럼 읽힘)
+function noHouseResidenceDiffers(d){
+  const norm=t=>t.split('\n').map(l=>l.replace(/^\d+\.\s*/,'').replace('입찰가 기준: ','').replace(DANTA_CAP_NOTE,'')).join('\n');
+  return norm(formatBidNarrative(d))!==norm(formatBidNarrative(d,true));
+}
+
 function formatBidNarrativeCSV(d){
   const base=formatBidNarrative(d);
   const oneHouse=d.housing_type==='1주택';
@@ -331,13 +338,14 @@ function formatBidNarrativeCSV(d){
   }
   // 자기자금 3,000만원 이상인 경우:
   // - 무주택자는 처분조건 같은 제약이 없어 실거주/단타 결과가 실질적으로 같으므로 [실거주&단타] 하나로 병합
+  //   (단, 실거주 금액이 단타 기준과 달라지는 구간은 나눠서 표시)
   // - 1주택/다주택은 처분조건 때문에 실제로 달라지므로 [실거주]/[단타] 두 시나리오를 그대로 보여줌
   if(wantsResidenceAny&&total>=3000){
     const residenceLines=base.split('\n').map(l=>{
       const m=l.match(/^\d+\.\s*(.+)$/);
       return m?m[1]:l;
     });
-    if(noHouse){
+    if(noHouse&&!noHouseResidenceDiffers(d)){
       const items=[{h:true,text:'[실거주&단타]'},...residenceLines];
       let n=1;
       const out=items.map(it=>(typeof it==='object'&&it.h)?it.text:(n++)+'. '+it);
@@ -515,9 +523,11 @@ function consult(d){
     const r=residenceLtvBid(total,ltv,true);
     return r.ok?fmt(r.bid)+' 이하'+(note||''):fmt(bAmt)+' (올현금)';
   }
+  // 실거주 정밀 계산은 방향성 문구와 같이 투자금 3,000만원 이상일 때만 (미만은 단타 기준)
+  const resNH=wantsResidenceNH&&total>=3000, res1=wantsResidence&&total>=3000;
   function bidReg(){
     if(!noHouse&&!wantsResidence) return '불가';
-    if(noHouse&&wantsResidenceNH) return resMetro(isFirst?0.7:0.4);
+    if(noHouse&&resNH) return resMetro(isFirst?0.7:0.4);
     if(noHouse&&bigInv&&!tY) return fmt(bAmt)+' (올현금 추천)';
     if(!tY) return fmt(bAmt)+' (신용/현금·조건부)';
     if(noHouse) return nhMetro(isFirst?0.7:0.4);
@@ -532,11 +542,11 @@ function consult(d){
       return cr===0?'현금+신용대출 합산금액 (공시가 1억이하)':fmt(bAmt)+' (공시가 1억이하)';
     }
     if(oneHouse){ // 1주택: 실거주(전입가능)는 처분조건부 70%, 단타는 현금+신용
-      if(wantsResidence) return resMetro(0.7,' (기존주택 처분조건부·전입조건부)');
+      if(res1) return resMetro(0.7,' (기존주택 처분조건부·전입조건부)');
       return fmt(bAmt)+' (신용/현금·조건부)';
     }
     // 무주택/생애최초: 비규제 70%
-    if(wantsResidenceNH) return resMetro(0.7);
+    if(resNH) return resMetro(0.7);
     if(bigInv&&!tY) return fmt(bAmt)+' (올현금 추천)';
     if(!tY) return fmt(bAmt)+' (신용/현금·조건부)';
     return nhMetro(0.7);
@@ -546,22 +556,28 @@ function consult(d){
   function bidLocal(){
     if(total<1000) return '신용합산 필요';
     const MIN_BID=8300; // 경락잔금대출 최소 입찰가
-    const MAX_STD=13000; // 표 기준: 소액투자자 최대 입찰가 기준(1억3천)
-    const l60bid=Math.min(Math.round(total/0.4/100)*100,CAP);
+    const l60raw=Math.round(total/0.4/100)*100;
+    // 실거주(3,000만원 이상): 방향성 문구와 같은 계산, 5억 상한 없음 (다주택 카드는 단타 기준 유지)
+    if(oneHouse&&res1){ const r=residenceLtvBid(total,0.6,false); return r.ok?fmt(r.bid)+' 이하':fmt(bAmt)+' (올현금)'; }
+    if(noHouse&&resNH){
+      const hi=residenceLtvBid(total,0.8,false);
+      if(!hi.ok) return fmt(bAmt)+' (올현금)';
+      const lo=Math.max(MIN_BID,l60raw);
+      return lo>=hi.bid?fmt(hi.bid)+' 이하':fmt(lo)+' ~ '+fmt(hi.bid);
+    }
+    const l60bid=Math.min(l60raw,CAP);
+    const smallLoan='5,000~8,000만원대 (소액 대출 확인)'; // 투자금 1,000만원대: 방향성 문구와 같은 안내
     if(!noHouse){ // 1주택·다주택: LTV 60% 기준 (투자금 2,000만원부터 최소 입찰가 8,300만원)
-      if(total<2000) return fmt(bAmt)+' (올현금)';
+      if(total<2000) return smallLoan+(oneHouse?'':' · 공시가2억이하');
       // 실제 대출 비율은 개인 상황마다 달라 금액 옆에 LTV%를 표시하지 않음
       return fmt(Math.max(MIN_BID,l60bid))+' 이하'+(oneHouse?'':' · 공시가2억이하');
     }
-    const l80bidRaw=Math.min(Math.round(total/0.2/100)*100,CAP);
-    // 80% LTV 최소입찰가(8300) 감당 가능하면 최대는 최소 1억3천 보장
-    const canAffordMin=total>=1660;
-    const l80bid=canAffordMin?Math.max(l80bidRaw,MAX_STD):l80bidRaw;
-    if(l80bid<MIN_BID) return fmt(bAmt)+' (올현금)';
+    // 무주택·생애최초 단타: 방향성 문구와 같은 60~80% 범위 (합산 1억 초과는 5억 이하)
+    const l80bid=Math.min(Math.round(total/0.2/100)*100,CAP);
+    if(l80bid<MIN_BID) return smallLoan;
+    if(total>10000) return fmt(CAP)+' 이하';
     const minBid=Math.max(MIN_BID,l60bid);
-    let txt=minBid===l80bid?fmt(l80bid)+' (LTV 80%)':fmt(minBid)+' ~ '+fmt(l80bid);
-    if(!noHouse&&!oneHouse) txt+=' · 공시가2억이하';
-    return txt;
+    return minBid>=l80bid?fmt(l80bid)+' 이하':fmt(minBid)+' ~ '+fmt(l80bid);
   }
 
   bid='수도권 규제 '+bidReg()+' / 수도권 비규제 '+bidNreg()+' / 비수도권 '+bidLocal();
@@ -609,6 +625,7 @@ function getReportContext(d){
   // 자기자금 3,000만원 이상 + 실거주(또는 단타+실거주) + 전입가능이면 formatBidNarrative가 이미
   // 주택수별 정밀 LTV 계산(단일 결과, 실거주/단타 구분 없음)을 반환하므로 섹션 분리를 하지 않음
   const usesNewScheme=d.transfer_available==='Y'&&(d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주')&&total>=3000;
+  const noHouseSplit=noHouse&&usesNewScheme&&noHouseResidenceDiffers(d);
   // 무주택자이면서 실거주 의사는 있지만 전입불가인 경우: "전입가능이라면"을 가정한 [실거주] + 실제(전입불가) [단타]를 같이 보여줌
   const usesHypothetical=noHouse&&d.transfer_available!=='Y'&&(d.investment_purpose==='실거주'||d.investment_purpose==='단타+실거주')&&total>=3000;
   const CAP=50000;
@@ -723,7 +740,7 @@ function getReportContext(d){
       다만 최근 소액 대출을 받으신 수강생 사례가 있으니, 물건을 찾아보신 뒤 입찰 전에 저희와 함께 대출 가능 여부를 확인하고 입찰 여부를 결정하시면 좋겠습니다.${cr===0?'<br><br>우선 신용대출이 얼마나 나오는지부터 확인해 보세요.':''}
     </div>`:'';
 
-  return {cr,total,isFirst,noHouse,narrative,numberedCountEarly,fmtAmt,seedLine,oneHouse,missingHousing,multi,wantsResidence,wantsResidenceNH,usesNewScheme,usesHypothetical,CAP,snr70NH,snrOkNH,fsCapPdf,noHouseNote,noHouseNoteTop,noHouseNoteBottom,oneHouseNoteTop,oneHouseNoteBottom,oneHouseNoteCombined,multiNoteTop,multiNoteBottom,multiNote,oneHouseNoteFinal,noHouseNoteFinal,wantsResidenceMulti,multiNoteFinal,noteBox,smallLoanNote};
+  return {cr,total,isFirst,noHouse,narrative,numberedCountEarly,fmtAmt,seedLine,oneHouse,missingHousing,multi,wantsResidence,wantsResidenceNH,usesNewScheme,usesHypothetical,CAP,snr70NH,snrOkNH,fsCapPdf,noHouseNote,noHouseNoteTop,noHouseNoteBottom,oneHouseNoteTop,oneHouseNoteBottom,oneHouseNoteCombined,multiNoteTop,multiNoteBottom,multiNote,oneHouseNoteFinal,noHouseNoteFinal,wantsResidenceMulti,multiNoteFinal,noteBox,smallLoanNote,noHouseSplit};
 }
 
 // PDF와 동일한 조건으로 참고사항을 선택하고, 자료실에는 안전한 일반 텍스트만 전달합니다.

@@ -668,7 +668,7 @@ async function importExcel(input){
 
 /* ── 리포트 PDF 생성 (카톡 양식 그대로) ── */
 async function buildReportPDF(d){
-  const {cr,total,isFirst,noHouse,narrative,numberedCountEarly,fmtAmt,seedLine,oneHouse,missingHousing,multi,wantsResidence,wantsResidenceNH,usesNewScheme,usesHypothetical,CAP,snr70NH,snrOkNH,fsCapPdf,noHouseNote,noHouseNoteTop,noHouseNoteBottom,oneHouseNoteTop,oneHouseNoteBottom,oneHouseNoteCombined,multiNoteTop,multiNoteBottom,multiNote,oneHouseNoteFinal,noHouseNoteFinal,wantsResidenceMulti,multiNoteFinal,noteBox,smallLoanNote}=InvestmentRules.getReportContext(d);
+  const {cr,total,isFirst,noHouse,narrative,numberedCountEarly,fmtAmt,seedLine,oneHouse,missingHousing,multi,wantsResidence,wantsResidenceNH,usesNewScheme,usesHypothetical,CAP,snr70NH,snrOkNH,fsCapPdf,noHouseNote,noHouseNoteTop,noHouseNoteBottom,oneHouseNoteTop,oneHouseNoteBottom,oneHouseNoteCombined,multiNoteTop,multiNoteBottom,multiNote,oneHouseNoteFinal,noHouseNoteFinal,wantsResidenceMulti,multiNoteFinal,noteBox,smallLoanNote,noHouseSplit}=InvestmentRules.getReportContext(d);
   const transferLabel=d.transfer_available==='Y'?'전입가능':d.transfer_available==='N'?'전입불가':'미확인';
   const today=new Date();
   const dateStr=`${today.getFullYear()}.${String(today.getMonth()+1).padStart(2,'0')}.${String(today.getDate()).padStart(2,'0')}`;
@@ -724,8 +724,34 @@ async function buildReportPDF(d){
         :rowHtml(rn2++,r.text)
       ).join('');
     bottomNoteBox=noHouseNote;
+  }else if(usesNewScheme&&noHouse&&noHouseSplit){
+    // 무주택자지만 실거주 금액이 단타 기준(5억 상한 등)과 달라지는 구간: 실거주/단타 두 섹션
+    function toRowsSplit(text){
+      return text.split('\n').map(line=>{
+        const m=line.match(/^(\d+)\.\s*(.+)$/);
+        return m?{plain:false,text:m[2]}:{plain:true,text:line};
+      });
+    }
+    const residenceRows=toRowsSplit(formatBidNarrative(d));
+    const dantaRows=toRowsSplit(formatBidNarrative(d,true));
+    if((d.credit_amount||0)>0){
+      dantaRows.push({plain:true,text:'** 단, 신용대출 활용 시 경락잔금대출까지 함께 나오는지 항상 확인 필요'});
+    }
+    let rn1=1,rn2=1;
+    mainTitle='';
+    bodyContent=sectionTitleHtml('투자방향성 분석 - 실거주')
+      +residenceRows.map(r=>r.plain
+        ?`<div style="font-size:12.5px;line-height:1.6;color:#555;margin-top:6px">${r.text}</div>`
+        :rowHtml(rn1++,r.text)
+      ).join('')
+      +sectionTitleHtml('투자방향성 분석 - 단타매매',40)
+      +dantaRows.map(r=>r.plain
+        ?`<div style="font-size:12.5px;line-height:1.6;color:#555;margin-top:6px">${r.text}</div>`
+        :rowHtml(rn2++,r.text)
+      ).join('');
+    bottomNoteBox=noHouseNote;
   }else if(usesNewScheme&&noHouse){
-    // 무주택자는 처분조건 제약이 없어 실거주/단타 결과가 실질적으로 같으므로 단일 섹션으로 병합
+    // 무주택자는 처분조건 제약이 없어 실거주/단타 결과가 같으면 단일 섹션으로 병합
     function toRowsNH(text){
       return text.split('\n').map(line=>{
         const m=line.match(/^(\d+)\.\s*(.+)$/);
