@@ -58,15 +58,8 @@ test('정보지 형식이 아니면 안내', ()=>{
   assert.throws(()=>IS.parse(IS.toLines(ROW(40,[28,'아무'],[60,'문서']))),/탱크옥션 경매 정보지 형식이 아닙니다/);
 });
 
-test('가릴 이름: 사람만, 회사·기관은 제외', ()=>{
-  const n=IS.personNames(lines).sort();
-  assert.deepEqual(n,['이몽룡','홍길동'].sort());
-  assert.equal(IS.maskName('홍길동'),'홍○○');
-});
-
-test('캡처 영역: 경매정보, 임차인 현황', ()=>{
-  const r=IS.regions(lines,842);
-  assert.deepEqual(r.map(x=>x.key),['auction','tenant']);
-  assert.ok(r[0].parts[0].y0<40&&r[0].parts[0].y1<240);
-  assert.ok(r[1].parts[0].y0<300&&r[1].parts[0].y1<420);
+test('캡처 영역: 경매정보 (토지/건물 현황 전까지)', ()=>{
+  const a=IS.captureArea(lines,842);
+  assert.equal(a.p,1);
+  assert.ok(a.y0<40&&a.y1>210&&a.y1<240);
 });

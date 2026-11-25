@@ -19,6 +19,8 @@ const REASON_HINTS=[
 
 let REC_SUMMARY={};
 const st={student:null,recs:[],cur:null,dirty:false};
+const AUTO_BTN=`style="font-size:11px;padding:3px 10px;border-color:${PURPLE};color:${PURPLE};font-weight:600"`;
+const HINT='style="font-size:11px;color:#888;font-weight:400"';
 
 /* ── 공통 유틸 ── */
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -201,7 +203,7 @@ function renderBody(){
     </div>
     <div class="rec-list">${list}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="rec-p" onclick="RecReport.pickInfoPdf()" title="탱크옥션 상세정보 화면을 PDF로 저장한 파일 (여러 개 선택 가능)">📄 경매 정보지 PDF로 추가</button>
+      <button class="rec-p" onclick="InfoSheetImport.pick()" title="탱크옥션 상세정보 화면을 PDF로 저장한 파일 (여러 개 선택 가능)">📄 경매 정보지 PDF로 추가</button>
       <button onclick="RecReport.add()">+ 추천물건 추가</button>
       ${st.recs.length?`<button class="rec-p" onclick="RecReport.pdf()">📄 전체 추천물건 PDF (${st.recs.length}건)</button>`:''}
       ${(()=>{const n=st.recs.filter(r=>!(r.images||[]).some(i=>i.source==='auto')&&r.case_no).length;return n?`<button onclick="RecReport.autoCaptureAll()" style="border-color:${PURPLE};color:${PURPLE}">🤖 캡처 없는 물건 자동 캡처 (${n}건)</button>`:'';})()}
@@ -265,7 +267,9 @@ function editorHtml(r){
         </div>
       </div>`).join('')}</div>
     <div style="margin-top:8px">${field('캡처 하단 안내문','image_note',{ph:'※ 출처: 탱크옥션 (2026.10.27 캡처)'})}</div>
-    <h4 style="display:flex;align-items:center;gap:10px">추천 사유 (3가지: 조건 적합 / 권리 / 가격)<button onclick="RecReport.autoReasons()" style="font-size:11px;padding:3px 10px;border-color:${PURPLE};color:${PURPLE};font-weight:600">✨ 자동 작성</button><span style="font-size:11px;color:#888;font-weight:400">자동 캡처하면 빈 칸은 자동으로 채워집니다</span></h4>
+    <h4 style="display:flex;align-items:center;gap:10px">추천 사유 (3가지: 조건 적합 / 권리 / 가격)
+      <button onclick="RecReport.autoReasons()" ${AUTO_BTN}>✨ 자동 작성</button>
+      <span ${HINT}>정보지 PDF·자동 캡처로 추가하면 빈 칸은 자동으로 채워집니다</span></h4>
     ${reasons.map((x,i)=>`
       <div style="display:grid;grid-template-columns:24px 1fr;gap:8px;margin-bottom:10px">
         <div style="width:22px;height:22px;border-radius:50%;background:${PURPLE};color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:4px">${i+1}</div>
@@ -274,7 +278,9 @@ function editorHtml(r){
           <textarea data-reason="${i}" data-k="body" rows="2" placeholder="${esc(REASON_HINTS[i].body)}">${esc(x.body)}</textarea>
         </div>
       </div>`).join('')}
-    <h4 style="display:flex;align-items:center;gap:10px">입찰 전략<button onclick="RecReport.autoBid()" style="font-size:11px;padding:3px 10px;border-color:${PURPLE};color:${PURPLE};font-weight:600">🧮 낙찰가율로 입찰가 계산</button><span style="font-size:11px;color:#888;font-weight:400">감정가 × 인근 낙찰가율 범위 · 자동 캡처 시 빈 칸이면 자동 계산</span></h4>
+    <h4 style="display:flex;align-items:center;gap:10px">입찰 전략
+      <button onclick="RecReport.autoBid()" ${AUTO_BTN}>🧮 낙찰가율로 입찰가 계산</button>
+      <span ${HINT}>감정가 × 인근 낙찰가율 범위 · 정보지 PDF·자동 캡처 시 빈 칸이면 자동 계산</span></h4>
     <div class="fg">
       ${field('권장 입찰가 하한 (만원)','bid_low',{type:'number',ph:'10000'})}
       ${field('권장 입찰가 상한 (만원)','bid_high',{type:'number',ph:'10300',calc:'bid'})}
@@ -282,7 +288,8 @@ function editorHtml(r){
       ${field('임대 세팅 예상','rent',{ph:'월세 보증금 1,000만 / 월 55~65만원',col:2})}
     </div>
     <label class="fl">전략 메모 / 주의사항 (리포트 박스 하단에 그대로 표시)</label>
-    <textarea data-f="strategy_note" rows="3" placeholder="예: 공시가격 1억원 이하 주택으로 1주택자도 취득세 중과 대상에서 제외됩니다.&#10;폐문으로 점유자 확인이 되지 않은 상태이므로 입찰 전 현장 임장과 관리비 체납 여부를 꼭 확인해주세요.">${esc(r.strategy_note)}</textarea>
+    <textarea data-f="strategy_note" rows="3"
+      placeholder="예: 공시가격 1억원 이하 주택으로 1주택자도 취득세 중과 대상에서 제외됩니다.&#10;폐문으로 점유자 확인이 되지 않은 상태이므로 입찰 전 현장 임장과 관리비 체납 여부를 꼭 확인해주세요.">${esc(r.strategy_note)}</textarea>
     <div id="recCheck"></div>
     <div class="rec-actions">
       <button class="btn-p" onclick="RecReport.save()">💾 저장</button>
@@ -599,7 +606,15 @@ function extCapture(caseNo,progress,hint){
     setTimeout(()=>{if(ext.pending[reqId]){delete ext.pending[reqId];resolve({ok:false,error:'시간 초과 (3분). 탱크옥션 창을 확인해주세요.'});}},180000);
   });
 }
-const EXT_GUIDE='탱크옥션 자동 캡처를 쓰려면 크롬 확장프로그램 "추천물건 캡처 도우미"가 필요합니다.\n\n설치 방법\n1. 크롬 주소창에 chrome://extensions 입력\n2. 오른쪽 위 [개발자 모드] 켜기\n3. [압축해제된 확장 프로그램을 로드합니다] → 프로젝트의 tank-capture-extension 폴더 선택\n4. 이 페이지 새로고침\n\n※ 같은 크롬에서 탱크옥션에 로그인되어 있어야 합니다.';
+const EXT_GUIDE=[
+  '탱크옥션 자동 캡처를 쓰려면 크롬 확장프로그램 "추천물건 캡처 도우미"가 필요합니다.','',
+  '설치 방법',
+  '1. 크롬 주소창에 chrome://extensions 입력',
+  '2. 오른쪽 위 [개발자 모드] 켜기',
+  '3. [압축해제된 확장 프로그램을 로드합니다] → 프로젝트의 tank-capture-extension 폴더 선택',
+  '4. 이 페이지 새로고침','',
+  '※ 같은 크롬에서 탱크옥션에 로그인되어 있어야 합니다.'
+].join('\n');
 // 캡처를 4MB 이하 JPEG로 정리 (가로 최대 1600px)
 function shrink(dataUrl,maxW=1600){
   return new Promise((ok,no)=>{const im=new Image();im.onload=()=>{
@@ -665,7 +680,12 @@ async function autoCapture(){
     const res=await captureInto(st.cur,status);
     await reload(id);select(id);
     const s2=document.getElementById('recAutoStatus');
-    if(s2){s2.textContent=`✓ ${res.images.length}장 캡처 완료 (${res.images.map(i=>i.label).join(', ')})${res.masked?` · 이름 ${res.masked}건 가림`:''}${res.fields&&res.fields.win_rate?` · 낙찰가율 입력됨`:' · 낙찰가율은 직접 입력 필요'}${res.missing&&res.missing.length?` · 못 찾음: ${res.missing.join(', ')}`:''}`;}
+    if(s2){
+      s2.textContent=`✓ ${res.images.length}장 캡처 완료 (${res.images.map(i=>i.label).join(', ')})`
+        +(res.masked?` · 이름 ${res.masked}건 가림`:'')
+        +(res.fields&&res.fields.win_rate?' · 낙찰가율 입력됨':' · 낙찰가율은 직접 입력 필요')
+        +(res.missing&&res.missing.length?` · 못 찾음: ${res.missing.join(', ')}`:'');
+    }
   }catch(e){status('⚠ '+e.message,true);console.error(e);}
   finally{if(btn)btn.disabled=false;}
 }
@@ -728,7 +748,13 @@ async function renderRecPage(s,r,idx){
   const bidTxt=num(r.bid_low)
     ?`${man(r.bid_low)}${num(r.bid_high)&&num(r.bid_high)!==num(r.bid_low)?' ~ '+man(r.bid_high,'원'):'원'}${num(r.appraisal)?` (감정가 ${pct(r.bid_low,r.appraisal)}${num(r.bid_high)&&num(r.bid_high)!==num(r.bid_low)?'~'+pct(r.bid_high,r.appraisal):''}%)`:''}`
     :'';
-  const caseLine=[r.case_no&&`사건번호 <b style="color:#222">${esc(r.case_no)}</b>`,r.court&&esc(r.court),r.sale_date&&`매각기일 <b style="color:#222">${fmtDate(r.sale_date)}</b>`,deposit(r)&&`입찰보증금 <b style="color:#222">${man(deposit(r),'원')}</b>`].filter(Boolean).join('<span style="color:#ccc"> &nbsp;|&nbsp; </span>');
+  const B=v=>`<b style="color:#222">${v}</b>`;
+  const caseLine=[
+    r.case_no&&`사건번호 ${B(esc(r.case_no))}`,
+    r.court&&esc(r.court),
+    r.sale_date&&`매각기일 ${B(fmtDate(r.sale_date))}`,
+    deposit(r)&&`입찰보증금 ${B(man(deposit(r),'원'))}`
+  ].filter(Boolean).join('<span style="color:#ccc"> &nbsp;|&nbsp; </span>');
 
   // 캡처 이미지: 가로로 긴 캡처(표·상세정보)는 전체 폭, 세로형은 2장씩 나란히
   const imgs=[];
@@ -917,108 +943,7 @@ async function importRecSheet(input){
 function init(){injectUI();bindMask();pingExt();window.addEventListener('resize',()=>{if(document.getElementById('maskModal').classList.contains('show'))fitMask();});}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 
-/* ── 경매 정보지 PDF → 물건 자동 작성 (사건정보·캡처·검토 포인트·권장 입찰가) ── */
-let PDFJS=null;
-async function loadPdfJs(){
-  if(PDFJS) return PDFJS;
-  await new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='/vendor/pdfjs/build/pdf.min.js';sc.onload=ok;sc.onerror=()=>no(new Error('PDF 읽기 도구를 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.'));document.head.appendChild(sc);});
-  PDFJS=window.pdfjsLib;PDFJS.GlobalWorkerOptions.workerSrc='/vendor/pdfjs/build/pdf.worker.min.js';
-  return PDFJS;
-}
-function pickInfoPdf(){
-  if(!st.student) return;
-  const inp=document.createElement('input');inp.type='file';inp.accept='.pdf,application/pdf';inp.multiple=true;
-  inp.onchange=()=>{if(inp.files.length) addFromInfoPdfs([...inp.files]);};
-  inp.click();
-}
-async function addFromInfoPdfs(files){
-  if(st.dirty) await save(true);
-  const el=()=>document.getElementById('recBulkStatus');
-  const say=m=>{const e=el();if(e){e.textContent=m;e.classList.remove('err');}};
-  const done=[],fails=[];let lastId=null;
-  for(let i=0;i<files.length;i++){
-    const pre=files.length>1?`(${i+1}/${files.length}) `:'';
-    try{const r=await infoPdfInto(files[i],m=>say(pre+files[i].name+' · '+m));done.push(r.case_no);lastId=r.id;}
-    catch(e){console.error(e);fails.push(`${files[i].name}: ${e.message}`);}
-  }
-  await reload(lastId||(st.cur&&st.cur.id));if(lastId) select(lastId);
-  say(done.length?`✓ ${done.length}건 작성 완료 (${done.join(', ')}) · 검토 후 PDF를 받으세요`:'');
-  if(fails.length) alert(`정보지 ${fails.length}건을 읽지 못했습니다.\n\n${fails.join('\n')}`);
-}
-async function infoPdfInto(file,status){
-  const lib=await loadPdfJs();
-  status('PDF 읽는 중...');
-  const doc=await lib.getDocument({data:new Uint8Array(await file.arrayBuffer()),cMapUrl:'/vendor/pdfjs/cmaps/',cMapPacked:true,standardFontDataUrl:'/vendor/pdfjs/standard_fonts/'}).promise;
-  const items=[],views={};
-  for(let p=1;p<=doc.numPages;p++){
-    const pg=await doc.getPage(p),vp=pg.getViewport({scale:1});views[p]={pg,h:vp.height,w:vp.width};
-    for(const it of (await pg.getTextContent()).items){
-      if(!it.str||!it.str.trim()) continue;
-      items.push({p,x:it.transform[4],y:vp.height-it.transform[5],w:it.width,h:it.height||Math.abs(it.transform[0]),s:it.str});
-    }
-  }
-  if(!items.length) throw new Error('글자를 읽을 수 없는 PDF입니다. (스캔 이미지가 아닌, 탱크옥션 화면을 PDF로 저장한 파일이어야 합니다)');
-  const lines=InfoSheet.toLines(items);
-  const f=InfoSheet.parse(lines);
-  // 같은 수강생에게 같은 사건번호가 있으면 그 물건을 채우고, 없으면 새로 만듦
-  let rec=st.recs.find(r=>(r.case_no||'').replace(/\s/g,'')===f.case_no);
-  if(!rec){status('물건 만드는 중...');rec=await recApi(`/api/students/${st.student.id}/recommendations`,'POST',{case_no:f.case_no});}
-  // 캡처: 경매정보·임차인 현황 영역을 잘라 이름을 가린 이미지로
-  status('캡처 만드는 중 (이름 가림)...');
-  const names=InfoSheet.personNames(lines);
-  const shots=[];
-  for(const reg of InfoSheet.regions(lines,views[1].h)){
-    const canv=[];
-    for(const part of reg.parts) canv.push(await renderPart(views[part.p],part,lines.filter(l=>l.p===part.p),names));
-    shots.push({label:reg.label,dataUrl:stack(canv)});
-  }
-  const manual=(rec.images||[]).filter(i=>i.source!=='auto').length;
-  if(manual+shots.length>6) throw new Error(`이미지는 최대 6장입니다. 직접 올린 이미지(${manual}장)를 줄여주세요.`);
-  for(const im of (rec.images||[]).filter(i=>i.source==='auto'))
-    await recApi(`/api/recommendations/${rec.id}/images/${encodeURIComponent(im.file)}`,'DELETE');
-  for(const sh of shots) await recApi(`/api/recommendations/${rec.id}/images`,'POST',{dataUrl:await shrink(sh.dataUrl),caption:sh.label,source:'auto'});
-  // 칸 채우기: 정보지 값은 비어 있는 칸만 (직접 고친 값은 유지), 낙찰가율·사실 정보는 최신 정보지로 갱신
-  status('칸 채우는 중...');
-  const patch={};
-  for(const [k,v] of Object.entries(f)){if(v===null||v===undefined||v==='')continue;if(k==='auto_facts'||k==='deposit_rate'||rec[k]===null||rec[k]===undefined||rec[k]==='')patch[k]=v;} // 보증금 비율은 기본값(10%)이 있어 정보지 값으로
-  if(f.win_rate&&(!rec.win_rate||rec.win_rate===rec.win_rate_auto)){patch.win_rate=f.win_rate;patch.win_rate_auto=f.win_rate;}
-  if(!rec.image_note) patch.image_note=`※ 출처: 탱크옥션 경매 정보지 (${todayStr()}) · 개인정보는 가림 처리`;
-  const merged={...rec,...patch};
-  const b=calcBid(merged);
-  const untouched=!num(rec.bid_low)&&!num(rec.bid_high)||(rec.bid_auto&&rec.bid_auto===`${num(rec.bid_low)}-${num(rec.bid_high)}`);
-  if(b&&untouched) Object.assign(patch,{bid_low:b.bid_low,bid_high:b.bid_high,bid_auto:`${b.bid_low}-${b.bid_high}`});
-  if(!(rec.reasons||[]).some(x=>(x.title||'').trim()||(x.body||'').trim())) patch.reasons=genReasons(st.student,{...merged,...patch});
-  await recApi(`/api/recommendations/${rec.id}`,'PUT',patch);
-  return {id:rec.id,case_no:f.case_no};
-}
-// PDF 한 쪽의 일부를 그려서 자르고, 사람 이름이 든 글자를 '김○○'로 덮음
-async function renderPart(view,part,pageLines,names){
-  const SC=2, X0=28, X1=view.w-28;
-  const full=document.createElement('canvas');full.width=Math.ceil(view.w*SC);full.height=Math.ceil(view.h*SC);
-  await view.pg.render({canvasContext:full.getContext('2d'),viewport:view.pg.getViewport({scale:SC})}).promise;
-  const c=document.createElement('canvas');c.width=Math.round((X1-X0)*SC);c.height=Math.round((part.y1-part.y0)*SC);
-  const ctx=c.getContext('2d');ctx.drawImage(full,X0*SC,part.y0*SC,c.width,c.height,0,0,c.width,c.height);
-  if(names.length){
-    for(const l of pageLines) for(const w of l.words){
-      if(w.y<part.y0||w.y-w.h>part.y1) continue;
-      const hit=names.filter(n=>w.s.replace(/\s/g,'').includes(n));
-      if(!hit.length) continue;
-      let txt=w.s.replace(/\s/g,'');for(const n of hit) txt=txt.split(n).join(InfoSheet.maskName(n));
-      const x=(w.x-X0)*SC,y=(w.y-w.h*0.95-part.y0)*SC,ww=w.w*SC+2,hh=w.h*1.25*SC;
-      ctx.fillStyle='#fff';ctx.fillRect(x-1,y,ww,hh);
-      ctx.fillStyle='#333';ctx.font=`${Math.round(w.h*0.92*SC)}px "Malgun Gothic","Apple SD Gothic Neo",sans-serif`;ctx.textBaseline='alphabetic';
-      ctx.fillText(txt,x,(w.y-part.y0)*SC,ww+40);
-    }
-  }
-  return c;
-}
-function stack(canvases){
-  if(canvases.length===1) return canvases[0].toDataURL('image/jpeg',0.9);
-  const c=document.createElement('canvas');c.width=Math.max(...canvases.map(x=>x.width));c.height=canvases.reduce((a,x)=>a+x.height,0);
-  const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
-  let y=0;for(const x of canvases){ctx.drawImage(x,0,y);y+=x.height;}
-  return c.toDataURL('image/jpeg',0.9);
-}
-
-window.RecReport={pickInfoPdf,addFromInfoPdfs,autoBid,calcBid,autoReasons,genReasons,autoCapture,autoCaptureAll,imgEdit,open,close,select,add,save,remove,move,pdf,imgDel,imgMove,maskMode,maskUndo,maskCropApply,maskDone,maskCancel,loadSummary,cardLine,parseRecCell,checkRec,buildRecPDF};
+// 경매 정보지 PDF 가져오기(infosheet-import.js)가 쓰는 내부 기능
+window.RecCore={st,recApi,save,reload,select,shrink,todayStr,calcBid,genReasons,num};
+window.RecReport={autoBid,calcBid,autoReasons,genReasons,autoCapture,autoCaptureAll,imgEdit,open,close,select,add,save,remove,move,pdf,imgDel,imgMove,maskMode,maskUndo,maskCropApply,maskDone,maskCancel,loadSummary,cardLine,parseRecCell,checkRec,buildRecPDF};
 })();

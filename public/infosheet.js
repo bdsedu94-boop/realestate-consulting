@@ -1,6 +1,6 @@
 // 탱크옥션 '상세정보' 화면을 PDF로 저장한 경매 정보지를 읽어 물건 리포트 칸을 채웁니다.
 // 브라우저(recommend.js)와 테스트(node)가 함께 사용합니다. PDF 글자 추출은 pdf.js가 하고,
-// 이 파일은 글자 위치(items)를 받아 줄로 묶고, 값·캡처 영역·가릴 이름을 찾습니다.
+// 이 파일은 글자 위치(items)를 받아 줄로 묶고, 물건 칸 값과 캡처할 영역을 찾습니다.
 (function(root,factory){
   if(typeof module==='object'&&module.exports) module.exports=factory();
   else root.InfoSheet=factory();
@@ -55,11 +55,11 @@ function rightOf(lines,label,re,maxDx){
   }
   return null;
 }
-const KINDS=['아파트','연립주택','다세대주택','다세대','오피스텔','단독주택','다가구주택','다가구','도시형생활주택','주상복합','근린주택','근린상가','근린시설','상가','점포','사무실','공장','창고','토지','대지','임야','숙박시설','기타'];
+const KINDS=[
+  '아파트','연립주택','다세대주택','다세대','오피스텔','단독주택','다가구주택','다가구','도시형생활주택','주상복합','근린주택','근린상가','근린시설','상가',
+  '점포','사무실','공장','창고','토지','대지','임야','숙박시설','기타'
+];
 const SIDO=/^(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충청|충북|충남|전라|전북|전남|경상|경북|경남|제주)/;
-// 표 제목·상태 글자 (이름이 아님)
-const STOP=/^(임차인|점유|목록|현황|기타|분석|대항력|보증금|차임|전입|확정|배당|주의|인수|조건|변경|있음|없음|소액|주거용|전부|일부|미상|폐문|부재|조사|내역|승계인)/;
-const COMPANY=/(은행|보험|공사|공단|신협|조합|재단|금고|캐피탈|\(주\)|㈜|주식회사|세무서|시청|구청|군청|농협|수협|저축|카드|대부|자산|보증|증권|신탁|국가|대한민국|공제회|기금|센터|병원|학교|교회|법인)/;
 
 /** 정보지 → 물건 칸 값과 리포트용 사실(auto_facts) */
 function parse(lines){
@@ -155,59 +155,15 @@ function parse(lines){
   return f;
 }
 
-/** 캡처 영역: 경매정보(첫머리~토지/건물 현황 전), 임차인 현황(~다음 제목 전). 쪽을 넘으면 쪽별 조각 */
-function regions(lines,pageH){
-  const span=(si,ei)=>{
-    if(si==null) return null;
-    const s=lines[si], e=ei==null?null:lines[ei];
-    const parts=[];
-    const pages=[...new Set(lines.filter(l=>l.p>=s.p&&(!e||l.p<=e.p)).map(l=>l.p))];
-    for(const p of pages){
-      const onP=lines.filter(l=>l.p===p);
-      const y0=p===s.p?s.y-16:Math.min(...onP.map(l=>l.y))-14;
-      const y1=e&&p===e.p?e.y-16:Math.max(...onP.filter(l=>!e||p<e.p||l.y<e.y).map(l=>l.y))+8;
-      if(y1-y0>20) parts.push({p,y0:Math.max(0,y0),y1:Math.min(pageH||842,y1)});
-      if(e&&p===e.p) break;
-    }
-    return parts;
-  };
-  const out=[];
+/** 캡처 영역: 경매정보(첫머리 ~ 토지/건물 현황 전). 첫 쪽만 */
+function captureArea(lines,pageH){
   const ci=findHead(lines,'case'), li=findHead(lines,'land');
-  const a=span(ci,li); if(a&&a.length) out.push({key:'auction',label:'탱크옥션 · 경매정보',parts:a.slice(0,1)});
-  const ti=findHead(lines,'tenant');
-  if(ti!=null){
-    const end=['building','landReg','caution','summary','related'].map(k=>findHead(lines,k,ti+1)).filter(x=>x!=null).sort((a,b)=>a-b)[0];
-    const t=span(ti,end); if(t&&t.length) out.push({key:'tenant',label:'탱크옥션 · 임차인 현황',parts:t.slice(0,2)});
-  }
-  return out;
+  if(ci==null) return null;
+  const s=lines[ci], e=li!=null&&lines[li].p===s.p?lines[li]:null;
+  const onP=lines.filter(l=>l.p===s.p&&(!e||l.y<e.y));
+  const y0=Math.max(0,s.y-16), y1=Math.min(pageH||842,e?e.y-16:Math.max(...onP.map(l=>l.y))+8);
+  return y1-y0>20?{p:s.p,y0,y1}:null;
 }
 
-/** 가릴 사람 이름: 소유자·채무자·채권자 칸, 임차인 칸, '입주자:이름' (회사·기관 이름은 제외) */
-function personNames(lines){
-  const names=new Set();
-  const add=s=>{const v=norm(s).replace(/외\d+(명|인)?$/,'').replace(/^\(|\)$/g,'');if(/^[가-힣]{2,4}$/.test(v)&&!COMPANY.test(v)&&!KINDS.includes(v))names.add(v);};
-  for(const label of ['소유자','채무자','채권자']){
-    for(const l of lines){
-      const i=l.words.findIndex(w=>norm(w.s)===label);
-      if(i>=0&&l.words[i+1]) add(l.words[i+1].s);
-    }
-  }
-  const ti=findHead(lines,'tenant');
-  if(ti!=null){
-    const hi=lines.findIndex((l,k)=>k>ti&&k<ti+5&&l.words.some(w=>norm(w.s)==='임차인'&&w.x>70));
-    if(hi>=0){
-      const tx=lines[hi].words.find(w=>norm(w.s)==='임차인'&&w.x>70).x;
-      // 임차인 칸(표 제목 아래 ~ 기타사항 전)의 글자만
-      for(const l of lines.slice(hi+1,hi+40)){
-        if(/^기타사항|^건물등기|^토지등기|^참고\/주의|^권리분석/.test(norm(l.text))) break;
-        for(const w of l.words) if(Math.abs(w.x-tx)<30&&!STOP.test(norm(w.s))) add(w.s);
-      }
-    }
-  }
-  for(const m of lines.map(l=>norm(l.text)).join('\n').matchAll(/입주자:([가-힣]{2,4})/g)) add(m[1]);
-  return [...names];
-}
-const maskName=n=>n[0]+'○'.repeat(n.length-1);
-
-return {toLines,parse,regions,personNames,maskName};
+return {toLines,parse,captureArea};
 });

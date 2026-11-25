@@ -752,7 +752,13 @@ function getReportContext(d){
       다만 최근 소액 대출을 받으신 수강생 사례가 있으니, 물건을 찾아보신 뒤 입찰 전에 저희와 함께 대출 가능 여부를 확인하고 입찰 여부를 결정하시면 좋겠습니다.${cr===0?'<br><br>우선 신용대출이 얼마나 나오는지부터 확인해 보세요.':''}
     </div>`:'';
 
-  return {cr,total,isFirst,noHouse,narrative,numberedCountEarly,fmtAmt,seedLine,oneHouse,missingHousing,multi,wantsResidence,wantsResidenceNH,usesNewScheme,usesHypothetical,CAP,snr70NH,snrOkNH,fsCapPdf,noHouseNote,noHouseNoteTop,noHouseNoteBottom,oneHouseNoteTop,oneHouseNoteBottom,oneHouseNoteCombined,multiNoteTop,multiNoteBottom,multiNote,oneHouseNoteFinal,noHouseNoteFinal,wantsResidenceMulti,multiNoteFinal,noteBox,smallLoanNote,noHouseSplit};
+  return {
+    cr,total,isFirst,noHouse,narrative,numberedCountEarly,fmtAmt,seedLine,oneHouse,missingHousing,multi,
+    wantsResidence,wantsResidenceNH,usesNewScheme,usesHypothetical,CAP,snr70NH,snrOkNH,fsCapPdf,noHouseNote,
+    noHouseNoteTop,noHouseNoteBottom,oneHouseNoteTop,oneHouseNoteBottom,oneHouseNoteCombined,multiNoteTop,
+    multiNoteBottom,multiNote,oneHouseNoteFinal,noHouseNoteFinal,wantsResidenceMulti,multiNoteFinal,noteBox,
+    smallLoanNote,noHouseSplit
+  };
 }
 
 // PDF와 동일한 조건으로 참고사항을 선택하고, 자료실에는 안전한 일반 텍스트만 전달합니다.
