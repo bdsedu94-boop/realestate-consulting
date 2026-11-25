@@ -315,7 +315,7 @@ function editorHtml(r){
       placeholder="예: 공시가격 1억원 이하 주택으로 1주택자도 취득세 중과 대상에서 제외됩니다.&#10;폐문으로 점유자 확인이 되지 않은 상태이므로 입찰 전 현장 임장과 관리비 체납 여부를 꼭 확인해주세요.">${esc(r.strategy_note)}</textarea>
     <div id="recCheck"></div>
     <div class="rec-actions">
-      <button class="btn-p" onclick="RecReport.save()">💾 저장</button>
+      <button class="btn-p" id="recSaveBtn" onclick="RecReport.saveClick()">💾 저장</button>
       <button class="rec-p" onclick="RecReport.pdf([${r.id}])">📄 이 물건 PDF</button>
       <span id="recDirty" style="font-size:11px;color:#a3690a"></span>
       <span style="flex:1"></span>
@@ -336,7 +336,10 @@ function readEditor(){
 }
 function bindEditor(){
   const ed=document.getElementById('recEditor');
-  ed.addEventListener('input',()=>{st.dirty=true;document.getElementById('recDirty').textContent='● 저장되지 않은 변경';readEditor();updateCalc();});
+  ed.addEventListener('input',()=>{
+    st.dirty=true;
+    const d=document.getElementById('recDirty');d.style.color='#a3690a';d.textContent='● 저장되지 않은 변경';
+    readEditor();updateCalc();});
   ed.addEventListener('change',()=>{readEditor();updateCalc();});
   const drop=document.getElementById('recDrop');
   drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over');});
@@ -379,8 +382,19 @@ async function save(silent){
     const i=st.recs.findIndex(r=>r.id===saved.id);if(i>=0)st.recs[i]=saved;
     st.cur=JSON.parse(JSON.stringify(saved));st.dirty=false;
     if(!silent) renderBody();
-    else{const d=document.getElementById('recDirty');if(d)d.textContent='';}
+    const d=document.getElementById('recDirty');
+    if(d){
+      const t=new Date(),hm=`${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+      d.style.color='#27500a';d.textContent=silent?'':`✓ 저장되었습니다 (${hm})`;
+    }
   }catch(e){alert('저장 오류: '+e.message);throw e;}
+}
+// 저장 버튼: 누르는 동안 '저장 중...' 표시, 두 번 눌림 방지
+async function saveClick(){
+  const b=document.getElementById('recSaveBtn');
+  if(b){if(b.disabled) return;b.disabled=true;b.textContent='저장 중...';}
+  try{await save();}catch(e){}
+  finally{const nb=document.getElementById('recSaveBtn');if(nb){nb.disabled=false;nb.textContent='💾 저장';}}
 }
 async function remove(){
   if(!st.cur||!confirm(`${st.cur.case_no||'이 추천물건'}을(를) 삭제할까요? 첨부 이미지도 함께 삭제됩니다.`)) return;
@@ -416,5 +430,5 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 Object.assign(R,{PURPLE,PURPLE_BG,DISCLAIMER,st,esc,escBr,num,man,pct,fmtDate,todayStr,deposit,recApi,shrink,reload,readEditor,select,save,loadSummary});
 // 화면 버튼(onclick)에서 부르는 기능. 기능별 파일이 자기 기능을 더함
-window.RecReport={open,close,select,add,save,remove,move,imgDel,imgMove,loadSummary,cardLine};
+window.RecReport={open,close,select,add,save,saveClick,remove,move,imgDel,imgMove,loadSummary,cardLine};
 })();
