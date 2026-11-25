@@ -24,13 +24,13 @@ const loginHTML = `<!DOCTYPE html>
 <title>로그인 · 수강생 컨설팅</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;background:#f5f3ee;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic','Pretendard',sans-serif;background:#f5f3ee;display:flex;align-items:center;justify-content:center;min-height:100vh;}
   .box{background:#fff;border-radius:16px;padding:48px 40px;width:360px;box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center;}
   h1{font-size:20px;font-weight:700;color:#2d2d2d;margin-bottom:8px;}
   p{font-size:13px;color:#888;margin-bottom:32px;}
-  input{width:100%;padding:12px 16px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:15px;outline:none;transition:.2s;}
+  input{font-family:inherit;width:100%;padding:12px 16px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:15px;outline:none;transition:.2s;}
   input:focus{border-color:#4a7c59;}
-  button{width:100%;padding:13px;background:#4a7c59;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;margin-top:12px;transition:.2s;}
+  button{font-family:inherit;width:100%;padding:13px;background:#4a7c59;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;margin-top:12px;transition:.2s;}
   button:hover{background:#3a6047;}
   .err{color:#e53935;font-size:13px;margin-top:10px;display:none;}
 </style>

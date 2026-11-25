@@ -73,7 +73,7 @@ function injectUI(){
 .rec-line{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:0.5px dashed rgba(0,0,0,0.1);font-size:11px;color:#888}
 .rec-line button{font-size:11px;padding:3px 10px;border-color:${PURPLE};color:${PURPLE}}
 .rec-line button:hover{background:${PURPLE_BG}}
-.rec-chip{display:inline-block;font-size:10px;padding:2px 7px;border-radius:8px;font-weight:600}
+.rec-chip{display:inline-block;font-size:11px;padding:2px 7px;border-radius:8px;font-weight:600}
 #recModal .modal{width:min(980px,96vw)}
 .rec-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
 .rec-item{display:flex;align-items:center;gap:10px;border:0.5px solid rgba(0,0,0,0.12);border-radius:10px;padding:9px 12px;cursor:pointer;background:#fff}
@@ -96,7 +96,7 @@ function injectUI(){
 .rec-auto-st.err{color:#a32d2d}
 .rec-opt{margin-top:14px;border:0.5px solid rgba(0,0,0,0.1);border-radius:8px;padding:8px 12px;background:#fcfcfb}
 .rec-opt summary{cursor:pointer;font-size:12px;color:#666}
-.ri-auto{position:absolute;top:6px;left:6px;font-size:10px;background:${PURPLE};color:#fff;border-radius:6px;padding:1px 6px}
+.ri-auto{position:absolute;top:6px;left:6px;font-size:11px;background:${PURPLE};color:#fff;border-radius:6px;padding:1px 6px}
 .rec-img{position:relative;border:0.5px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;background:#fff}
 .rec-img img{width:100%;height:130px;object-fit:cover;object-position:left top;display:block;background:#f3f3f3}
 .rec-img .ri-bar{display:flex;gap:4px;padding:6px}
@@ -334,9 +334,13 @@ function readEditor(){
   const caps={};ed.querySelectorAll('[data-cap]').forEach(el=>caps[el.dataset.cap]=el.value);
   st.cur.images=(st.cur.images||[]).map(im=>({...im,caption:caps[im.file]??im.caption}));
 }
+// 글이 길면 입력칸 높이를 늘려 내용이 잘리지 않게
+function fitTextarea(t){t.style.height='auto';t.style.height=(t.scrollHeight+2)+'px';}
 function bindEditor(){
   const ed=document.getElementById('recEditor');
-  ed.addEventListener('input',()=>{
+  ed.querySelectorAll('textarea').forEach(fitTextarea);
+  ed.addEventListener('input',e=>{
+    if(e.target.tagName==='TEXTAREA') fitTextarea(e.target);
     st.dirty=true;
     const d=document.getElementById('recDirty');d.style.color='#a3690a';d.textContent='● 저장되지 않은 변경';
     readEditor();updateCalc();});

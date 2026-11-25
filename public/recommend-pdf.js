@@ -99,7 +99,7 @@ async function renderRecPage(s,r,idx){
 
   const lg=await logo();
   const container=document.createElement('div');
-  container.style.cssText='position:fixed;left:-9999px;top:0;width:600px;background:#fff;font-family:"Apple SD Gothic Neo","Pretendard","Malgun Gothic",sans-serif;';
+  container.style.cssText='position:fixed;left:-9999px;top:0;width:600px;background:#fff;font-family:var(--font);';
   container.innerHTML=`
   <div style="width:600px;box-sizing:border-box;background:#fff;border:1px solid #e3e3e3;border-radius:6px;overflow:hidden">
     <div style="background:${PURPLE};padding:20px 28px">
@@ -141,7 +141,7 @@ async function renderRecPage(s,r,idx){
 
 async function dateImage(){
   const el=document.createElement('div');
-  el.style.cssText='position:fixed;left:-9999px;top:0;font-family:"Apple SD Gothic Neo","Pretendard","Malgun Gothic",sans-serif;font-size:11px;color:#999;white-space:nowrap;background:#fff;padding:2px';
+  el.style.cssText='position:fixed;left:-9999px;top:0;font-family:var(--font);font-size:11px;color:#999;white-space:nowrap;background:#fff;padding:2px';
   el.textContent=`작성일 ${todayStr()}`;
   document.body.appendChild(el);
   try{return await html2canvas(el,{scale:2,backgroundColor:'#ffffff'});}finally{document.body.removeChild(el);}
