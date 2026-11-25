@@ -201,6 +201,7 @@ function renderBody(){
     </div>
     <div class="rec-list">${list}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="rec-p" onclick="RecReport.pickInfoPdf()" title="탱크옥션 상세정보 화면을 PDF로 저장한 파일 (여러 개 선택 가능)">📄 경매 정보지 PDF로 추가</button>
       <button onclick="RecReport.add()">+ 추천물건 추가</button>
       ${st.recs.length?`<button class="rec-p" onclick="RecReport.pdf()">📄 전체 추천물건 PDF (${st.recs.length}건)</button>`:''}
       ${(()=>{const n=st.recs.filter(r=>!(r.images||[]).some(i=>i.source==='auto')&&r.case_no).length;return n?`<button onclick="RecReport.autoCaptureAll()" style="border-color:${PURPLE};color:${PURPLE}">🤖 캡처 없는 물건 자동 캡처 (${n}건)</button>`:'';})()}
@@ -384,6 +385,7 @@ function genReasons(s,r){
   else if(f.tenantsWithPriority>0){clean=false;b2.push(`대항력 있는 임차인이 ${f.tenantsWithPriority}명 있어 배당 결과에 따라 보증금을 인수할 수 있으니 확인이 필요합니다.`);}
   if((f.assumedRights||[]).length){clean=false;b2.push(`소멸되지 않는 권리(${f.assumedRights.join(', ')})가 있어 확인이 필요합니다.`);}
   if(f.closedDoor) b2.push('다만 폐문으로 점유자 확인이 되지 않아 입찰 전 현장 확인이 필요합니다.');
+  if(f.rightsSummary) b2.push(f.rightsSummary); // 정보지의 권리분석요약 첫 문장
   const r2={title:clean?'권리관계가 깨끗한 물건':'권리 확인이 필요한 물건',body:b2.join(' ')};
   // 3. 가격
   const b3=[], p=pct(r.min_price,r.appraisal), fc=num(r.fail_count), wr=rateRange(r.win_rate);
@@ -915,5 +917,108 @@ async function importRecSheet(input){
 function init(){injectUI();bindMask();pingExt();window.addEventListener('resize',()=>{if(document.getElementById('maskModal').classList.contains('show'))fitMask();});}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 
-window.RecReport={autoBid,calcBid,autoReasons,genReasons,autoCapture,autoCaptureAll,imgEdit,open,close,select,add,save,remove,move,pdf,imgDel,imgMove,maskMode,maskUndo,maskCropApply,maskDone,maskCancel,loadSummary,cardLine,parseRecCell,checkRec,buildRecPDF};
+/* ── 경매 정보지 PDF → 물건 자동 작성 (사건정보·캡처·검토 포인트·권장 입찰가) ── */
+let PDFJS=null;
+async function loadPdfJs(){
+  if(PDFJS) return PDFJS;
+  await new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='/vendor/pdfjs/build/pdf.min.js';sc.onload=ok;sc.onerror=()=>no(new Error('PDF 읽기 도구를 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.'));document.head.appendChild(sc);});
+  PDFJS=window.pdfjsLib;PDFJS.GlobalWorkerOptions.workerSrc='/vendor/pdfjs/build/pdf.worker.min.js';
+  return PDFJS;
+}
+function pickInfoPdf(){
+  if(!st.student) return;
+  const inp=document.createElement('input');inp.type='file';inp.accept='.pdf,application/pdf';inp.multiple=true;
+  inp.onchange=()=>{if(inp.files.length) addFromInfoPdfs([...inp.files]);};
+  inp.click();
+}
+async function addFromInfoPdfs(files){
+  if(st.dirty) await save(true);
+  const el=()=>document.getElementById('recBulkStatus');
+  const say=m=>{const e=el();if(e){e.textContent=m;e.classList.remove('err');}};
+  const done=[],fails=[];let lastId=null;
+  for(let i=0;i<files.length;i++){
+    const pre=files.length>1?`(${i+1}/${files.length}) `:'';
+    try{const r=await infoPdfInto(files[i],m=>say(pre+files[i].name+' · '+m));done.push(r.case_no);lastId=r.id;}
+    catch(e){console.error(e);fails.push(`${files[i].name}: ${e.message}`);}
+  }
+  await reload(lastId||(st.cur&&st.cur.id));if(lastId) select(lastId);
+  say(done.length?`✓ ${done.length}건 작성 완료 (${done.join(', ')}) · 검토 후 PDF를 받으세요`:'');
+  if(fails.length) alert(`정보지 ${fails.length}건을 읽지 못했습니다.\n\n${fails.join('\n')}`);
+}
+async function infoPdfInto(file,status){
+  const lib=await loadPdfJs();
+  status('PDF 읽는 중...');
+  const doc=await lib.getDocument({data:new Uint8Array(await file.arrayBuffer()),cMapUrl:'/vendor/pdfjs/cmaps/',cMapPacked:true,standardFontDataUrl:'/vendor/pdfjs/standard_fonts/'}).promise;
+  const items=[],views={};
+  for(let p=1;p<=doc.numPages;p++){
+    const pg=await doc.getPage(p),vp=pg.getViewport({scale:1});views[p]={pg,h:vp.height,w:vp.width};
+    for(const it of (await pg.getTextContent()).items){
+      if(!it.str||!it.str.trim()) continue;
+      items.push({p,x:it.transform[4],y:vp.height-it.transform[5],w:it.width,h:it.height||Math.abs(it.transform[0]),s:it.str});
+    }
+  }
+  if(!items.length) throw new Error('글자를 읽을 수 없는 PDF입니다. (스캔 이미지가 아닌, 탱크옥션 화면을 PDF로 저장한 파일이어야 합니다)');
+  const lines=InfoSheet.toLines(items);
+  const f=InfoSheet.parse(lines);
+  // 같은 수강생에게 같은 사건번호가 있으면 그 물건을 채우고, 없으면 새로 만듦
+  let rec=st.recs.find(r=>(r.case_no||'').replace(/\s/g,'')===f.case_no);
+  if(!rec){status('물건 만드는 중...');rec=await recApi(`/api/students/${st.student.id}/recommendations`,'POST',{case_no:f.case_no});}
+  // 캡처: 경매정보·임차인 현황 영역을 잘라 이름을 가린 이미지로
+  status('캡처 만드는 중 (이름 가림)...');
+  const names=InfoSheet.personNames(lines);
+  const shots=[];
+  for(const reg of InfoSheet.regions(lines,views[1].h)){
+    const canv=[];
+    for(const part of reg.parts) canv.push(await renderPart(views[part.p],part,lines.filter(l=>l.p===part.p),names));
+    shots.push({label:reg.label,dataUrl:stack(canv)});
+  }
+  const manual=(rec.images||[]).filter(i=>i.source!=='auto').length;
+  if(manual+shots.length>6) throw new Error(`이미지는 최대 6장입니다. 직접 올린 이미지(${manual}장)를 줄여주세요.`);
+  for(const im of (rec.images||[]).filter(i=>i.source==='auto'))
+    await recApi(`/api/recommendations/${rec.id}/images/${encodeURIComponent(im.file)}`,'DELETE');
+  for(const sh of shots) await recApi(`/api/recommendations/${rec.id}/images`,'POST',{dataUrl:await shrink(sh.dataUrl),caption:sh.label,source:'auto'});
+  // 칸 채우기: 정보지 값은 비어 있는 칸만 (직접 고친 값은 유지), 낙찰가율·사실 정보는 최신 정보지로 갱신
+  status('칸 채우는 중...');
+  const patch={};
+  for(const [k,v] of Object.entries(f)){if(v===null||v===undefined||v==='')continue;if(k==='auto_facts'||k==='deposit_rate'||rec[k]===null||rec[k]===undefined||rec[k]==='')patch[k]=v;} // 보증금 비율은 기본값(10%)이 있어 정보지 값으로
+  if(f.win_rate&&(!rec.win_rate||rec.win_rate===rec.win_rate_auto)){patch.win_rate=f.win_rate;patch.win_rate_auto=f.win_rate;}
+  if(!rec.image_note) patch.image_note=`※ 출처: 탱크옥션 경매 정보지 (${todayStr()}) · 개인정보는 가림 처리`;
+  const merged={...rec,...patch};
+  const b=calcBid(merged);
+  const untouched=!num(rec.bid_low)&&!num(rec.bid_high)||(rec.bid_auto&&rec.bid_auto===`${num(rec.bid_low)}-${num(rec.bid_high)}`);
+  if(b&&untouched) Object.assign(patch,{bid_low:b.bid_low,bid_high:b.bid_high,bid_auto:`${b.bid_low}-${b.bid_high}`});
+  if(!(rec.reasons||[]).some(x=>(x.title||'').trim()||(x.body||'').trim())) patch.reasons=genReasons(st.student,{...merged,...patch});
+  await recApi(`/api/recommendations/${rec.id}`,'PUT',patch);
+  return {id:rec.id,case_no:f.case_no};
+}
+// PDF 한 쪽의 일부를 그려서 자르고, 사람 이름이 든 글자를 '김○○'로 덮음
+async function renderPart(view,part,pageLines,names){
+  const SC=2, X0=28, X1=view.w-28;
+  const full=document.createElement('canvas');full.width=Math.ceil(view.w*SC);full.height=Math.ceil(view.h*SC);
+  await view.pg.render({canvasContext:full.getContext('2d'),viewport:view.pg.getViewport({scale:SC})}).promise;
+  const c=document.createElement('canvas');c.width=Math.round((X1-X0)*SC);c.height=Math.round((part.y1-part.y0)*SC);
+  const ctx=c.getContext('2d');ctx.drawImage(full,X0*SC,part.y0*SC,c.width,c.height,0,0,c.width,c.height);
+  if(names.length){
+    for(const l of pageLines) for(const w of l.words){
+      if(w.y<part.y0||w.y-w.h>part.y1) continue;
+      const hit=names.filter(n=>w.s.replace(/\s/g,'').includes(n));
+      if(!hit.length) continue;
+      let txt=w.s.replace(/\s/g,'');for(const n of hit) txt=txt.split(n).join(InfoSheet.maskName(n));
+      const x=(w.x-X0)*SC,y=(w.y-w.h*0.95-part.y0)*SC,ww=w.w*SC+2,hh=w.h*1.25*SC;
+      ctx.fillStyle='#fff';ctx.fillRect(x-1,y,ww,hh);
+      ctx.fillStyle='#333';ctx.font=`${Math.round(w.h*0.92*SC)}px "Malgun Gothic","Apple SD Gothic Neo",sans-serif`;ctx.textBaseline='alphabetic';
+      ctx.fillText(txt,x,(w.y-part.y0)*SC,ww+40);
+    }
+  }
+  return c;
+}
+function stack(canvases){
+  if(canvases.length===1) return canvases[0].toDataURL('image/jpeg',0.9);
+  const c=document.createElement('canvas');c.width=Math.max(...canvases.map(x=>x.width));c.height=canvases.reduce((a,x)=>a+x.height,0);
+  const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
+  let y=0;for(const x of canvases){ctx.drawImage(x,0,y);y+=x.height;}
+  return c.toDataURL('image/jpeg',0.9);
+}
+
+window.RecReport={pickInfoPdf,addFromInfoPdfs,autoBid,calcBid,autoReasons,genReasons,autoCapture,autoCaptureAll,imgEdit,open,close,select,add,save,remove,move,pdf,imgDel,imgMove,maskMode,maskUndo,maskCropApply,maskDone,maskCancel,loadSummary,cardLine,parseRecCell,checkRec,buildRecPDF};
 })();

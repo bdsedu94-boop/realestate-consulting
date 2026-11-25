@@ -67,6 +67,8 @@ app.use('/api/investment', require('./investment-api')());
 app.use(express.json({ limit: '10mb' }));
 app.use(requireAuth);
 app.use(express.static(path.join(__dirname, 'public')));
+// 경매 정보지 PDF 읽기용 pdf.js (외부 CDN 대신 서버가 직접 제공)
+app.use('/vendor/pdfjs', express.static(path.join(__dirname, 'node_modules', 'pdfjs-dist')));
 
 /* ── 추천물건 리포트 API (로그인 필요) ── */
 const recommendRouter = require('./recommend-api')({ readDB: (...a) => readDB(...a), writeDB: (...a) => writeDB(...a), dataDir: DATA_DIR });
