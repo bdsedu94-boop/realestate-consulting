@@ -42,7 +42,7 @@ PDF 레이아웃과 화면 디자인은 `public/index.html`에서 관리합니�
 - 시트 가져오기: 상단의 **[🏠 추천물건 시트 가져오기]** 버튼을 사용합니다. 구글시트를 `.xlsx`로 내려받아 '요약' 탭의 추천물건1~3에서 사건번호를 읽고, 기수+이름이 맞는 수강생에게 '작성중' 초안을 만듭니다. 이미 등록된 사건번호는 건너뜁니다.
 - 발송 전 체크: 매각기일 경과, 필수값 누락, 최저가보다 낮은 권장입찰가, 투자금을 넘는 보증금, 캡처 누락을 경고합니다.
 - **경매 정보지 PDF로 추가**: 탱크옥션 '상세정보' 페이지를 PDF로 저장해 올리면 사건번호·법원·매각일·면적·층·감정가·최저가·보증금·유찰 횟수·인근 낙찰가율·권리 사실을 읽어 물건을 만들고(같은 사건번호가 있으면 갱신), '경매정보' 부분을 캡처해 넣습니다. 개인정보(이름·지번 등)는 올리기 전에 정보지에서 가린 상태여야 합니다. 해석은 `public/infosheet.js`, 화면·저장은 `public/infosheet-import.js`, PDF 읽기는 `pdfjs-dist`(서버가 `/vendor/pdfjs`로 제공)를 씁니다.
-- 코드: 화면과 PDF는 `public/recommend.js`, API는 `recommend-api.js`, 로고는 `public/report-logo.png`에 있습니다.
+- 코드: 기본 화면·저장은 `public/recommend.js`, 기능별로 `recommend-auto.js`(사유·입찰가 자동 작성, 발송 전 확인), `recommend-mask.js`(이미지 자르기·모자이크), `recommend-capture.js`(크롬 도우미 자동 캡처), `recommend-pdf.js`(리포트 PDF), `recommend-sheet.js`(구글시트 일괄 생성), `infosheet-import.js`(경매 정보지 PDF)로 나뉘어 있습니다. 파일끼리는 `RecCore`로 기능을 주고받습니다. API는 `recommend-api.js`, 로고는 `public/report-logo.png`에 있습니다.
 
 ### 탱크옥션 자동 캡처
 

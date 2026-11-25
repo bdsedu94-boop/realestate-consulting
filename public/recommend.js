@@ -1,12 +1,19 @@
 /* ═══════════════════════════════════════════════════════════════
- * 추천물건 리포트
+ * 추천물건 리포트 — 기본 (상태·공통 기능·화면·저장)
  *  - 수강생별 추천물건 입력/관리 (작성중 → 검수완료 → 발송완료)
- *  - 탱크옥션 캡처 붙여넣기(Ctrl+V)/드래그 → 자르기·모자이크 → 업로드
- *  - 기존 투자 방향성 리포트와 같은 방식(html2canvas + jsPDF)으로 PDF 생성
- *  - 구글시트 '요약' 탭의 추천물건1~3 칸을 엑셀로 받아 초안 일괄 생성
  *  금액 단위: 만원 (기존 수강생 데이터와 동일)
+ *
+ *  기능별 파일 (모두 이 파일 다음에 불러옴, RecCore로 기능을 주고받음)
+ *   recommend-auto.js     추천 사유·권장 입찰가 자동 작성, 발송 전 확인
+ *   recommend-mask.js     캡처 이미지 다듬기 (자르기 / 모자이크)
+ *   recommend-capture.js  탱크옥션 자동 캡처 (크롬 확장프로그램 연동)
+ *   recommend-pdf.js      리포트 PDF 만들기 (html2canvas + jsPDF)
+ *   recommend-sheet.js    구글시트 요약 탭 → 추천물건 초안 일괄 생성
+ *   infosheet-import.js   경매 정보지 PDF → 물건 자동 작성
  * ═══════════════════════════════════════════════════════════════ */
 (function(){
+// 다른 기능 파일과 주고받는 내부 기능 모음
+const R=window.RecCore={};
 const PURPLE='#9314cc', PURPLE_BG='#f4e8fb';
 const REC_STATUS=['작성중','검수완료','발송완료'];
 const REC_ST_STYLE={'작성중':'background:#f0ede6;color:#5f5e5a','검수완료':'background:#e6f1fb;color:#0c447c','발송완료':'background:#eaf3de;color:#27500a'};
@@ -42,6 +49,22 @@ function fmtDate(s){
 function todayStr(){const t=new Date();return `${t.getFullYear()}.${String(t.getMonth()+1).padStart(2,'0')}.${String(t.getDate()).padStart(2,'0')}`;}
 function deposit(r){const m=num(r.min_price);return m?Math.round(m*(num(r.deposit_rate)||10)/100):null;}
 async function recApi(url,method='GET',body=null){return api(url,method,body);} // index.html 의 api() 재사용
+
+// 캡처를 4MB 이하 JPEG로 정리 (가로 최대 1600px)
+function shrink(dataUrl,maxW=1600){
+  return new Promise((ok,no)=>{const im=new Image();im.onload=()=>{
+    let k=Math.min(1,maxW/im.width);let q=0.86;
+    const c=document.createElement('canvas');
+    for(let t=0;t<6;t++){
+      c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+      const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);
+      const out=c.toDataURL('image/jpeg',q);
+      if(out.length<5.2e6) return ok(out);
+      k*=0.8;q=Math.max(0.7,q-0.05);
+    }
+    no(new Error('캡처 이미지가 너무 큽니다.'));
+  };im.onerror=()=>no(new Error('캡처 이미지를 읽지 못했습니다.'));im.src=dataUrl;});
+}
 
 /* ── 스타일 & 모달 마크업 주입 ── */
 function injectUI(){
@@ -134,7 +157,7 @@ function injectUI(){
     b.onclick=()=>document.getElementById('recXlsxInput').click();
     const inp=document.createElement('input');
     inp.type='file';inp.id='recXlsxInput';inp.accept='.xlsx,.xls,.csv';inp.style.display='none';
-    inp.onchange=()=>importRecSheet(inp);
+    inp.onchange=()=>R.importRecSheet(inp);
     ctrls.appendChild(b);ctrls.appendChild(inp);
   }
 
@@ -145,7 +168,7 @@ function injectUI(){
     const item=[...(e.clipboardData?.items||[])].find(i=>i.type.startsWith('image/'));
     if(!item) return;
     e.preventDefault();
-    openMask(item.getAsFile());
+    R.openMask(item.getAsFile());
   });
 }
 
@@ -318,8 +341,8 @@ function bindEditor(){
   const drop=document.getElementById('recDrop');
   drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over');});
   drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
-  drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');const f=[...e.dataTransfer.files].find(x=>x.type.startsWith('image/'));if(f)openMask(f);});
-  document.getElementById('recImgFile').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(f)openMask(f);});
+  drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');const f=[...e.dataTransfer.files].find(x=>x.type.startsWith('image/'));if(f)R.openMask(f);});
+  document.getElementById('recImgFile').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(f)R.openMask(f);});
   updateCalc();
 }
 function updateCalc(){
@@ -330,108 +353,11 @@ function updateCalc(){
   set('deposit',deposit(r)?`보증금 ${man(deposit(r),'원')}`:'');
   set('bid',num(r.bid_low)?`감정가 대비 ${pct(r.bid_low,r.appraisal)??'-'}~${pct(r.bid_high||r.bid_low,r.appraisal)??'-'}%`:'');
   set('sale',r.sale_date?fmtDate(r.sale_date):'');
-  const issues=checkRec(r);
+  const issues=R.checkRec(r);
   const box=document.getElementById('recCheck');
   if(box) box.innerHTML=issues.length
     ?`<div class="rec-check warn"><b>발송 전 확인</b><br>${issues.map(x=>'· '+esc(x)).join('<br>')}</div>`
     :`<div class="rec-check ok"><b>발송 전 확인</b> · 필수 항목이 모두 입력되었습니다.${r.status==='작성중'?' 검수 후 상태를 [검수완료]로 바꿔주세요.':''}</div>`;
-}
-
-/* ── 추천 사유 자동 작성 ──
- * 1차 기준(투자 방향성에 맞는 지역 + 권리상 문제 없는 물건)에 맞춰
- * 수강생 조건 + 자동 캡처에서 읽은 사실(지역·말소기준권리·임차인·낙찰가율)로 3가지 사유를 만든다. */
-// 수도권 규제지역 (투자 방향성 기준과 동일: 서울 전역 + 경기 12곳)
-const REG_GG=['과천시','광명시','성남시 분당구','성남시 수정구','성남시 중원구','수원시 영통구','수원시 장안구','수원시 팔달구','안양시 동안구','용인시 수지구','의왕시','하남시'];
-function facts(r){try{return JSON.parse(r.auto_facts||'{}')||{};}catch(e){return {};}}
-function regionOf(r){
-  const a=(facts(r).address||r.headline||'').replace(/\s+/g,' ');
-  if(/^서울/.test(a)) return {key:'reg',label:'수도권 규제지역'};
-  if(/^경기/.test(a)) return REG_GG.some(g=>a.replace(/^경기(도)?\s*/,'').startsWith(g))?{key:'reg',label:'수도권 규제지역'}:{key:'nreg',label:'수도권 비규제지역'};
-  if(/^인천/.test(a)) return {key:'nreg',label:'수도권 비규제지역'};
-  if(a) return {key:'local',label:'비수도권'};
-  return null;
-}
-function rateRange(txt){const m=(txt||'').match(/(\d{1,3}(?:\.\d+)?)%(?:\s*~\s*(\d{1,3}(?:\.\d+)?)%)?/);return m?{lo:+m[1],hi:+(m[2]||m[1])}:null;}
-// 권장 입찰가 = 감정가 × 인근 낙찰가율 범위 (10만원 단위 반올림, 최저가 미만이면 최저가로)
-function calcBid(r){
-  const ap=num(r.appraisal), wr=rateRange(r.win_rate), min=num(r.min_price);
-  if(!ap||!wr) return null;
-  const rd=v=>Math.round(v/10)*10;
-  let lo=rd(ap*wr.lo/100), hi=rd(ap*wr.hi/100);
-  if(min){ if(lo<min) lo=min; if(hi<min) hi=min; }
-  return {bid_low:lo,bid_high:hi,belowMin:!!(min&&rd(ap*wr.hi/100)<min)};
-}
-async function autoBid(){
-  if(!st.cur) return;
-  readEditor();
-  const b=calcBid(st.cur);
-  if(!b){alert('감정가와 인근 낙찰가율이 있어야 계산할 수 있습니다. 먼저 [🤖 탱크옥션 자동 캡처]를 해주세요.');return;}
-  if((num(st.cur.bid_low)||num(st.cur.bid_high))&&!confirm(`권장 입찰가를 ${man(b.bid_low,'원')} ~ ${man(b.bid_high,'원')}로 바꿀까요?`)) return;
-  Object.assign(st.cur,{bid_low:b.bid_low,bid_high:b.bid_high,bid_auto:`${b.bid_low}-${b.bid_high}`});
-  await save();
-  if(b.belowMin) alert('인근 낙찰가율로 계산한 금액이 최저가보다 낮아 최저가 기준으로 맞췄습니다. 입찰 여부를 다시 검토해주세요.');
-}
-function genReasons(s,r){
-  const f=facts(r), rg=regionOf(r), prop=f.propType||r.prop_type||'물건';
-  const seed=s.seed_amount||0, cr=s.credit_amount||0, min=num(r.min_price), dep=deposit(r);
-  const many=s.housing_type==='1주택'||s.housing_type==='다주택'||s.housing_type==='일시적2주택';
-  // 1. 투자 방향성(지역·자금) 적합
-  const b1=[];
-  if(min) b1.push(`최저가 ${man(min,'원')}${dep?`(입찰보증금 ${man(dep,'원')})`:''}으로 ${cr>0?`현금 ${man(seed,'원')}과 신용대출 ${man(cr,'원')}을 활용해`:`보유 현금 ${man(seed,'원')} 범위에서`} 입찰이 가능합니다.`);
-  // 수도권은 비규제지역이라도 대출을 받으면 전입(1주택은 처분까지) 조건이 붙으므로 조건 없이 단정하지 않음
-  if(rg&&rg.key==='nreg') b1.push(many?'비규제지역이라 현금·신용대출로 매수하면 기존 주택 처분·전입 조건이 없습니다.':'비규제지역이라 규제지역보다 대출 한도가 높습니다.');
-  if(rg&&rg.key==='local') b1.push('비수도권 물건으로 수도권 대출 한도 규제를 받지 않습니다.');
-  if(many&&/1억(원)?(이하|미만)|^~?1억$/.test(f.pubPrice||'')) b1.push('공시가격 1억원 이하 주택으로 취득세 중과 대상에서 제외됩니다.');
-  const r1={title:`투자 방향성에 맞는 ${rg?rg.label+' ':''}${prop}`.replace(/\s+/g,' '),body:b1.join(' ')};
-  // 2. 권리
-  const b2=[];let clean=true;
-  if(f.baseRight) b2.push(`말소기준권리(${f.baseRight.kind}${f.baseRight.date?', '+f.baseRight.date:''}) 이하 권리는 매각으로 모두 소멸됩니다.`);
-  else b2.push('말소기준권리 이하 권리는 매각으로 모두 소멸됩니다.');
-  if(f.tenants===0) b2.push('조사된 임차인이 없어 매수인이 인수할 권리가 없습니다.');
-  else if(f.tenants>0&&!f.tenantsWithPriority) b2.push(`임차인 ${f.tenants}명은 대항력이 없어 매수인이 인수할 보증금이 없습니다.`);
-  else if(f.tenantsWithPriority>0){clean=false;b2.push(`대항력 있는 임차인이 ${f.tenantsWithPriority}명 있어 배당 결과에 따라 보증금을 인수할 수 있으니 확인이 필요합니다.`);}
-  if((f.assumedRights||[]).length){clean=false;b2.push(`소멸되지 않는 권리(${f.assumedRights.join(', ')})가 있어 확인이 필요합니다.`);}
-  if(f.closedDoor) b2.push('다만 폐문으로 점유자 확인이 되지 않아 입찰 전 현장 확인이 필요합니다.');
-  if(f.rightsSummary) b2.push(f.rightsSummary); // 정보지의 권리분석요약 첫 문장
-  const r2={title:clean?'권리관계가 깨끗한 물건':'권리 확인이 필요한 물건',body:b2.join(' ')};
-  // 3. 가격
-  const b3=[], p=pct(r.min_price,r.appraisal), fc=num(r.fail_count), wr=rateRange(r.win_rate);
-  if(num(r.appraisal)&&min) b3.push(`감정가 ${man(r.appraisal,'원')} 대비 최저가 ${man(min,'원')}(${p}%)${fc?`로 ${fc}회 유찰된 상태입니다.`:'입니다.'}`);
-  if(wr) b3.push(p&&p<wr.lo?`인근 매각사례 낙찰가율(${r.win_rate.replace(/\s*\(.*$/,'')})보다 낮은 가격에서 시작해 가격 메리트가 있습니다.`:`인근 매각사례 낙찰가율은 ${r.win_rate.replace(/\s*\(.*$/,'')} 수준으로, 입찰가 산정 시 참고하세요.`);
-  const r3={title:fc?`${fc}회 유찰로 낮아진 최저가`:'시세 대비 가격 메리트',body:b3.join(' ')};
-  return [r1,r2,r3];
-}
-async function autoReasons(){
-  if(!st.cur) return;
-  readEditor();
-  const has=(st.cur.reasons||[]).some(x=>(x.title||'').trim()||(x.body||'').trim());
-  if(has&&!confirm('이미 입력된 추천 사유를 자동 작성 내용으로 바꿀까요?')) return;
-  if(!st.cur.auto_facts&&!confirm('자동 캡처 정보가 없어 일부 문장만 만들어집니다. 먼저 [🤖 탱크옥션 자동 캡처]를 하면 더 정확합니다. 그래도 작성할까요?')) return;
-  st.cur.reasons=genReasons(st.student,st.cur);
-  await save();
-}
-
-/* ── 발송 전 품질 체크 ── */
-function checkRec(r){
-  const out=[];
-  if(!/^\d{4}타경\d+/.test((r.case_no||'').replace(/\s/g,''))) out.push('사건번호를 "2025타경12345" 형식으로 입력하세요.');
-  if(r.sale_date&&new Date(r.sale_date+'T23:59:59')<new Date()) out.push('매각기일이 이미 지났습니다. 변경·유찰 여부를 확인하세요.');
-  if(num(r.min_price)&&num(r.appraisal)&&num(r.min_price)>num(r.appraisal)) out.push('최저가가 감정가보다 큽니다.');
-  if((r.reasons||[]).filter(x=>x.title&&x.title.trim()).length<3) out.push('추천 사유 3가지를 모두 입력하세요.');
-  if(num(r.bid_low)){
-    if(num(r.min_price)&&num(r.bid_low)<num(r.min_price)) out.push('권장 입찰가 하한이 최저가보다 낮습니다.');
-    if(num(r.bid_high)&&num(r.bid_high)<num(r.bid_low)) out.push('권장 입찰가 상한이 하한보다 낮습니다.');
-  }else out.push('권장 입찰가를 입력하세요.');
-  const s=st.student;
-  if(s&&deposit(r)){
-    const total=(s.seed_amount||0)+(s.credit_amount||0);
-    if(total&&deposit(r)>total) out.push(`입찰보증금(${man(deposit(r),'원')})이 수강생 투자금 합산(${man(total,'원')})보다 큽니다.`);
-  }
-  if(!(r.images||[]).length) out.push('탱크옥션 캡처 이미지가 없습니다. [🤖 탱크옥션 자동 캡처]를 눌러주세요.');
-  const f=facts(r);
-  if(f.tenantsWithPriority>0) out.push(`대항력 있는 임차인 ${f.tenantsWithPriority}명 — 추천 기준(권리상 문제 없음)에 맞는지 확인하세요.`);
-  if((f.assumedRights||[]).length) out.push(`소멸되지 않는 권리(${f.assumedRights.join(', ')}) — 추천 기준에 맞는지 확인하세요.`);
-  return out;
 }
 
 /* ── CRUD ── */
@@ -483,467 +409,12 @@ async function imgMove(i,dir){
   st.cur.images=imgs;await save();
 }
 
-/* ── 캡처 이미지 다듬기 (자르기 / 모자이크) ── */
-const mk={canvas:null,ctx:null,undo:[],mode:'blur',sel:null,drag:null,scale:1};
-function openMask(file,replace){
-  mk.replace=replace||null;
-  if(!replace&&(st.cur.images||[]).length>=6){alert('이미지는 최대 6장까지 첨부할 수 있습니다.');return;}
-  const img=new Image();
-  img.onload=()=>{
-    const MAXW=1600;const k=Math.min(1,MAXW/img.width);
-    const c=document.getElementById('maskCanvas');
-    c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
-    mk.canvas=c;mk.ctx=c.getContext('2d');mk.ctx.drawImage(img,0,0,c.width,c.height);
-    mk.undo=[];mk.sel=null;
-    document.getElementById('maskCaption').value=replace?replace.caption||'':'';
-    document.getElementById('maskModal').classList.add('show');
-    fitMask();maskMode(replace?'blur':'crop');
-    URL.revokeObjectURL(img.src);
-  };
-  img.src=URL.createObjectURL(file);
-}
-function fitMask(){
-  const wrapW=document.getElementById('maskWrap').clientWidth-2;
-  mk.scale=Math.min(1,wrapW/mk.canvas.width);
-  mk.canvas.style.width=(mk.canvas.width*mk.scale)+'px';
-  mk.canvas.style.height=(mk.canvas.height*mk.scale)+'px';
-  document.getElementById('maskSel').style.display='none';
-}
-function maskMode(m){
-  mk.mode=m;mk.sel=null;
-  document.getElementById('mtCrop').classList.toggle('on',m==='crop');
-  document.getElementById('mtBlur').classList.toggle('on',m==='blur');
-  document.getElementById('mtCropApply').style.display='none';
-  document.getElementById('maskSel').style.display='none';
-}
-function pushUndo(){mk.undo.push({w:mk.canvas.width,h:mk.canvas.height,data:mk.ctx.getImageData(0,0,mk.canvas.width,mk.canvas.height)});if(mk.undo.length>20)mk.undo.shift();}
-function maskUndo(){
-  const u=mk.undo.pop();if(!u)return;
-  mk.canvas.width=u.w;mk.canvas.height=u.h;mk.ctx.putImageData(u.data,0,0);fitMask();
-}
-function pixelate(x,y,w,h){
-  if(w<2||h<2) return;
-  pushUndo();
-  const block=Math.max(8,Math.min(14,Math.round(Math.min(w,h)/3)));
-  const data=mk.ctx.getImageData(x,y,w,h);
-  for(let by=0;by<h;by+=block)for(let bx=0;bx<w;bx+=block){
-    let r=0,g=0,b=0,n=0;
-    for(let yy=by;yy<Math.min(by+block,h);yy++)for(let xx=bx;xx<Math.min(bx+block,w);xx++){const i=(yy*w+xx)*4;r+=data.data[i];g+=data.data[i+1];b+=data.data[i+2];n++;}
-    mk.ctx.fillStyle=`rgb(${r/n|0},${g/n|0},${b/n|0})`;
-    mk.ctx.fillRect(x+bx,y+by,Math.min(block,w-bx),Math.min(block,h-by));
-  }
-}
-function maskCropApply(){
-  const s=mk.sel;if(!s||s.w<10||s.h<10)return;
-  pushUndo();
-  const data=mk.ctx.getImageData(s.x,s.y,s.w,s.h);
-  mk.canvas.width=s.w;mk.canvas.height=s.h;mk.ctx.putImageData(data,0,0);
-  fitMask();maskMode('blur');
-}
-function bindMask(){
-  const c=document.getElementById('maskCanvas'),sel=document.getElementById('maskSel');
-  const pos=e=>{const b=c.getBoundingClientRect();return{x:Math.max(0,Math.min(mk.canvas.width,(e.clientX-b.left)/mk.scale)),y:Math.max(0,Math.min(mk.canvas.height,(e.clientY-b.top)/mk.scale))};};
-  c.addEventListener('mousedown',e=>{mk.drag=pos(e);e.preventDefault();});
-  window.addEventListener('mousemove',e=>{
-    if(!mk.drag) return;
-    const p=pos(e);
-    const x=Math.min(p.x,mk.drag.x),y=Math.min(p.y,mk.drag.y),w=Math.abs(p.x-mk.drag.x),h=Math.abs(p.y-mk.drag.y);
-    mk.sel={x:Math.round(x),y:Math.round(y),w:Math.round(w),h:Math.round(h)};
-    Object.assign(sel.style,{display:'block',left:(c.offsetLeft+x*mk.scale)+'px',top:(c.offsetTop+y*mk.scale)+'px',width:(w*mk.scale)+'px',height:(h*mk.scale)+'px'});
-  });
-  window.addEventListener('mouseup',()=>{
-    if(!mk.drag) return;
-    mk.drag=null;
-    if(!mk.sel) return;
-    if(mk.mode==='blur'){const s=mk.sel;pixelate(s.x,s.y,s.w,s.h);mk.sel=null;sel.style.display='none';}
-    else document.getElementById('mtCropApply').style.display='';
-  });
-}
-async function maskDone(){
-  const dataUrl=mk.canvas.toDataURL('image/jpeg',0.88);
-  const caption=document.getElementById('maskCaption').value;
-  try{
-    if(st.dirty) await save(true);
-    const rep=mk.replace; mk.replace=null;
-    let rec=await recApi(`/api/recommendations/${st.cur.id}/images`,'POST',{dataUrl,caption,source:rep?rep.source:'manual'});
-    if(rep){
-      // 다듬은 이미지를 원래 자리로 옮기고 원본 삭제
-      const newer=rec.images[rec.images.length-1];
-      const order=rec.images.filter(i=>i.file!==newer.file&&i.file!==rep.file);
-      order.splice(Math.min(rep.index,order.length),0,newer);
-      await recApi(`/api/recommendations/${st.cur.id}`,'PUT',{images:[...order,...rec.images.filter(i=>i.file===rep.file)]});
-      await recApi(`/api/recommendations/${st.cur.id}/images/${encodeURIComponent(rep.file)}`,'DELETE');
-    }
-    document.getElementById('maskModal').classList.remove('show');
-    await reload(st.cur.id);select(st.cur.id);
-  }catch(e){alert('이미지 업로드 오류: '+e.message);}
-}
-function maskCancel(){mk.replace=null;document.getElementById('maskModal').classList.remove('show');}
-async function imgEdit(file){
-  if(st.dirty) await save(true);
-  const idx=(st.cur.images||[]).findIndex(i=>i.file===file);if(idx<0)return;
-  const im=st.cur.images[idx];
-  const blob=await (await fetch('/api/rec-images/'+encodeURIComponent(file),{credentials:'same-origin'})).blob();
-  openMask(blob,{file,index:idx,caption:im.caption,source:im.source});
-}
-
-/* ── 탱크옥션 자동 캡처 (크롬 확장프로그램 '추천물건 캡처 도우미'와 연동) ── */
-const ext={ready:false,version:null,pending:{}};
-window.addEventListener('message',e=>{
-  if(e.source!==window||!e.data||e.data.source!=='tank-ext') return;
-  const d=e.data;
-  if(d.type==='PONG'){ext.ready=true;ext.version=d.version;}
-  else if(d.type==='PROGRESS'){const p=ext.pending[d.reqId];if(p&&p.progress)p.progress(d.message);}
-  else if(d.type==='RESULT'){const p=ext.pending[d.reqId];if(p){delete ext.pending[d.reqId];p.resolve(d);}}
-});
-function pingExt(){window.postMessage({source:'rec-site',type:'PING'},location.origin);}
-// hint: 같은 사건번호가 여러 법원에 있을 때 고르기 위한 법원·한 줄 요약
-function extCapture(caseNo,progress,hint){
-  return new Promise(resolve=>{
-    const reqId=Date.now().toString(36)+Math.random().toString(36).slice(2);
-    ext.pending[reqId]={resolve,progress};
-    window.postMessage({source:'rec-site',type:'CAPTURE',reqId,caseNo,hint:hint||{}},location.origin);
-    setTimeout(()=>{if(ext.pending[reqId]){delete ext.pending[reqId];resolve({ok:false,error:'시간 초과 (3분). 탱크옥션 창을 확인해주세요.'});}},180000);
-  });
-}
-const EXT_GUIDE=[
-  '탱크옥션 자동 캡처를 쓰려면 크롬 확장프로그램 "추천물건 캡처 도우미"가 필요합니다.','',
-  '설치 방법',
-  '1. 크롬 주소창에 chrome://extensions 입력',
-  '2. 오른쪽 위 [개발자 모드] 켜기',
-  '3. [압축해제된 확장 프로그램을 로드합니다] → 프로젝트의 tank-capture-extension 폴더 선택',
-  '4. 이 페이지 새로고침','',
-  '※ 같은 크롬에서 탱크옥션에 로그인되어 있어야 합니다.'
-].join('\n');
-// 캡처를 4MB 이하 JPEG로 정리 (가로 최대 1600px)
-function shrink(dataUrl,maxW=1600){
-  return new Promise((ok,no)=>{const im=new Image();im.onload=()=>{
-    let k=Math.min(1,maxW/im.width);let q=0.86;
-    const c=document.createElement('canvas');
-    for(let t=0;t<6;t++){
-      c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
-      const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);
-      const out=c.toDataURL('image/jpeg',q);
-      if(out.length<5.2e6) return ok(out);
-      k*=0.8;q=Math.max(0.7,q-0.05);
-    }
-    no(new Error('캡처 이미지가 너무 큽니다.'));
-  };im.onerror=()=>no(new Error('캡처 이미지를 읽지 못했습니다.'));im.src=dataUrl;});
-}
-async function captureInto(rec,status){
-  if(!ext.ready){pingExt();await new Promise(r=>setTimeout(r,400));}
-  if(!ext.ready){alert(EXT_GUIDE);throw new Error('확장프로그램 미설치');}
-  if(!/^\d{4}타경\d+/.test((rec.case_no||'').replace(/\s/g,''))) throw new Error('사건번호를 먼저 입력·저장해주세요.');
-  const manual=(rec.images||[]).filter(i=>i.source!=='auto').length;
-  const res=await extCapture(rec.case_no,m=>status(m),{court:rec.court||'',headline:rec.headline||''});
-  if(!res.ok) throw new Error(res.error||'자동 캡처 실패');
-  if(!res.images||!res.images.length) throw new Error('캡처할 영역을 찾지 못했습니다.');
-  if(manual+res.images.length>6) throw new Error(`이미지는 최대 6장입니다. 직접 올린 이미지(${manual}장)를 줄여주세요.`);
-  status('리포트에 저장하는 중...');
-  for(const im of (rec.images||[]).filter(i=>i.source==='auto'))
-    await recApi(`/api/recommendations/${rec.id}/images/${encodeURIComponent(im.file)}`,'DELETE');
-  for(const im of res.images)
-    await recApi(`/api/recommendations/${rec.id}/images`,'POST',{dataUrl:await shrink(im.dataUrl),caption:im.label,source:'auto'});
-  // 캡처에서 읽은 값은 비어 있는 칸만 채움 (매각기일·법원 등 → 발송 전 체크에 사용)
-  const patch={};
-  for(const [k,v] of Object.entries(res.fields||{})){if(v!==null&&v!==undefined&&v!==''&&(rec[k]===null||rec[k]===undefined||rec[k]===''))patch[k]=v;}
-  // 낙찰가율은 시세 정보라 재캡처 때 최신 값으로 갱신 (직접 고친 값은 유지)
-  if(res.fields&&res.fields.win_rate&&rec.win_rate&&rec.win_rate===rec.win_rate_auto) patch.win_rate=res.fields.win_rate;
-  if(res.fields&&res.fields.win_rate&&(patch.win_rate||!rec.win_rate)) patch.win_rate_auto=patch.win_rate||res.fields.win_rate;
-  if(!rec.image_note) patch.image_note=`※ 출처: 탱크옥션 (${todayStr()} 캡처) · 개인정보는 가림 처리`;
-  if(res.fields&&res.fields.auto_facts) patch.auto_facts=res.fields.auto_facts;
-  // 권장 입찰가: 비어 있거나 이전 자동 계산값 그대로면 낙찰가율로 다시 계산 (직접 고친 값은 유지)
-  {
-    const m0={...rec,...patch}, b=calcBid(m0);
-    const untouched=!num(rec.bid_low)&&!num(rec.bid_high) || (rec.bid_auto&&rec.bid_auto===`${num(rec.bid_low)}-${num(rec.bid_high)}`);
-    if(b&&untouched) Object.assign(patch,{bid_low:b.bid_low,bid_high:b.bid_high,bid_auto:`${b.bid_low}-${b.bid_high}`});
-  }
-  // 추천 사유가 비어 있으면 자동 작성 (직접 쓴 내용은 그대로 둠)
-  const merged={...rec,...patch};
-  if(!(rec.reasons||[]).some(x=>(x.title||'').trim()||(x.body||'').trim())){
-    const stu=(st.student&&st.student.id===rec.student_id)?st.student:(typeof students!=='undefined'?students.find(x=>x.id===rec.student_id):null);
-    if(stu) patch.reasons=genReasons(stu,merged);
-  }
-  if(Object.keys(patch).length) await recApi(`/api/recommendations/${rec.id}`,'PUT',patch);
-  return res;
-}
-async function autoCapture(){
-  if(!st.cur) return;
-  const btn=document.getElementById('recAutoBtn'),stEl=document.getElementById('recAutoStatus');
-  const status=(m,err)=>{if(stEl){stEl.textContent=m;stEl.classList.toggle('err',!!err);}};
-  try{
-    readEditor();
-    if(st.dirty||!st.cur.case_no) await save(true);
-    if(btn) btn.disabled=true;
-    status('탱크옥션 창을 여는 중... (작업이 끝날 때까지 그 창을 닫지 마세요)');
-    const id=st.cur.id;
-    const res=await captureInto(st.cur,status);
-    await reload(id);select(id);
-    const s2=document.getElementById('recAutoStatus');
-    if(s2){
-      s2.textContent=`✓ ${res.images.length}장 캡처 완료 (${res.images.map(i=>i.label).join(', ')})`
-        +(res.masked?` · 이름 ${res.masked}건 가림`:'')
-        +(res.fields&&res.fields.win_rate?' · 낙찰가율 입력됨':' · 낙찰가율은 직접 입력 필요')
-        +(res.missing&&res.missing.length?` · 못 찾음: ${res.missing.join(', ')}`:'');
-    }
-  }catch(e){status('⚠ '+e.message,true);console.error(e);}
-  finally{if(btn)btn.disabled=false;}
-}
-async function autoCaptureAll(){
-  const targets=st.recs.filter(r=>!(r.images||[]).some(i=>i.source==='auto')&&r.case_no);
-  if(!targets.length) return;
-  if(!confirm(`${targets.length}건을 차례대로 자동 캡처합니다. 끝날 때까지 탱크옥션 창을 닫지 마세요. 진행할까요?`)) return;
-  if(st.dirty) await save(true);
-  const el=()=>document.getElementById('recBulkStatus');
-  const fails=[];
-  for(let i=0;i<targets.length;i++){
-    const r=targets[i];
-    try{await captureInto(r,m=>{const e=el();if(e)e.textContent=`(${i+1}/${targets.length}) ${r.case_no} · ${m}`;});}
-    catch(e){fails.push(`${r.case_no}: ${e.message}`);if(e.message==='확장프로그램 미설치')break;}
-    await new Promise(ok=>setTimeout(ok,1500));
-  }
-  await reload(st.cur&&st.cur.id);if(st.cur)select(st.cur.id);
-  alert(`자동 캡처 완료: ${targets.length-fails.length}건 성공${fails.length?`\n\n실패 ${fails.length}건\n${fails.join('\n')}`:''}`);
-}
-
-/* ── PDF 생성 ── */
-async function toDataUrl(url){
-  const res=await fetch(url,{credentials:'same-origin'});
-  if(!res.ok) throw new Error('이미지를 불러오지 못했습니다: '+url);
-  const blob=await res.blob();
-  return await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(fr.result);fr.onerror=no;fr.readAsDataURL(blob);});
-}
-function imgSize(src){return new Promise(ok=>{const im=new Image();im.onload=()=>ok({w:im.naturalWidth||1,h:im.naturalHeight||1});im.onerror=()=>ok({w:1,h:1});im.src=src;});}
-let LOGO=null;
-async function logo(){if(!LOGO){try{LOGO=await toDataUrl('/report-logo.png');}catch(e){LOGO='';}}return LOGO;}
-
-function secTitle(t,mt=22){
-  return `<table style="border-collapse:collapse;margin:${mt}px 0 12px"><tr>
-    <td style="width:4px;padding:0"><div style="width:4px;height:16px;background:${PURPLE}"></div></td>
-    <td style="padding:0 0 0 8px"><div style="font-size:14.5px;font-weight:700;color:${PURPLE};line-height:16px">${t}</div></td>
-  </tr></table>`;
-}
-function tile(label,value,sub,hl){
-  return `<td style="width:16.66%;padding:0 3px;vertical-align:top">
-    <div style="background:${hl?PURPLE_BG:'#f6f6f8'};border-radius:6px;padding:9px 9px 10px;height:62px;box-sizing:border-box">
-      <div style="font-size:10px;color:#888;margin-bottom:5px;white-space:nowrap">${esc(label)}</div>
-      <div style="font-size:13.5px;font-weight:800;color:${hl?PURPLE:'#222'};white-space:nowrap">${esc(value||'-')}</div>
-      <div style="font-size:10px;color:#777;margin-top:3px;white-space:nowrap">${esc(sub||'')}</div>
-    </div></td>`;
-}
-function stratRow(label,value,hl,first){
-  return `<tr><td style="padding:9px 16px 9px 0;font-size:12px;color:#777;white-space:nowrap;vertical-align:top;${first?'':'border-top:1px solid #e9e9ec;'}">${esc(label)}</td>
-    <td style="padding:9px 0;font-size:12.5px;font-weight:700;text-align:right;color:${hl?PURPLE:'#222'};${first?'':'border-top:1px solid #e9e9ec;'}">${esc(value||'-')}</td></tr>`;
-}
-
-async function renderRecPage(s,r,idx){
-  const ctx=InvestmentRules.getReportContext(s);
-  const noHouse=s.housing_type==='무주택'||s.housing_type==='생애최초',oneHouse=s.housing_type==='1주택';
-  const transferLabel=s.transfer_available==='Y'?'전입가능':s.transfer_available==='N'?'전입불가':'미확인';
-  const minPct=pct(r.min_price,r.appraisal);
-  // 캡처에 이미 나오는 정보는 중복 입력하지 않아도 되므로, 6칸이 모두 비어 있으면 숨김
-  const hasTiles=[r.prop_type,r.floor_main,r.occupancy,r.rights].some(v=>(v||'').trim());
-  const pill=`<span style="display:inline-block;vertical-align:middle;background:${PURPLE};color:#fff;font-size:11.5px;font-weight:700;border-radius:12px;padding:3px 11px;line-height:16px">물건 #${String(idx+1).padStart(2,'0')}</span>`;
-  const failTxt=num(r.fail_count)?`유찰 ${num(r.fail_count)}회`:'신건';
-  const bidTxt=num(r.bid_low)
-    ?`${man(r.bid_low)}${num(r.bid_high)&&num(r.bid_high)!==num(r.bid_low)?' ~ '+man(r.bid_high,'원'):'원'}${num(r.appraisal)?` (감정가 ${pct(r.bid_low,r.appraisal)}${num(r.bid_high)&&num(r.bid_high)!==num(r.bid_low)?'~'+pct(r.bid_high,r.appraisal):''}%)`:''}`
-    :'';
-  const B=v=>`<b style="color:#222">${v}</b>`;
-  const caseLine=[
-    r.case_no&&`사건번호 ${B(esc(r.case_no))}`,
-    r.court&&esc(r.court),
-    r.sale_date&&`매각기일 ${B(fmtDate(r.sale_date))}`,
-    deposit(r)&&`입찰보증금 ${B(man(deposit(r),'원'))}`
-  ].filter(Boolean).join('<span style="color:#ccc"> &nbsp;|&nbsp; </span>');
-
-  // 캡처 이미지: 가로로 긴 캡처(표·상세정보)는 전체 폭, 세로형은 2장씩 나란히
-  const imgs=[];
-  for(const im of r.images||[]){try{const src=await toDataUrl('/api/rec-images/'+im.file);const sz=await imgSize(src);imgs.push({src,caption:im.caption,wide:sz.w/sz.h>=1.25});}catch(e){console.error(e);}}
-  let imgHtml='';
-  if(imgs.length){
-    const rows=[];
-    for(let i=0;i<imgs.length;){
-      if(imgs[i].wide||!imgs[i+1]||imgs[i+1].wide){rows.push([imgs[i]]);i++;}
-      else{rows.push([imgs[i],imgs[i+1]]);i+=2;}
-    }
-    imgHtml=rows.map(row=>`<table style="width:100%;border-collapse:collapse;margin-bottom:8px"><tr>${row.map(im=>`
-      <td style="width:${row.length===1?100:50}%;vertical-align:top;padding:0 ${row.length===1?0:4}px">
-        <div style="border:1px solid #e3e3e6;border-radius:6px;overflow:hidden;background:#fff">
-          ${im.caption?`<div style="font-size:9.5px;color:#888;background:#f6f6f8;padding:5px 8px;border-bottom:1px solid #eee">${esc(im.caption)}</div>`:''}
-          <img src="${im.src}" style="width:100%;display:block">
-        </div></td>`).join('')}</tr></table>`).join('')
-      +(r.image_note?`<div style="font-size:10px;color:#999;margin-top:2px">${esc(r.image_note)}</div>`:'');
-  }
-
-  const reasons=(r.reasons||[]).filter(x=>(x.title||'').trim()||(x.body||'').trim());
-  const reasonsHtml=reasons.map((x,i)=>`<table style="width:100%;border-collapse:collapse;margin-bottom:12px"><tr>
-      <td style="width:30px;vertical-align:top;padding:0">
-        <table style="width:22px;height:22px;border-collapse:collapse"><tr><td style="width:22px;height:22px;border-radius:50%;background:${PURPLE};color:#fff;font-size:12px;font-weight:700;text-align:center;vertical-align:middle;line-height:1;padding:0">${i+1}</td></tr></table>
-      </td>
-      <td style="vertical-align:top;padding:0">
-        <div style="font-size:13px;font-weight:700;line-height:22px;color:#222">${esc(x.title)}</div>
-        ${x.body?`<div style="font-size:12px;line-height:1.65;color:#555;margin-top:2px">${escBr(x.body)}</div>`:''}
-      </td></tr></table>`).join('');
-
-  const hasStrat=bidTxt||r.win_rate||r.rent||r.strategy_note;
-  const stratHtml=hasStrat?`<div style="background:#f6f6f8;border-left:4px solid #333;border-radius:4px;padding:14px 18px;margin-top:8px">
-      <div style="font-size:13px;font-weight:700;color:#222;margin-bottom:6px">※ 입찰 전략</div>
-      <table style="width:100%;border-collapse:collapse">
-        ${[bidTxt&&['권장 입찰가',bidTxt,true],r.win_rate&&['인근 낙찰가율',r.win_rate],r.rent&&['임대 세팅 예상',r.rent]].filter(Boolean).map((x,i)=>stratRow(x[0],x[1],x[2],i===0)).join('')}
-      </table>
-      ${r.strategy_note?`<div style="font-size:11.5px;line-height:1.75;color:#444;margin-top:10px;padding-top:10px;border-top:1px solid #e3e3e6">${escBr(r.strategy_note)}</div>`:''}
-    </div>`:'';
-
-  const lg=await logo();
-  const container=document.createElement('div');
-  container.style.cssText='position:fixed;left:-9999px;top:0;width:600px;background:#fff;font-family:"Apple SD Gothic Neo","Pretendard","Malgun Gothic",sans-serif;';
-  container.innerHTML=`
-  <div style="width:600px;box-sizing:border-box;background:#fff;border:1px solid #e3e3e3;border-radius:6px;overflow:hidden">
-    <div style="background:${PURPLE};padding:20px 28px">
-      <table style="width:100%;border-collapse:collapse"><tr>
-        <td style="vertical-align:middle;padding:0"><div style="font-size:19px;font-weight:700;color:#fff">경매 물건 리포트</div></td>
-        <td style="vertical-align:middle;padding:0;text-align:right">${lg?`<img src="${lg}" style="height:28px;width:104px;display:inline-block">`:''}</td>
-      </tr></table>
-    </div>
-    <div style="padding:16px 28px 0">
-      <table style="width:100%;border-collapse:collapse;font-size:13px">
-        <tr><td style="width:70px;padding:7px 0;color:#888">기수</td><td style="padding:7px 0;font-weight:600;color:#222">${esc(s.cohort)}</td>
-            <td style="width:70px;padding:7px 0;color:#888">이름</td><td style="padding:7px 0;font-weight:600;color:#222">${esc(s.name)}님</td></tr>
-        <tr><td style="padding:7px 0;color:#888;border-top:1px solid #f0f0f0">투자금</td><td style="padding:7px 0;font-weight:600;color:#222;border-top:1px solid #f0f0f0">${esc(ctx.seedLine.replace('시드 : ',''))}</td>
-            <td style="padding:7px 0;color:#888;border-top:1px solid #f0f0f0">주택유형</td><td style="padding:7px 0;font-weight:600;color:#222;border-top:1px solid #f0f0f0">${esc(s.housing_type)}${(noHouse||oneHouse)?` (${transferLabel})`:''}</td></tr>
-      </table>
-    </div>
-    <div style="padding:0 28px 22px">
-      ${imgs.length?'':`${secTitle('물건 개요',18)}
-      <table style="border-collapse:collapse;margin-bottom:8px"><tr>
-        <td style="padding:0;white-space:nowrap">${pill}</td>
-        <td style="padding:0 0 0 10px;font-size:13px;color:#333">${esc(r.headline)}</td>
-      </tr></table>`}
-      ${caseLine&&!imgs.length?`<div style="font-size:11.5px;color:#777;margin:0 0 10px 2px">${caseLine}</div>`:''}
-      ${hasTiles?`<table style="width:100%;border-collapse:collapse;margin:0 -3px;width:calc(100% + 6px)"><tr>
-        ${tile('물건종류',r.prop_type,r.area)}
-        ${tile('감정가',num(r.appraisal)?man(r.appraisal):'','')}
-        ${tile(`최저가 (${failTxt})`,num(r.min_price)?man(r.min_price):'',minPct?minPct+'%':'',true)}
-        ${tile('층 / 구조',r.floor_main,r.floor_sub)}
-        ${tile('점유 / 임차인',r.occupancy,r.occupancy_sub)}
-        ${tile('인수 권리',r.rights,r.rights_sub)}
-      </tr></table>`:''}
-      ${imgHtml?secTitle(`탱크옥션 물건 정보 &nbsp;${pill}`,18)+imgHtml:''}
-      ${reasonsHtml?secTitle('검토 포인트')+reasonsHtml:''}
-      ${stratHtml}
-    </div>
-    <table style="width:100%;border-collapse:collapse;background:#fafafa;border-top:1px solid #eee"><tr>
-      <td style="padding:14px 28px;font-size:10.5px;color:#999;line-height:1.6">${DISCLAIMER}</td>
-    </tr></table>
-  </div>`;
-  document.body.appendChild(container);
-  try{
-    await Promise.all([...container.querySelectorAll('img')].map(im=>im.complete?null:new Promise(ok=>{im.onload=im.onerror=ok;})));
-    return await html2canvas(container,{scale:2,backgroundColor:'#ffffff'});
-  }finally{document.body.removeChild(container);}
-}
-
-async function dateImage(){
-  const el=document.createElement('div');
-  el.style.cssText='position:fixed;left:-9999px;top:0;font-family:"Apple SD Gothic Neo","Pretendard","Malgun Gothic",sans-serif;font-size:11px;color:#999;white-space:nowrap;background:#fff;padding:2px';
-  el.textContent=`작성일 ${todayStr()}`;
-  document.body.appendChild(el);
-  try{return await html2canvas(el,{scale:2,backgroundColor:'#ffffff'});}finally{document.body.removeChild(el);}
-}
-
-/** 수강생 1명의 추천물건(들)을 PDF 1개로 생성 — 물건 1건당 1페이지 */
-async function buildRecPDF(s,recs){
-  const {jsPDF}=window.jspdf;
-  const A4_W=595.28,A4_H=841.89;
-  const dc=await dateImage();const dW=dc.width/2,dH=dc.height/2;const dImg=dc.toDataURL('image/png');
-  let pdf=null;
-  for(let i=0;i<recs.length;i++){
-    const idx=st.recs.findIndex(x=>x.id===recs[i].id);
-    const canvas=await renderRecPage(s,recs[i],idx>=0?idx:i);
-    const imgW=A4_W-60,imgH=canvas.height*imgW/canvas.width;
-    const pageH=Math.max(A4_H,imgH+60+30); // 내용이 길면 페이지를 늘림 (압축하지 않음)
-    if(!pdf) pdf=new jsPDF({unit:'pt',format:[A4_W,pageH]});
-    else pdf.addPage([A4_W,pageH]);
-    pdf.addImage(canvas.toDataURL('image/jpeg',0.92),'JPEG',30,30,imgW,imgH);
-    pdf.addImage(dImg,'PNG',A4_W-30-dW,pageH-25-dH,dW,dH);
-  }
-  const fname=recs.length===1
-    ?`${s.cohort}_${s.name}_경매물건_${(recs[0].case_no||'미정').replace(/[\\/:*?"<>|]/g,'')}.pdf`
-    :`${s.cohort}_${s.name}_경매물건리포트.pdf`;
-  return {pdf,filename:fname};
-}
-
-async function pdf(ids){
-  try{
-    if(st.dirty) await save(true);
-    const recs=ids?st.recs.filter(r=>ids.includes(r.id)):st.recs;
-    if(!recs.length){alert('추천물건이 없습니다.');return;}
-    const issues=recs.flatMap(r=>checkRec(r).map(x=>`[${r.case_no||'사건번호 없음'}] ${x}`));
-    const notReviewed=recs.filter(r=>r.status==='작성중');
-    if(issues.length||notReviewed.length){
-      const msg=[...issues,...(notReviewed.length?[`검수완료 전 상태인 물건 ${notReviewed.length}건`]:[])].slice(0,12).join('\n');
-      if(!confirm(`아래 항목을 확인하세요. 그래도 PDF를 만들까요?\n\n${msg}`)) return;
-    }
-    document.body.style.cursor='progress';
-    const {pdf:doc,filename}=await buildRecPDF(st.student,recs);
-    doc.save(filename);
-    const sendable=recs.filter(r=>r.status==='검수완료');
-    if(sendable.length&&confirm(`카톡으로 발송하셨다면 ${sendable.length}건을 [발송완료]로 표시할까요?`)){
-      for(const r of sendable) await recApi(`/api/recommendations/${r.id}`,'PUT',{status:'발송완료'});
-      await reload(st.cur&&st.cur.id);if(st.cur)select(st.cur.id);
-    }
-  }catch(e){alert('PDF 생성 오류: '+e.message);console.error(e);}
-  finally{document.body.style.cursor='';}
-}
-
-/* ── 구글시트 요약 탭 → 추천물건 초안 일괄 생성 ── */
-const CASE_RE=/(\d{4})\s*타경\s*(\d+)/g;
-function parseRecCell(text){
-  // "2025타경52471\n경기 광주 아파트" / "2024타경52015 평택 아파트" → [{case_no, headline}]
-  const s=String(text||'');const out=[];const ms=[...s.matchAll(CASE_RE)];
-  ms.forEach((m,i)=>{
-    const end=i+1<ms.length?ms[i+1].index:s.length;
-    const rest=s.slice(m.index+m[0].length,end).replace(/\s+/g,' ').replace(/^[\s,·/\-]+|[\s,·/\-]+$/g,'').trim();
-    out.push({case_no:`${m[1]}타경${m[2]}`,headline:rest});
-  });
-  return out;
-}
-async function importRecSheet(input){
-  const file=input.files[0];input.value='';if(!file) return;
-  try{
-    const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});
-    const sheetName=wb.SheetNames.find(n=>n.trim()==='요약')||wb.SheetNames.find(n=>n.includes('요약'))||wb.SheetNames[0];
-    const rows=XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{header:1,defval:''});
-    let hi=rows.findIndex(r=>r.some(c=>String(c).includes('추천물건')));
-    if(hi<0){alert(`'${sheetName}' 시트에서 '추천물건' 열을 찾지 못했습니다.`);return;}
-    const header=rows[hi].map(h=>String(h).replace(/\s/g,''));
-    const iC=header.findIndex(h=>h.includes('기수')),iN=header.findIndex(h=>h==='이름'||h.includes('성함')||h.includes('이름'));
-    const recCols=header.map((h,i)=>h.startsWith('추천물건')?i:-1).filter(i=>i>=0);
-    const items=[];
-    for(let r=hi+1;r<rows.length;r++){
-      const row=rows[r];const name=String(row[iN]||'').trim();if(!name) continue;
-      const cohort=String(row[iC]||'').trim();
-      for(const ci of recCols){
-        const manager=header[ci+1]&&header[ci+1].includes('담당자')?String(row[ci+1]||'').trim():'';
-        for(const p of parseRecCell(row[ci])) items.push({cohort,name,manager,...p});
-      }
-    }
-    if(!items.length){alert('사건번호가 입력된 추천물건이 없습니다.');return;}
-    const people=new Set(items.map(x=>x.cohort+x.name)).size;
-    if(!confirm(`'${sheetName}' 시트에서 추천물건 ${items.length}건 (수강생 ${people}명)을 찾았습니다.\n이미 등록된 사건번호는 건너뛰고, 새 물건만 '작성중' 초안으로 만듭니다. 진행할까요?`)) return;
-    const res=await recApi('/api/recommendations/import','POST',{items});
-    let msg=`새 초안 ${res.created}건 생성 · 중복/형식오류 ${res.skipped}건 건너뜀`;
-    if(res.unmatched.length) msg+=`\n\n사이트에 없는 수강생 ${res.unmatched.length}명 (기수·이름 확인 필요):\n${res.unmatched.slice(0,15).join(', ')}${res.unmatched.length>15?' 외':''}`;
-    alert(msg);
-    await loadSummary();if(typeof render==='function')render();
-  }catch(e){alert('시트 가져오기 오류: '+e.message);console.error(e);}
-}
 
 /* ── 초기화 ── */
-function init(){injectUI();bindMask();pingExt();window.addEventListener('resize',()=>{if(document.getElementById('maskModal').classList.contains('show'))fitMask();});}
+function init(){injectUI();R.bindMask();R.pingExt();window.addEventListener('resize',()=>{if(document.getElementById('maskModal').classList.contains('show'))R.fitMask();});}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 
-// 경매 정보지 PDF 가져오기(infosheet-import.js)가 쓰는 내부 기능
-window.RecCore={st,recApi,save,reload,select,shrink,todayStr,calcBid,genReasons,num};
-window.RecReport={autoBid,calcBid,autoReasons,genReasons,autoCapture,autoCaptureAll,imgEdit,open,close,select,add,save,remove,move,pdf,imgDel,imgMove,maskMode,maskUndo,maskCropApply,maskDone,maskCancel,loadSummary,cardLine,parseRecCell,checkRec,buildRecPDF};
+Object.assign(R,{PURPLE,PURPLE_BG,DISCLAIMER,st,esc,escBr,num,man,pct,fmtDate,todayStr,deposit,recApi,shrink,reload,readEditor,select,save,loadSummary});
+// 화면 버튼(onclick)에서 부르는 기능. 기능별 파일이 자기 기능을 더함
+window.RecReport={open,close,select,add,save,remove,move,imgDel,imgMove,loadSummary,cardLine};
 })();
