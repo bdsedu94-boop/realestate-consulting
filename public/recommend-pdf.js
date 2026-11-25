@@ -21,13 +21,21 @@ function secTitle(t,mt=22){
     <td style="padding:0 0 0 8px"><div style="font-size:14.5px;font-weight:700;color:${PURPLE};line-height:16px">${t}</div></td>
   </tr></table>`;
 }
-function tile(label,value,sub,hl){
-  return `<td style="width:16.66%;padding:0 3px;vertical-align:top">
-    <div style="background:${hl?PURPLE_BG:'#f6f6f8'};border-radius:6px;padding:9px 9px 10px;height:62px;box-sizing:border-box">
-      <div style="font-size:10px;color:#888;margin-bottom:5px;white-space:nowrap">${esc(label)}</div>
-      <div style="font-size:13.5px;font-weight:800;color:${hl?PURPLE:'#222'};white-space:nowrap">${esc(value||'-')}</div>
-      <div style="font-size:10px;color:#777;margin-top:3px;white-space:nowrap">${esc(sub||'')}</div>
-    </div></td>`;
+// 물건 요약: 지역 + 종류(아파트/빌라 등)만. 금액·층·권리는 캡처와 검토 포인트에 있음
+const VILLA=/^(연립|다세대|빌라|도시형생활주택)/;
+function kindOf(r){const k=(r.prop_type||'').trim();return VILLA.test(k)?'빌라':k;}
+function regionOf(r){
+  const h=(r.headline||'').trim(), k=(r.prop_type||'').trim();
+  let reg=k&&h.endsWith(k)?h.slice(0,-k.length).trim():'';
+  if(!reg){try{const a=(JSON.parse(r.auto_facts||'{}').address||'').split(/\s+/);reg=a.slice(0,2).join(' ');}catch(e){}}
+  return reg.replace(/(특별시|광역시|특별자치시|특별자치도)(?=\s|$)/,'').replace(/^(경상남도|경상북도|전라남도|전라북도|충청남도|충청북도)/,m=>m[0]+m[2]).replace(/^(경기|강원|제주)도/,'$1');
+}
+function kindLine(r){
+  const reg=regionOf(r), kind=kindOf(r);
+  if(!reg&&!kind) return '';
+  const item=(l,v)=>v?`<span style="color:#888;margin-right:6px">${l}</span><b style="color:#222">${esc(v)}</b>`:'';
+  return `<div style="background:#f6f6f8;border-radius:6px;padding:11px 14px;font-size:13px;margin-bottom:4px">
+    ${[item('지역',reg),item('물건 종류',kind)].filter(Boolean).join('<span style="color:#ccc;margin:0 12px">|</span>')}</div>`;
 }
 function stratRow(label,value,hl,first){
   return `<tr><td style="padding:9px 16px 9px 0;font-size:12px;color:#777;white-space:nowrap;vertical-align:top;${first?'':'border-top:1px solid #e9e9ec;'}">${esc(label)}</td>
@@ -38,11 +46,8 @@ async function renderRecPage(s,r,idx){
   const ctx=InvestmentRules.getReportContext(s);
   const noHouse=s.housing_type==='무주택'||s.housing_type==='생애최초',oneHouse=s.housing_type==='1주택';
   const transferLabel=s.transfer_available==='Y'?'전입가능':s.transfer_available==='N'?'전입불가':'미확인';
-  const minPct=pct(r.min_price,r.appraisal);
   // 캡처에 이미 나오는 정보는 중복 입력하지 않아도 되므로, 6칸이 모두 비어 있으면 숨김
-  const hasTiles=[r.prop_type,r.floor_main,r.occupancy,r.rights].some(v=>(v||'').trim());
   const pill=`<span style="display:inline-block;vertical-align:middle;background:${PURPLE};color:#fff;font-size:11.5px;font-weight:700;border-radius:12px;padding:3px 11px;line-height:16px">물건 #${String(idx+1).padStart(2,'0')}</span>`;
-  const failTxt=num(r.fail_count)?`유찰 ${num(r.fail_count)}회`:'신건';
   const bidTxt=num(r.bid_low)
     ?`${man(r.bid_low)}${num(r.bid_high)&&num(r.bid_high)!==num(r.bid_low)?' ~ '+man(r.bid_high,'원'):'원'}${num(r.appraisal)?` (감정가 ${pct(r.bid_low,r.appraisal)}${num(r.bid_high)&&num(r.bid_high)!==num(r.bid_low)?'~'+pct(r.bid_high,r.appraisal):''}%)`:''}`
     :'';
@@ -118,14 +123,7 @@ async function renderRecPage(s,r,idx){
         <td style="padding:0 0 0 10px;font-size:13px;color:#333">${esc(r.headline)}</td>
       </tr></table>`}
       ${caseLine&&!imgs.length?`<div style="font-size:11.5px;color:#777;margin:0 0 10px 2px">${caseLine}</div>`:''}
-      ${hasTiles?`<table style="width:100%;border-collapse:collapse;margin:0 -3px;width:calc(100% + 6px)"><tr>
-        ${tile('물건종류',r.prop_type,r.area)}
-        ${tile('감정가',num(r.appraisal)?man(r.appraisal):'','')}
-        ${tile(`최저가 (${failTxt})`,num(r.min_price)?man(r.min_price):'',minPct?minPct+'%':'',true)}
-        ${tile('층 / 구조',r.floor_main,r.floor_sub)}
-        ${tile('점유 / 임차인',r.occupancy,r.occupancy_sub)}
-        ${tile('인수 권리',r.rights,r.rights_sub)}
-      </tr></table>`:''}
+      ${kindLine(r)}
       ${imgHtml?secTitle(`탱크옥션 물건 정보 &nbsp;${pill}`,18)+imgHtml:''}
       ${reasonsHtml?secTitle('검토 포인트')+reasonsHtml:''}
       ${stratHtml}

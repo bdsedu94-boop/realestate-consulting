@@ -113,14 +113,30 @@ function fillPatch(rec,f){
   return patch;
 }
 
-// PDF 한 쪽을 그려서 영역만 잘라 JPEG로
+// PDF 한 쪽을 그려서 영역만 자르고, 둘레의 빈 여백을 걷어내 JPEG로 (리포트 칸에 꽉 차게)
 async function renderArea(view,area){
-  const SC=2, X0=28, X1=view.w-28;
+  const SC=2;
   const full=document.createElement('canvas');full.width=Math.ceil(view.w*SC);full.height=Math.ceil(view.h*SC);
   await view.pg.render({canvasContext:full.getContext('2d'),viewport:view.pg.getViewport({scale:SC})}).promise;
-  const c=document.createElement('canvas');c.width=Math.round((X1-X0)*SC);c.height=Math.round((area.y1-area.y0)*SC);
-  c.getContext('2d').drawImage(full,X0*SC,area.y0*SC,c.width,c.height,0,0,c.width,c.height);
+  const x=0, y=Math.round(area.y0*SC), w=full.width, h=Math.round((area.y1-area.y0)*SC);
+  const b=inkBox(full.getContext('2d').getImageData(x,y,w,h));
+  const PAD=8*SC;
+  const cx=Math.max(0,b.x0-PAD), cy=Math.max(0,b.y0-PAD);
+  const cw=Math.min(w,b.x1+PAD)-cx, ch=Math.min(h,b.y1+PAD)-cy;
+  const c=document.createElement('canvas');c.width=cw;c.height=ch;
+  const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,cw,ch);
+  g.drawImage(full,x+cx,y+cy,cw,ch,0,0,cw,ch);
   return c.toDataURL('image/jpeg',0.9);
+}
+// 흰색이 아닌 픽셀이 있는 범위
+function inkBox(img){
+  const {data,width,height}=img;
+  let x0=width,y0=height,x1=0,y1=0;
+  for(let yy=0;yy<height;yy++) for(let xx=0;xx<width;xx++){
+    const k=(yy*width+xx)*4;
+    if(data[k]<235||data[k+1]<235||data[k+2]<235){if(xx<x0)x0=xx;if(xx>x1)x1=xx;if(yy<y0)y0=yy;if(yy>y1)y1=yy;}
+  }
+  return x1>x0&&y1>y0?{x0,y0,x1:x1+1,y1:y1+1}:{x0:0,y0:0,x1:width,y1:height};
 }
 
 window.InfoSheetImport={pick,addFiles};

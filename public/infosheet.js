@@ -161,7 +161,8 @@ function captureArea(lines,pageH){
   if(ci==null) return null;
   const s=lines[ci], e=li!=null&&lines[li].p===s.p?lines[li]:null;
   const onP=lines.filter(l=>l.p===s.p&&(!e||l.y<e.y));
-  const y0=Math.max(0,s.y-16), y1=Math.min(pageH||842,e?e.y-16:Math.max(...onP.map(l=>l.y))+8);
+  // 위는 오른쪽 위 TANK 로고까지 넉넉히 (빈 여백은 그린 뒤 잘라냄)
+  const y0=Math.max(0,s.y-26), y1=Math.min(pageH||842,e?e.y-16:Math.max(...onP.map(l=>l.y))+8);
   return y1-y0>20?{p:s.p,y0,y1}:null;
 }
 
