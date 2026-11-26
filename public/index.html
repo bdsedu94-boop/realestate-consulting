@@ -9,55 +9,61 @@
 :root{--font:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic','Pretendard',sans-serif}
 body{font-family:var(--font);font-size:14px;color:#1a1a1a;background:#f7f6f2;min-height:100vh}
 .wrap{max-width:1240px;margin:0 auto;padding:2rem 1.5rem}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.25rem}
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:1.25rem}
+@media(max-width:760px){.stats{grid-template-columns:repeat(3,1fr)}}
 .stat{border-radius:10px;padding:0.8rem 1rem}
-.stat .slb{font-size:11px;margin-bottom:4px;font-weight:500}
+.stat .slb{font-size:12px;margin-bottom:4px;font-weight:500}
 .stat .sval{font-size:22px;font-weight:700}
 .cards{display:grid;gap:14px;grid-template-columns:1fr}
 .card{background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:12px;padding:1.1rem 1.25rem;position:relative}
-.card-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;padding-right:52px}
-.av{width:42px;height:42px;border-radius:50%;background:#f0ede6;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#5f5e5a;flex-shrink:0;text-align:center;line-height:1.2}
+.card-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.av{width:42px;height:42px;border-radius:50%;background:#f0ede6;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#5f5e5a;flex-shrink:0;text-align:center;line-height:1.2}
 .rg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:9px}
-.rbox{border-radius:8px;padding:6px 7px}
-.rbox .rl{font-size:11px;font-weight:600;margin-bottom:1px;opacity:0.85}
-.rbox .rv{font-size:12px;font-weight:700;margin-bottom:2px}
-.rbox .rn{font-size:11px;opacity:0.85;line-height:1.3}
+.rbox{border-radius:8px;padding:7px 10px}
+.rbox .rl{font-size:12px;font-weight:600;margin-bottom:1px;opacity:0.85}
+.rbox .rv{font-size:14px;font-weight:700;margin-bottom:2px}
+.rbox .rn{font-size:12px;opacity:0.85;line-height:1.3}
 .bid-row{background:#f7f6f2;border-radius:8px;padding:8px 10px;margin-bottom:8px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.bid-row .bl{font-size:11px;color:#888;margin-bottom:2px}
-.bid-row .bv{font-size:12px;font-weight:700;color:#1a1a1a}
-.dir-box{padding:7px 10px;border-radius:8px;font-size:11px;font-weight:700}
-.sbadge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:8px;font-weight:600;margin-bottom:5px}
+.bid-row .bl{font-size:12px;color:#888;margin-bottom:2px}
+.bid-row .bv{font-size:14px;font-weight:700;color:#1a1a1a}
+.dir-box{padding:7px 10px;border-radius:8px;font-size:13px;font-weight:700}
+.sbadge{display:inline-block;font-size:12px;padding:2px 8px;border-radius:8px;font-weight:600;margin-bottom:5px}
 .s-완료{background:#eaf3de;color:#27500a}
 .s-재상담{background:#faeeda;color:#633806}
 .s-대기{background:#f0ede6;color:#5f5e5a}
-.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:500}
-.flg{display:inline-block;font-size:11px;padding:2px 7px;border-radius:8px;margin:2px 2px 0 0;background:#faeeda;color:#633806;font-weight:500}
-.note-text{font-size:11px;color:#888;margin-top:6px}
-.ltv-info{background:#f7f6f2;border-radius:7px;padding:6px 10px;margin-bottom:8px;font-size:11px;color:#888;display:flex;align-items:center;gap:5px}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:10px;font-weight:500}
+.flg{display:inline-block;font-size:12px;padding:2px 7px;border-radius:8px;margin:2px 2px 0 0;background:#faeeda;color:#633806;font-weight:500}
+.note-text{font-size:12px;color:#888;margin-top:6px}
+.ltv-info{background:#f7f6f2;border-radius:7px;padding:6px 10px;margin-bottom:8px;font-size:12px;color:#888;display:flex;align-items:center;gap:5px}
 .ltv-info strong{color:#1a1a1a;font-weight:600}
-.consult-note{font-size:11px;color:#0c447c;background:#e6f1fb;border-radius:6px;padding:4px 8px;margin-top:6px}
-.consult-date{font-size:11px;color:#aaa;margin-top:4px}
+.consult-note{font-size:12px;color:#0c447c;background:#e6f1fb;border-radius:6px;padding:4px 8px;margin-top:6px}
+.consult-date{font-size:12px;color:#aaa;margin-top:4px}
 .bv-badge{font-size:11px;padding:2px 8px;border-radius:8px;background:#eaf3de;color:#27500a;font-weight:600;margin-left:6px;vertical-align:middle}
-.del-btn-inline,.edit-btn-inline,.pdf-btn-inline{width:20px;height:20px;border:none;background:none;color:#ccc;font-size:12px;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:0}
+.del-btn-inline,.edit-btn-inline,.pdf-btn-inline{width:30px;height:30px;border:none;background:none;color:#999;font-size:15px;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:0}
 .del-btn-inline:hover{background:#fcebeb;color:#a32d2d}
 .edit-btn-inline:hover{background:#e6f1fb;color:#0c447c}
 .pdf-btn-inline:hover{background:#fdf3e0;color:#a3690a}
-.top-bar{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:0.75rem}
-.ctrls{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.top-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.ctrls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin:14px 0 12px}
+.ctrl-grp{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.ctrls select,.ctrls input,.ctrls button{height:34px;box-sizing:border-box}
+.ctrl-grp.acts button{padding:0 12px;font-weight:500}
+.ctrl-grp.acts .solid{color:#fff;border-color:transparent}
+.view-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px}
 select,input[type=text],input[type=number],input[type=date],input[type=password],input[type=email],input[type=tel],input:not([type]),textarea{border:1px solid rgba(0,0,0,0.15);border-radius:7px;padding:6px 10px;font-size:13px;font-family:inherit;color:#1a1a1a;background:#fff;outline:none}
 select:hover,input:focus{border-color:rgba(0,0,0,0.3)}
 button{border:1px solid rgba(0,0,0,0.15);border-radius:7px;padding:6px 14px;font-size:13px;font-family:inherit;background:#fff;color:#1a1a1a;cursor:pointer;transition:all 0.15s}
 button:hover{background:#f0ede6}
 .btn-p{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
 .btn-p:hover{background:#333}
-.sync-bar{display:flex;align-items:center;justify-content:space-between;background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:8px;padding:6px 14px;margin-bottom:1rem;font-size:12px}
+.sync-bar{display:flex;align-items:center;gap:10px;font-size:12px;color:#666}
 .sync-dot{width:8px;height:8px;border-radius:50%;margin-right:6px;display:inline-block;flex-shrink:0}
 .sync-ok .sync-dot{background:#27500a}
 .sync-syncing .sync-dot{background:#633806;animation:pulse 1s infinite}
 .sync-error .sync-dot{background:#791f1f}
 .sync-offline .sync-dot{background:#aaa}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-.view-tabs{display:flex;gap:6px;margin-bottom:1.25rem}
+.view-tabs{display:flex;gap:6px}
 .vtab{padding:7px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:0.5px solid rgba(0,0,0,0.12);background:#fff;color:#888;transition:all 0.15s}
 .vtab.on{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
 .form-wrap{background:#f7f6f2;border:0.5px solid rgba(0,0,0,0.1);border-radius:12px;padding:1.25rem;margin-bottom:1.25rem;display:none}
@@ -106,7 +112,11 @@ button:hover{background:#f0ede6}
     <div>
       <h1 style="font-size:22px;font-weight:800">수강생 투자 방향성 컨설팅 <span class="bv-badge">v3</span></h1>
       <p style="font-size:12px;color:#888;margin-top:4px">실시간 팀 공유 · 상담상태관리 · 기수별 분석</p>
-      <div class="ctrls">
+    </div>
+  </div>
+
+  <div class="ctrls">
+    <div class="ctrl-grp">
         <select id="fC" onchange="loadStudents()"><option value="">전체 기수</option><option value="45기">45기</option><option value="46기">46기</option><option value="47기">47기</option></select>
         <select id="fH" onchange="loadStudents()">
           <option value="">전체 유형</option>
@@ -122,27 +132,26 @@ button:hover{background:#f0ede6}
           <option value="완료">상담 완료</option>
           <option value="재상담">재상담 필요</option>
         </select>
-        <input type="text" id="fQ" placeholder="🔍 이름 검색" oninput="debounceLoad()" style="width:120px">
-        <button onclick="toggleForm()">+ 수강생 추가</button>
-        <button onclick="document.getElementById('xlsxInput').click()" style="background:#1a6b8a;color:#fff">📤 Excel 업로드</button>
+        <input type="text" id="fQ" placeholder="🔍 이름 검색" oninput="debounceLoad()" style="width:150px">
+    </div>
+    <div class="ctrl-grp acts" id="ctrlActs">
+        <button class="btn-p" onclick="toggleForm()">+ 수강생 추가</button>
+        <button class="solid" onclick="document.getElementById('xlsxInput').click()" style="background:#1a6b8a">📤 엑셀 업로드</button>
         <input type="file" id="xlsxInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(this)">
-        <button onclick="exportCSV()" style="background:#27500a;color:#fff">📥 CSV 내보내기</button>
-        <button id="bulkPdfBtn" onclick="downloadAllPDFs()" style="background:#9314cc;color:#fff">📦 전체 PDF 다운로드</button>
-      </div>
+        <button class="solid" onclick="exportCSV()" style="background:#27500a">📥 CSV 내보내기</button>
+        <button class="solid" id="bulkPdfBtn" onclick="downloadAllPDFs()" style="background:#9314cc">📦 전체 PDF</button>
     </div>
   </div>
 
-  <div class="sync-bar sync-syncing" id="syncBar">
-    <div style="display:flex;align-items:center">
-      <span class="sync-dot"></span>
-      <span id="syncMsg">서버에 연결 중...</span>
+  <div class="view-row">
+    <div class="view-tabs">
+      <button class="vtab on" id="tab-card" onclick="switchView('card')">📋 카드 뷰</button>
+      <button class="vtab" id="tab-an" onclick="switchView('an')">📊 분석 뷰</button>
     </div>
-    <button onclick="loadStudents()" style="font-size:11px;padding:3px 10px">새로고침</button>
-  </div>
-
-  <div class="view-tabs">
-    <button class="vtab on" id="tab-card" onclick="switchView('card')">📋 카드 뷰</button>
-    <button class="vtab" id="tab-an" onclick="switchView('an')">📊 분석 뷰</button>
+    <div class="sync-bar sync-syncing" id="syncBar">
+      <span style="display:flex;align-items:center"><span class="sync-dot"></span><span id="syncMsg">서버에 연결 중...</span></span>
+      <button onclick="loadStudents()" style="font-size:12px;padding:4px 12px">새로고침</button>
+    </div>
   </div>
 
   <div class="stats" id="stats"></div>
@@ -1066,15 +1075,15 @@ function render(){
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
             <span style="font-size:15px;font-weight:700">${d.name}</span>
             <span class="tag" style="background:${hc.bg};color:${hc.tx}">${d.housing_type}</span>
-            <span style="font-size:11px;color:#aaa"><span style="${ynStyle(d.loan_available)}">${ll(d.loan_available)}</span>
+            <span style="font-size:12px;color:#aaa"><span style="${ynStyle(d.loan_available)}">${ll(d.loan_available)}</span>
               · <span style="${ynStyle(d.transfer_available)}">${tl(d.transfer_available)}</span></span>
             ${flags.filter(f=>f!=='전문가확인').map(f=>`<span class="flg">${flb(f)}</span>`).join('')}
           </div>
         </div>
         <div style="display:flex;align-items:flex-start;gap:8px;flex-shrink:0">
           <div style="text-align:right">
-            <div style="font-size:14px;font-weight:700">${fmt(d.seed_amount)}</div>
-            ${cr>0?`<div style="font-size:11px;color:#0c447c;margin-top:2px">+신용 ${fmt(cr)}</div><div style="font-size:12px;font-weight:700;color:#0c447c">합산 ${fmt(total)}</div>`:''}
+            <div style="font-size:15px;font-weight:700">${fmt(d.seed_amount)}</div>
+            ${cr>0?`<div style="font-size:12px;color:#0c447c;margin-top:2px">+신용 ${fmt(cr)}</div><div style="font-size:13px;font-weight:700;color:#0c447c">합산 ${fmt(total)}</div>`:''}
           </div>
           <div style="display:flex;flex-direction:row;gap:2px;align-items:center">
             <button class="pdf-btn-inline" onclick='generateReportPDF(${JSON.stringify(d)})' title="리포트 PDF 다운로드">📄</button>

@@ -70,10 +70,10 @@ function shrink(dataUrl,maxW=1600){
 function injectUI(){
   const css=document.createElement('style');
   css.textContent=`
-.rec-line{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:0.5px dashed rgba(0,0,0,0.1);font-size:11px;color:#888}
-.rec-line button{font-size:11px;padding:3px 10px;border-color:${PURPLE};color:${PURPLE}}
+.rec-line{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:0.5px dashed rgba(0,0,0,0.1);font-size:12px;color:#888}
+.rec-line button{font-size:12px;padding:4px 12px;border-color:${PURPLE};color:${PURPLE}}
 .rec-line button:hover{background:${PURPLE_BG}}
-.rec-chip{display:inline-block;font-size:11px;padding:2px 7px;border-radius:8px;font-weight:600}
+.rec-chip{display:inline-block;font-size:12px;padding:2px 7px;border-radius:8px;font-weight:600}
 #recModal .modal{width:min(980px,96vw)}
 .rec-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
 .rec-item{display:flex;align-items:center;gap:10px;border:0.5px solid rgba(0,0,0,0.12);border-radius:10px;padding:9px 12px;cursor:pointer;background:#fff}
@@ -148,17 +148,19 @@ function injectUI(){
   document.body.appendChild(wrap);
 
   // 상단 버튼: 시트 추천물건 가져오기
-  const ctrls=document.querySelector('.ctrls');
+  const ctrls=document.getElementById('ctrlActs')||document.querySelector('.ctrls');
   if(ctrls){
     const b=document.createElement('button');
-    b.textContent='🏠 추천물건 시트 가져오기';
+    b.textContent='🏠 추천물건 시트';
     b.style.cssText=`background:#fff;color:${PURPLE};border-color:${PURPLE}`;
     b.title='구글시트 요약 탭(엑셀로 다운로드)의 추천물건1~3 사건번호로 초안을 만듭니다';
     b.onclick=()=>document.getElementById('recXlsxInput').click();
     const inp=document.createElement('input');
     inp.type='file';inp.id='recXlsxInput';inp.accept='.xlsx,.xls,.csv';inp.style.display='none';
     inp.onchange=()=>R.importRecSheet(inp);
-    ctrls.appendChild(b);ctrls.appendChild(inp);
+    // 엑셀 업로드 바로 다음에 (가져오기 버튼끼리 모음)
+    const xi=document.getElementById('xlsxInput');
+    if(xi&&xi.parentNode===ctrls){xi.after(b);b.after(inp);}else{ctrls.appendChild(b);ctrls.appendChild(inp);}
   }
 
   // 붙여넣기(Ctrl+V)로 캡처 추가
