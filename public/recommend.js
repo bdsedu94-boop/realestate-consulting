@@ -183,7 +183,7 @@ async function loadSummary(){
 function cardLine(d){
   const s=REC_SUMMARY[d.id];
   const chips=s?REC_STATUS.filter(k=>s[k]).map(k=>`<span class="rec-chip" style="${REC_ST_STYLE[k]}">${k} ${s[k]}</span>`).join(''):'';
-  return `<div class="rec-line"><button onclick="RecReport.open(${d.id})">🏠 추천물건 리포트${s?` ${s.total}건`:''}</button>${chips?`<div class="rec-chips">${chips}</div>`:''}</div>`;
+  return `<div class="rec-line"><button onclick="RecReport.open(${d.id})" title="2차: 추천물건 리포트 작성·PDF">🏠 추천물건 리포트${s?` ${s.total}건`:''}</button>${chips?`<div class="rec-chips">${chips}</div>`:''}</div>`;
 }
 
 /* ── 모달 열기/닫기 ── */
