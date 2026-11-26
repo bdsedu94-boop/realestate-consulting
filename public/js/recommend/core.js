@@ -126,6 +126,8 @@
 .rec-item .ri-main{flex:1;min-width:0}
 .rec-item .ri-case{font-size:13px;font-weight:700}
 .rec-item .ri-sub{font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-item .ri-pdf{flex-shrink:0;font-size:12px;padding:5px 10px;font-weight:600;border-color:${PURPLE};color:${PURPLE};white-space:nowrap}
+.rec-item .ri-pdf:hover{background:${PURPLE_BG}}
 .rec-ed h4{font-size:13px;font-weight:700;color:${PURPLE};margin:16px 0 8px;padding-left:8px;border-left:3px solid ${PURPLE}}
 .rec-ed .fg{grid-template-columns:repeat(4,1fr)}
 @media(max-width:720px){.rec-ed .fg{grid-template-columns:1fr 1fr}}
@@ -283,11 +285,11 @@
         <div class="ri-sub">${esc(r.headline || '')}${r.sale_date ? ' · 매각기일 ' + fmtDate(r.sale_date) : ''}${r.min_price ? ' · 최저가 ' + man(r.min_price, '원') : ''}</div>
       </div>
       <span class="rec-chip" style="${REC_ST_STYLE[r.status] || ''}">${esc(r.status)}</span>
-      <button onclick="event.stopPropagation();RecReport.pdf([${r.id}])" title="이 물건만 PDF">📄</button>
+      <button class="ri-pdf" onclick="event.stopPropagation();RecReport.pdf([${r.id}])" title="이 물건의 리포트 PDF 받기 (수강생 발송용)">📄 리포트 PDF</button>
     </div>`
         )
         .join('') ||
-      '<div style="font-size:12px;color:#aaa;padding:10px">아직 추천물건이 없습니다. [+ 추천물건 추가] 또는 상단 [🏠 추천물건 시트 가져오기]로 시작하세요.</div>';
+      '<div style="font-size:12px;color:#aaa;padding:10px">아직 추천물건이 없습니다. [📄 경매 정보지 PDF로 추가], [+ 추천물건 추가] 또는 상단 [🏠 추천물건 시트]로 시작하세요.</div>';
 
     document.getElementById('recBody').innerHTML = `
     <div style="font-size:12px;color:#666;background:#f7f6f2;border-radius:8px;padding:8px 12px;margin-bottom:12px">
@@ -298,7 +300,6 @@
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="rec-p" onclick="InfoSheetImport.pick()" title="탱크옥션 상세정보 화면을 PDF로 저장한 파일 (여러 개 선택 가능)">📄 경매 정보지 PDF로 추가</button>
       <button onclick="RecReport.add()">+ 추천물건 추가</button>
-      ${st.recs.length ? `<button class="rec-p" onclick="RecReport.pdf()">📄 전체 추천물건 PDF (${st.recs.length}건)</button>` : ''}
       ${(() => {
         const n = st.recs.filter(r => !(r.images || []).some(i => i.source === 'auto') && r.case_no).length;
         return n
@@ -400,7 +401,7 @@
     <div id="recCheck"></div>
     <div class="rec-actions">
       <button class="btn-p" id="recSaveBtn" onclick="RecReport.saveClick()">💾 저장</button>
-      <button class="rec-p" onclick="RecReport.pdf([${r.id}])">📄 이 물건 PDF</button>
+      <button class="rec-p" onclick="RecReport.pdf([${r.id}])">📄 리포트 PDF 받기</button>
       <span id="recDirty" style="font-size:11px;color:#a3690a"></span>
       <span style="flex:1"></span>
       ${(() => {
