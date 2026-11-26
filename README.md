@@ -1,10 +1,12 @@
 # 투자방향성 공통 기준
 
-`public/investment-rules.js`가 **유일한 계산 기준**입니다. 상담 화면의 지역 판정,
+`public/js/investment-rules.js`가 **유일한 계산 기준**입니다. 상담 화면의 지역 판정,
 CSV 방향성, PDF 계산/참고 문구, 평생회원 자료실 진단 API가 이 파일을 함께 사용합니다.
 계산식·조건·금액·참고사항을 변경할 때 이 파일을 수정하고 이 서비스를 배포하세요.
-자료실 코드에 계산식을 복사하거나 `public/index.html`에 함수를 다시 정의하지 마세요.
-PDF 레이아웃과 화면 디자인은 `public/index.html`에서 관리합니다.
+자료실 코드에 계산식을 복사하거나 화면 코드(`public/js/app/`)에 함수를 다시 정의하지 마세요.
+방향성 리포트 PDF 레이아웃은 `public/js/app/direction-pdf.js`, 화면 디자인은 `public/css/app.css`에서 관리합니다.
+
+코드 위치·구조 그림·업무 흐름은 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)에 정리되어 있습니다.
 
 수강생 정보는 Railway 영구 볼륨의 데이터 파일에만 보관하고 로그인한 화면에서 API로 불러옵니다.
 공개 HTML에는 개인별 초기 자료를 포함하지 않으며, 화면을 열 때 초기 자료를 다시 등록하지 않습니다.
@@ -41,8 +43,8 @@ PDF 레이아웃과 화면 디자인은 `public/index.html`에서 관리합니�
 - 캡처: 탱크옥션 화면을 캡처한 뒤 편집창에서 `Ctrl+V` 하거나 파일을 끌어다 놓습니다. 자르기와 모자이크를 거쳐 업로드되며, 최대 6장까지 넣을 수 있습니다.
 - 시트 가져오기: 상단의 **[🏠 추천물건 시트 가져오기]** 버튼을 사용합니다. 구글시트를 `.xlsx`로 내려받아 '요약' 탭의 추천물건1~3에서 사건번호를 읽고, 기수+이름이 맞는 수강생에게 '작성중' 초안을 만듭니다. 이미 등록된 사건번호는 건너뜁니다.
 - 발송 전 체크: 매각기일 경과, 필수값 누락, 최저가보다 낮은 권장입찰가, 투자금을 넘는 보증금, 캡처 누락을 경고합니다.
-- **경매 정보지 PDF로 추가**: 탱크옥션 '상세정보' 페이지를 PDF로 저장해 올리면 사건번호·법원·매각일·면적·층·감정가·최저가·보증금·유찰 횟수·인근 낙찰가율·권리 사실을 읽어 물건을 만들고(같은 사건번호가 있으면 갱신), '경매정보' 부분을 캡처해 넣습니다. 개인정보(이름·지번 등)는 올리기 전에 정보지에서 가린 상태여야 합니다. 해석은 `public/infosheet.js`, 화면·저장은 `public/infosheet-import.js`, PDF 읽기는 `pdfjs-dist`(서버가 `/vendor/pdfjs`로 제공)를 씁니다.
-- 코드: 기본 화면·저장은 `public/recommend.js`, 기능별로 `recommend-auto.js`(사유·입찰가 자동 작성, 발송 전 확인), `recommend-mask.js`(이미지 자르기·모자이크), `recommend-capture.js`(크롬 도우미 자동 캡처), `recommend-pdf.js`(리포트 PDF), `recommend-sheet.js`(구글시트 일괄 생성), `infosheet-import.js`(경매 정보지 PDF)로 나뉘어 있습니다. 파일끼리는 `RecCore`로 기능을 주고받습니다. API는 `recommend-api.js`, 로고는 `public/report-logo.png`에 있습니다.
+- **경매 정보지 PDF로 추가**: 탱크옥션 '상세정보' 페이지를 PDF로 저장해 올리면 사건번호·법원·매각일·면적·층·감정가·최저가·보증금·유찰 횟수·인근 낙찰가율·권리 사실을 읽어 물건을 만들고(같은 사건번호가 있으면 갱신), '경매정보' 부분을 캡처해 넣습니다. 개인정보(이름·지번 등)는 올리기 전에 정보지에서 가린 상태여야 합니다. 해석은 `public/js/infosheet/parse.js`, 화면·저장은 `public/js/infosheet/import.js`, PDF 읽기는 `pdfjs-dist`(서버가 `/vendor/pdfjs`로 제공)를 씁니다.
+- 코드: 화면은 `public/js/recommend/` (core·auto·pdf·mask·capture·sheet), API는 `server/recommend-api.js`, 로고는 `public/report-logo.png`에 있습니다.
 
 ### 탱크옥션 자동 캡처
 
