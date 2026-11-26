@@ -158,9 +158,8 @@ function injectUI(){
     const inp=document.createElement('input');
     inp.type='file';inp.id='recXlsxInput';inp.accept='.xlsx,.xls,.csv';inp.style.display='none';
     inp.onchange=()=>R.importRecSheet(inp);
-    // 엑셀 업로드 바로 다음에 (가져오기 버튼끼리 모음)
-    const xi=document.getElementById('xlsxInput');
-    if(xi&&xi.parentNode===ctrls){xi.after(b);b.after(inp);}else{ctrls.appendChild(b);ctrls.appendChild(inp);}
+    // 작업 버튼 맨 끝에
+    ctrls.appendChild(b);ctrls.appendChild(inp);
   }
 
   // 붙여넣기(Ctrl+V)로 캡처 추가
