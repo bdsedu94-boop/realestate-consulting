@@ -17,6 +17,7 @@
         .slice(m.index + m[0].length, end)
         .replace(/\s+/g, ' ')
         .replace(/^[\s,·/\-]+|[\s,·/\-]+$/g, '')
+        .replace(/\s*\(\d{1,2}\/\d{1,2}\)\s*$/, '') // 끝의 '(12/11)' 같은 날짜 메모는 요약에서 뺌
         .trim();
       out.push({ case_no: `${m[1]}타경${m[2]}`, headline: rest });
     });
@@ -37,15 +38,22 @@
         return;
       }
       const header = rows[hi].map(h => String(h).replace(/\s/g, ''));
-      const iC = header.findIndex(h => h.includes('기수')),
-        iN = header.findIndex(h => h === '이름' || h.includes('성함') || h.includes('이름'));
+      // 기수 칸: 제목에 '기수'가 있거나, 제목이 비어 있어도 값이 '57기'처럼 생긴 칸
+      const looksCohort = ci =>
+        rows.slice(hi + 1, hi + 40).filter(r => /^\s*\d{1,3}\s*기\s*$/.test(String(r[ci] || ''))).length >= 1;
+      let iC = header.findIndex(h => h.includes('기수'));
+      if (iC < 0) {
+        const width = Math.max(...rows.slice(hi, hi + 40).map(r => r.length));
+        iC = Array.from({ length: width }, (_, ci) => ci).find(looksCohort) ?? -1;
+      }
+      const iN = header.findIndex(h => h === '이름' || h.includes('성함') || h.includes('이름'));
       const recCols = header.map((h, i) => (h.startsWith('추천물건') ? i : -1)).filter(i => i >= 0);
       const items = [];
       for (let r = hi + 1; r < rows.length; r++) {
         const row = rows[r];
         const name = String(row[iN] || '').trim();
         if (!name) continue;
-        const cohort = String(row[iC] || '').trim();
+        const cohort = iC >= 0 ? String(row[iC] || '').replace(/\s/g, '') : '';
         for (const ci of recCols) {
           const manager = header[ci + 1] && header[ci + 1].includes('담당자') ? String(row[ci + 1] || '').trim() : '';
           for (const p of parseRecCell(row[ci])) items.push({ cohort, name, manager, ...p });

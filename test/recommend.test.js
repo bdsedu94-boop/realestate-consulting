@@ -91,3 +91,26 @@ test('recommendation CRUD, images, import and cleanup', async () => {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('sheet import matches by name when the cohort column is blank (unique names only)', async () => {
+  const { srv, dir, base, db } = await setup();
+  try {
+    db().students.push({ id: 2, cohort: '57기', name: '김찬회' }, { id: 3, cohort: '56기', name: '동명' }, { id: 4, cohort: '57기', name: '동명' });
+    const imp = await j(`${base}/recommendations/import`, 'POST', {
+      items: [
+        { cohort: '', name: '김찬회', case_no: '2025타경23268', headline: '부산 아파트' },
+        { cohort: '57 기', name: '김찬회', case_no: '2025타경1', headline: '' },
+        { cohort: '', name: '동명', case_no: '2025타경2', headline: '' },
+        { cohort: '57기', name: '동명', case_no: '2025타경3', headline: '' }
+      ]
+    });
+    assert.equal(imp.body.created, 3);
+    assert.deepEqual(imp.body.unmatched, [' 동명']);
+    const recs = db().recommendations;
+    assert.equal(recs.filter(r => r.student_id === 2).length, 2);
+    assert.equal(recs.find(r => r.case_no === '2025타경3').student_id, 4);
+  } finally {
+    srv.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

@@ -170,7 +170,11 @@ module.exports = function recommendApi({ readDB, writeDB, dataDir }) {
         skipped++;
         continue;
       }
-      const st = db.students.find(s => s.cohort === cohort && s.name === name);
+      // 기수+이름으로 찾고, 기수가 없거나 안 맞으면 이름이 한 명뿐일 때만 이름으로 찾음
+      const norm = v => String(v || '').replace(/\s/g, '');
+      const byName = db.students.filter(s => norm(s.name) === norm(name));
+      const st =
+        byName.find(s => cohort && norm(s.cohort) === norm(cohort)) || (byName.length === 1 ? byName[0] : null);
       if (!st) {
         unmatched.push(`${cohort} ${name}`);
         continue;
