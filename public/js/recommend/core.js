@@ -129,6 +129,9 @@
 .rec-item .ri-pdf{flex-shrink:0;font-size:12px;padding:5px 10px;font-weight:600;border-color:${PURPLE};color:${PURPLE};white-space:nowrap}
 .rec-item .ri-pdf:hover{background:${PURPLE_BG}}
 .rec-ed h4{font-size:13px;font-weight:700;color:${PURPLE};margin:16px 0 8px;padding-left:8px;border-left:3px solid ${PURPLE}}
+.rec-waiver{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0 4px;padding:9px 12px;border:1px solid #e3d3ee;border-radius:8px;background:#fcf8fe;font-size:13px;color:#333;cursor:pointer}
+.rec-waiver input{width:auto!important;margin:0}
+.rec-waiver span{font-size:11px;color:#999}
 .rec-ed .fg{grid-template-columns:repeat(4,1fr)}
 @media(max-width:720px){.rec-ed .fg{grid-template-columns:1fr 1fr}}
 .rec-ed input,.rec-ed select,.rec-ed textarea{width:100%}
@@ -371,6 +374,9 @@
       )
       .join('')}</div>
     <div style="margin-top:8px">${field('캡처 하단 안내문', 'image_note', { ph: '※ 출처: 탱크옥션 (2026.10.27 캡처)' })}</div>
+    <label class="rec-waiver"><input type="checkbox" data-f="tenant_waiver" ${r.tenant_waiver === 'Y' ? 'checked' : ''}>
+      <b>대항력 포기 확약서 제출</b> (특별매각조건 등) — 낙찰자 인수사항 없음
+      <span>정보지에 '대항력 포기'·'확약서'·'반환청구권 포기' 문구가 있으면 자동 체크됩니다</span></label>
     <h4 style="display:flex;align-items:center;gap:10px">추천 사유 (3가지: 조건 적합 / 권리 / 가격)
       <button onclick="RecReport.autoReasons()" ${AUTO_BTN}>✨ 자동 작성</button>
       <span ${HINT}>정보지 PDF·자동 캡처로 추가하면 빈 칸은 자동으로 채워집니다</span></h4>
@@ -417,7 +423,7 @@
     const ed = document.getElementById('recEditor');
     if (!ed || !st.cur) return;
     ed.querySelectorAll('[data-f]').forEach(el => {
-      st.cur[el.dataset.f] = el.value;
+      st.cur[el.dataset.f] = el.type === 'checkbox' ? (el.checked ? 'Y' : '') : el.value;
     });
     const reasons = [0, 1, 2].map(i => ({ title: '', body: '' }));
     ed.querySelectorAll('[data-reason]').forEach(el => {
@@ -445,9 +451,29 @@
       readEditor();
       updateCalc();
     });
-    ed.addEventListener('change', () => {
+    ed.addEventListener('change', e => {
       readEditor();
       updateCalc();
+      // 확약서 체크를 바꾸면 검토 포인트 ②(권리)를 새로 쓸지 묻기
+      if (e.target.dataset.f === 'tenant_waiver' && R.genReasons && st.student) {
+        const g = R.genReasons(st.student, st.cur)[1];
+        const cur = st.cur.reasons[1] || {};
+        if (
+          (g.title !== cur.title || g.body !== cur.body) &&
+          confirm('검토 포인트 ②(권리)를 확약서 반영 내용으로 다시 쓸까요?')
+        ) {
+          ed.querySelector('[data-reason="1"][data-k="title"]').value = g.title;
+          const tb = ed.querySelector('[data-reason="1"][data-k="body"]');
+          tb.value = g.body;
+          fitTextarea(tb);
+          readEditor();
+        }
+        st.dirty = true;
+        const d = document.getElementById('recDirty');
+        d.style.color = '#a3690a';
+        d.textContent = '● 저장되지 않은 변경';
+        updateCalc(); // 발송 전 확인 다시 표시
+      }
     });
     const drop = document.getElementById('recDrop');
     drop.addEventListener('dragover', e => {

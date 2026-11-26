@@ -117,6 +117,10 @@
     if (f.tenants === 0) b2.push('조사된 임차인이 없어 매수인이 인수할 권리가 없습니다.');
     else if (f.tenants > 0 && !f.tenantsWithPriority)
       b2.push(`임차인 ${f.tenants}명은 대항력이 없어 매수인이 인수할 보증금이 없습니다.`);
+    else if (f.tenantsWithPriority > 0 && r.tenant_waiver === 'Y')
+      b2.push(
+        `대항력 있는 임차인이 ${f.tenantsWithPriority}명 있으나 대항력 포기 확약서(특별매각조건)가 제출되어 매수인이 인수할 보증금이 없습니다.`
+      );
     else if (f.tenantsWithPriority > 0) {
       clean = false;
       b2.push(
@@ -128,7 +132,9 @@
       b2.push(`소멸되지 않는 권리(${f.assumedRights.join(', ')})가 있어 확인이 필요합니다.`);
     }
     if (f.closedDoor) b2.push('다만 폐문으로 점유자 확인이 되지 않아 입찰 전 현장 확인이 필요합니다.');
-    if (f.rightsSummary) b2.push(f.rightsSummary); // 정보지의 권리분석요약 첫 문장
+    // 정보지의 권리분석요약 첫 문장 (확약서로 인수 없음이면 '인수위험' 문장은 맞지 않아 뺌)
+    if (f.rightsSummary && !(r.tenant_waiver === 'Y' && /인수위험|인수할/.test(f.rightsSummary)))
+      b2.push(f.rightsSummary);
     const r2 = { title: clean ? '권리관계가 깨끗한 물건' : '권리 확인이 필요한 물건', body: b2.join(' ') };
     // 3. 가격
     const b3 = [],
@@ -187,7 +193,7 @@
     }
     if (!(r.images || []).length) out.push('탱크옥션 캡처 이미지가 없습니다. [🤖 탱크옥션 자동 캡처]를 눌러주세요.');
     const f = facts(r);
-    if (f.tenantsWithPriority > 0)
+    if (f.tenantsWithPriority > 0 && r.tenant_waiver !== 'Y')
       out.push(`대항력 있는 임차인 ${f.tenantsWithPriority}명 — 추천 기준(권리상 문제 없음)에 맞는지 확인하세요.`);
     if ((f.assumedRights || []).length)
       out.push(`소멸되지 않는 권리(${f.assumedRights.join(', ')}) — 추천 기준에 맞는지 확인하세요.`);

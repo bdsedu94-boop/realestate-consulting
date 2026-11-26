@@ -195,6 +195,12 @@
       }
     }
     if (/폐문/.test(allN)) facts.closedDoor = true;
+    // 대항력 포기 확약서·특별매각조건(보증금 반환청구권 포기) → 낙찰자 인수 없음으로 볼 근거
+    if (/대항력포기|확약서|반환(청구권|채권)을?포기/.test(allN)) facts.waiver = true;
+    const sc = lines.find(
+      l => /^▶?특별매각조건/.test(norm(l.text)) || (/^▶/.test(norm(l.text)) && /포기/.test(l.text))
+    );
+    if (sc) facts.specialCondition = sc.text.replace(/^▶\s*/, '').replace(/\s+/g, ' ').trim().slice(0, 300);
 
     // 건물등기: 말소기준권리, 소멸되지 않는 권리
     const bi = findHead(lines, 'building');

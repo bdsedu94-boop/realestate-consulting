@@ -186,6 +186,8 @@
       patch.win_rate = f.win_rate;
       patch.win_rate_auto = f.win_rate;
     }
+    // 정보지에 대항력 포기·반환청구권 포기 문구가 있으면 '확약서 제출'을 자동 체크 (직접 끈 경우는 유지)
+    if (JSON.parse(f.auto_facts || '{}').waiver && !rec.tenant_waiver) patch.tenant_waiver = 'Y';
     if (!rec.image_note) patch.image_note = `※ 출처: 탱크옥션 경매 정보지 (${C.todayStr()}) · 개인정보는 가림 처리`;
     const merged = { ...rec, ...patch };
     const b = C.calcBid(merged);

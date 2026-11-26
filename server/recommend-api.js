@@ -31,7 +31,8 @@ const TEXT_FIELDS = [
   'manager',
   'win_rate_auto',
   'auto_facts',
-  'bid_auto'
+  'bid_auto',
+  'tenant_waiver' // 'Y' = 대항력 포기 확약서 제출 (낙찰자 인수 없음)
 ];
 const NUM_FIELDS = ['appraisal', 'min_price', 'fail_count', 'bid_low', 'bid_high', 'deposit_rate'];
 const MAX_IMAGES = 6;

@@ -76,3 +76,14 @@ test('캡처 영역: 경매정보 (토지/건물 현황 전까지)', () => {
   assert.equal(a.p, 1);
   assert.ok(a.y0 < 40 && a.y1 > 210 && a.y1 < 240);
 });
+
+test('대항력 포기·반환청구권 포기 문구 → waiver', () => {
+  const extra = [
+    ...ROW(640, [28, '참고/주의']),
+    ...ROW(655, [28, '▶'], [40, '특별매각조건'], [110, ':'], [120, '가상보증은'], [180, '임대차보증금'], [250, '반환청구권을'], [320, '포기하고'])
+  ];
+  const a = JSON.parse(IS.parse(IS.toLines([...items, ...extra])).auto_facts);
+  assert.equal(a.waiver, true);
+  assert.match(a.specialCondition, /^특별매각조건/);
+  assert.equal(JSON.parse(IS.parse(lines).auto_facts).waiver, undefined);
+});
