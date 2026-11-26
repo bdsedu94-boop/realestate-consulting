@@ -22,9 +22,12 @@ const loginHTML = `<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>로그인 · 수강생 컨설팅</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic','Pretendard',sans-serif;background:#f5f3ee;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+  body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:#f5f3ee;display:flex;align-items:center;justify-content:center;min-height:100vh;}
   .box{background:#fff;border-radius:16px;padding:48px 40px;width:360px;box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center;}
   h1{font-size:20px;font-weight:700;color:#2d2d2d;margin-bottom:8px;}
   p{font-size:13px;color:#888;margin-bottom:32px;}

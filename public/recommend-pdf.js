@@ -135,6 +135,7 @@ async function renderRecPage(s,r,idx){
   document.body.appendChild(container);
   try{
     await Promise.all([...container.querySelectorAll('img')].map(im=>im.complete?null:new Promise(ok=>{im.onload=im.onerror=ok;})));
+    if(document.fonts&&document.fonts.ready) await document.fonts.ready; // 웹폰트 적용 후 그림
     return await html2canvas(container,{scale:2,backgroundColor:'#ffffff'});
   }finally{document.body.removeChild(container);}
 }
