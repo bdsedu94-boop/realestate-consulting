@@ -65,6 +65,8 @@
     const manual = (rec.images || []).filter(i => i.source !== 'auto').length;
     const res = await extCapture(rec.case_no, m => status(m), { court: rec.court || '', headline: rec.headline || '' });
     if (!res.ok) throw new Error(res.error || '자동 캡처 실패');
+    // 리포트에는 경매정보 캡처만 넣음 (임차인 현황 등은 제외 — 확장프로그램은 그대로 두고 여기서 거름)
+    res.images = (res.images || []).filter(im => !/임차인/.test(im.label || ''));
     if (!res.images || !res.images.length) throw new Error('캡처할 영역을 찾지 못했습니다.');
     if (manual + res.images.length > 6)
       throw new Error(`이미지는 최대 6장입니다. 직접 올린 이미지(${manual}장)를 줄여주세요.`);
