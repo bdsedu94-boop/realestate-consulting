@@ -70,10 +70,9 @@ function shrink(dataUrl,maxW=1600){
 function injectUI(){
   const css=document.createElement('style');
   css.textContent=`
-.rec-line{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:12px;color:#888}
-.rec-chips{display:flex;gap:4px}
-.rec-line button{font-size:13px;padding:5px 12px;font-weight:600;white-space:nowrap;border-color:${PURPLE};color:${PURPLE}}
-.rec-line button:hover{background:${PURPLE_BG}}
+.rec-btn{height:32px;font-size:13px;padding:0 10px 0 12px;font-weight:600;white-space:nowrap;border-color:${PURPLE};color:${PURPLE};display:inline-flex;align-items:center;gap:6px}
+.rec-btn:hover{background:${PURPLE_BG}}
+.rec-btn .rec-chip{font-size:11px;font-weight:600}
 .rec-chip{display:inline-block;font-size:12px;padding:2px 7px;border-radius:8px;font-weight:600}
 #recModal .modal{width:min(980px,96vw)}
 .rec-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
@@ -183,7 +182,7 @@ async function loadSummary(){
 function cardLine(d){
   const s=REC_SUMMARY[d.id];
   const chips=s?REC_STATUS.filter(k=>s[k]).map(k=>`<span class="rec-chip" style="${REC_ST_STYLE[k]}">${k} ${s[k]}</span>`).join(''):'';
-  return `<div class="rec-line"><button onclick="RecReport.open(${d.id})" title="2차: 추천물건 리포트 작성·PDF">🏠 추천물건 리포트${s?` ${s.total}건`:''}</button>${chips?`<div class="rec-chips">${chips}</div>`:''}</div>`;
+  return `<button class="rec-btn" onclick="RecReport.open(${d.id})" title="2차: 추천물건 리포트 작성·PDF">🏠 추천물건 리포트${chips}</button>`;
 }
 
 /* ── 모달 열기/닫기 ── */

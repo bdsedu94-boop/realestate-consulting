@@ -16,7 +16,9 @@ body{font-family:var(--font);font-size:14px;color:#1a1a1a;background:#f7f6f2;min
 .stat .sval{font-size:22px;font-weight:700}
 .cards{display:grid;gap:14px;grid-template-columns:1fr}
 .card{background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:12px;padding:1.1rem 1.25rem;position:relative}
-.card-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.card-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.card-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.card-amt{min-width:120px;text-align:right;line-height:1.35}
 .av{width:42px;height:42px;border-radius:50%;background:#f0ede6;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#5f5e5a;flex-shrink:0;text-align:center;line-height:1.2}
 .rg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:9px}
 .rbox{border-radius:8px;padding:7px 10px}
@@ -31,9 +33,9 @@ body{font-family:var(--font);font-size:14px;color:#1a1a1a;background:#f7f6f2;min
 .ltv-info{background:#f7f6f2;border-radius:7px;padding:6px 10px;margin-bottom:8px;font-size:12px;color:#888;display:flex;align-items:center;gap:5px}
 .ltv-info strong{color:#1a1a1a;font-weight:600}
 .bv-badge{font-size:11px;padding:2px 8px;border-radius:8px;background:#eaf3de;color:#27500a;font-weight:600;margin-left:6px;vertical-align:middle}
-.del-btn-inline,.edit-btn-inline{width:30px;height:30px;border:none;background:none;color:#999;font-size:15px;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:0}
-.rep-btns{display:flex;gap:6px;align-items:flex-start}
-.rep-btn{font-size:13px;padding:5px 12px;font-weight:600;white-space:nowrap;border-color:#1a1a1a;color:#1a1a1a}
+.del-btn-inline,.edit-btn-inline{height:32px;padding:0 10px;font-size:12px;color:#666;border-color:rgba(0,0,0,0.12);display:inline-flex;align-items:center}
+.rep-btns{display:flex;gap:6px;align-items:center}
+.rep-btn{height:32px;font-size:13px;padding:0 12px;font-weight:600;white-space:nowrap;border-color:#1a1a1a;color:#1a1a1a;display:inline-flex;align-items:center;gap:6px}
 .del-btn-inline:hover{background:#fcebeb;color:#a32d2d}
 .edit-btn-inline:hover{background:#e6f1fb;color:#0c447c}
 .top-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
@@ -1024,18 +1026,18 @@ function render(){
             ${flags.filter(f=>f!=='전문가확인').map(f=>`<span class="flg">${flb(f)}</span>`).join('')}
           </div>
         </div>
-        <div style="display:flex;align-items:flex-start;gap:14px;flex-shrink:0">
+        <div class="card-right">
           <div class="rep-btns">
             <button class="rep-btn" onclick='generateReportPDF(${JSON.stringify(d)})' title="1차: 투자 방향성 리포트 PDF 받기">📄 방향성 리포트</button>
             ${window.RecReport&&!previewMode?RecReport.cardLine(d):''}
           </div>
-          <div style="text-align:right">
+          <div class="card-amt">
             <div style="font-size:15px;font-weight:700">${fmt(d.seed_amount)}</div>
-            ${cr>0?`<div style="font-size:12px;color:#0c447c;margin-top:2px">+신용 ${fmt(cr)}</div><div style="font-size:13px;font-weight:700;color:#0c447c">합산 ${fmt(total)}</div>`:''}
+            ${cr>0?`<div style="font-size:12px;color:#0c447c">+신용 ${fmt(cr)}</div><div style="font-size:13px;font-weight:700;color:#0c447c">합산 ${fmt(total)}</div>`:''}
           </div>
-          <div style="display:flex;flex-direction:row;gap:2px;align-items:center">
-            <button class="edit-btn-inline" onclick='openEdit(${JSON.stringify(d)})' title="수정">✏</button>
-            <button class="del-btn-inline" onclick="delS(${d.id},'${d.name}','${d.cohort}')" title="삭제">✕</button>
+          <div style="display:flex;gap:4px;align-items:center">
+            <button class="edit-btn-inline" onclick='openEdit(${JSON.stringify(d)})' title="수강생 정보 수정">수정</button>
+            <button class="del-btn-inline" onclick="delS(${d.id},'${d.name}','${d.cohort}')" title="삭제">삭제</button>
           </div>
         </div>
       </div>
