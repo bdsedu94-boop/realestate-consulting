@@ -65,7 +65,19 @@
   // 물건 요약: 지역 + 종류(아파트/빌라 등)만. 금액·층·권리는 캡처와 검토 포인트에 있음
   const VILLA = /^(연립|다세대|빌라|도시형생활주택)/;
   function kindOf(r) {
-    const k = (r.prop_type || '').trim();
+    // 물건종류 칸이 비면(크롬 도우미 캡처 등) 자동으로 읽은 종류 → 한 줄 요약 끝 단어 순으로
+    let k = (r.prop_type || '').trim();
+    if (!k) {
+      try {
+        k = (JSON.parse(r.auto_facts || '{}').propType || '').trim();
+      } catch (e) {}
+    }
+    if (!k)
+      k =
+        ((r.headline || '')
+          .trim()
+          .match(/(아파트|연립주택|다세대주택|다세대|빌라|오피스텔|단독주택|다가구주택|도시형생활주택|주상복합)$/) ||
+          [])[1] || '';
     return VILLA.test(k) ? '빌라' : k;
   }
   function regionOf(r) {

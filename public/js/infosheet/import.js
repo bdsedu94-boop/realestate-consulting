@@ -96,15 +96,29 @@
     const { items, views } = await readPdf(file);
     const lines = InfoSheet.toLines(items);
     const f = InfoSheet.parse(lines);
-    // 같은 수강생에게 같은 사건번호가 있으면 그 물건을 채우고, 없으면 새로 만듦
-    let rec = C.st.recs.find(r => (r.case_no || '').replace(/\s/g, '') === f.case_no);
+    // 같은 수강생에게 같은 사건번호가 있으면 그 물건을 채우고, 없으면 새로 만듦.
+    // 사건번호는 법원마다 따로라서(예: 부산·천안 2026타경10267) 법원까지 같은 물건을 먼저 찾음
+    const same = C.st.recs.filter(r => (r.case_no || '').replace(/\s/g, '') === f.case_no);
+    let rec = same.find(r => sameCourt(r.court, f.court)) || same.find(r => !r.court) || same[0];
+    let replaceAll = false;
+    if (rec && rec.court && f.court && !sameCourt(rec.court, f.court)) {
+      replaceAll = confirm(
+        `이미 ${rec.court} ${f.case_no} 물건이 있습니다.\n올린 정보지는 ${f.court} 물건입니다 (사건번호가 같은 다른 물건).\n\n` +
+          `[확인] 기존 물건을 이 정보지 내용으로 모두 바꾸기 (법원·금액·캡처·검토 포인트·입찰가)\n[취소] 바꾸지 않고 별도 물건으로 추가`
+      );
+      if (!replaceAll) rec = null;
+    }
     if (!rec) {
       status('물건 만드는 중...');
       rec = await C.recApi(`/api/students/${C.st.student.id}/recommendations`, 'POST', { case_no: f.case_no });
     }
     await putCapture(rec, lines, views, status);
     status('칸 채우는 중...');
-    await C.recApi(`/api/recommendations/${rec.id}`, 'PUT', fillPatch(rec, f));
+    const base = replaceAll ? clearedProperty(rec) : rec;
+    await C.recApi(`/api/recommendations/${rec.id}`, 'PUT', {
+      ...(replaceAll ? diffCleared(rec) : {}),
+      ...fillPatch(base, f)
+    });
     return { id: rec.id, case_no: f.case_no };
   }
 
@@ -128,6 +142,36 @@
 
   // 바꿀 칸: 정보지 값은 비어 있는 칸만 채움 (직접 고친 값은 유지).
   // 보증금 비율(기본값 10%가 있음)·권리 사실·자동 낙찰가율은 최신 정보지로 갱신.
+  const sameCourt = (a, b) => (a || '').replace(/\s/g, '') === (b || '').replace(/\s/g, '');
+  // 다른 물건으로 바꿀 때 비울 칸 (물건 정보·자동 작성 내용). 담당자·임대 예상·전략 메모·상태는 유지
+  const PROP_TEXT = [
+    'court',
+    'sale_date',
+    'headline',
+    'prop_type',
+    'area',
+    'floor_main',
+    'floor_sub',
+    'occupancy',
+    'occupancy_sub',
+    'rights',
+    'rights_sub',
+    'win_rate',
+    'win_rate_auto',
+    'auto_facts',
+    'bid_auto',
+    'image_note'
+  ];
+  const PROP_NUM = ['appraisal', 'min_price', 'fail_count', 'bid_low', 'bid_high', 'deposit_rate'];
+  function diffCleared() {
+    const out = { reasons: [] };
+    for (const k of PROP_TEXT) out[k] = '';
+    for (const k of PROP_NUM) out[k] = null;
+    return out;
+  }
+  function clearedProperty(rec) {
+    return { ...rec, ...diffCleared() };
+  }
   function fillPatch(rec, f) {
     const C = RecCore,
       patch = {};
