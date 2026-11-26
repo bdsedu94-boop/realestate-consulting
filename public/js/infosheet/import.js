@@ -178,7 +178,9 @@
     const empty = v => v === null || v === undefined || v === '';
     for (const [k, v] of Object.entries(f)) {
       if (empty(v)) continue;
-      if (k === 'auto_facts' || k === 'deposit_rate' || empty(rec[k])) patch[k] = v;
+      // 한 줄 요약에 법원 이름이 잘못 들어간 예전 자료는 새 값으로 고침
+      const badHeadline = k === 'headline' && /(법원|지원)/.test(rec.headline || '');
+      if (k === 'auto_facts' || k === 'deposit_rate' || badHeadline || empty(rec[k])) patch[k] = v;
     }
     if (f.win_rate && (!rec.win_rate || rec.win_rate === rec.win_rate_auto)) {
       patch.win_rate = f.win_rate;

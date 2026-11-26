@@ -90,20 +90,27 @@
         reg = a.slice(0, 2).join(' ');
       } catch (e) {}
     }
+    // 예전에 법원 이름('부산지방법원 2계')이 주소로 잘못 들어간 자료: 앞의 시·도 이름만 사용
+    if (/(법원|지원)/.test(reg))
+      reg = (reg.match(/^(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주)/) || [
+        ''
+      ])[0];
     return reg
       .replace(/(특별시|광역시|특별자치시|특별자치도)(?=\s|$)/, '')
       .replace(/^(경상남도|경상북도|전라남도|전라북도|충청남도|충청북도)/, m => m[0] + m[2])
       .replace(/^(경기|강원|제주)도/, '$1');
   }
-  function kindLine(r) {
+  // 리포트 위 표의 셋째 줄: 지역 · 물건 종류 (기수·이름 줄과 같은 모양)
+  function kindRow(r) {
     const reg = regionOf(r),
       kind = kindOf(r);
     if (!reg && !kind) return '';
-    const item = (l, v) =>
-      v ? `<span style="color:#888;margin-right:6px">${l}</span><b style="color:#222">${esc(v)}</b>` : '';
-    return `<div style="background:#f6f6f8;border-radius:6px;padding:11px 14px;font-size:13px;margin-bottom:4px">
-    ${[item('지역', reg), item('물건 종류', kind)].filter(Boolean).join('<span style="color:#ccc;margin:0 12px">|</span>')}</div>`;
+    const L = 'padding:7px 0;color:#888;border-top:1px solid #f0f0f0';
+    const V = 'padding:7px 0;font-weight:600;color:#222;border-top:1px solid #f0f0f0';
+    return `<tr><td style="${L}">지역</td><td style="${V}">${esc(reg || '-')}</td>
+      <td style="${L}">물건 종류</td><td style="${V}">${esc(kind || '-')}</td></tr>`;
   }
+
   function stratRow(label, value, hl, first) {
     return `<tr><td style="padding:9px 16px 9px 0;font-size:12px;color:#777;white-space:nowrap;vertical-align:top;${first ? '' : 'border-top:1px solid #e9e9ec;'}">${esc(label)}</td>
     <td style="padding:9px 0;font-size:12.5px;font-weight:700;text-align:right;color:${hl ? PURPLE : '#222'};${first ? '' : 'border-top:1px solid #e9e9ec;'}">${esc(value || '-')}</td></tr>`;
@@ -220,6 +227,7 @@
             <td style="width:70px;padding:7px 0;color:#888">이름</td><td style="padding:7px 0;font-weight:600;color:#222">${esc(s.name)}님</td></tr>
         <tr><td style="padding:7px 0;color:#888;border-top:1px solid #f0f0f0">투자금</td><td style="padding:7px 0;font-weight:600;color:#222;border-top:1px solid #f0f0f0">${esc(ctx.seedLine.replace('시드 : ', ''))}</td>
             <td style="padding:7px 0;color:#888;border-top:1px solid #f0f0f0">주택유형</td><td style="padding:7px 0;font-weight:600;color:#222;border-top:1px solid #f0f0f0">${esc(s.housing_type)}${noHouse || oneHouse ? ` (${transferLabel})` : ''}</td></tr>
+        ${kindRow(r)}
       </table>
     </div>
     <div style="padding:0 28px 22px">
@@ -233,7 +241,6 @@
       </tr></table>`
       }
       ${caseLine && !imgs.length ? `<div style="font-size:11.5px;color:#777;margin:0 0 10px 2px">${caseLine}</div>` : ''}
-      ${kindLine(r)}
       ${imgHtml ? secTitle('탱크옥션 물건 정보', 18, pill) + imgHtml : ''}
       ${reasonsHtml ? secTitle('검토 포인트') + reasonsHtml : ''}
       ${stratHtml}

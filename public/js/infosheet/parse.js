@@ -132,7 +132,13 @@
       facts.propType = k;
     }
     const addr = lines.find(
-      l => l.p === head.p && l.y > head.y && l.y < head.y + 80 && SIDO.test(norm(l.text)) && !/도로명/.test(l.text)
+      l =>
+        l.p === head.p &&
+        l.y > head.y &&
+        l.y < head.y + 80 &&
+        SIDO.test(norm(l.text)) &&
+        !/도로명/.test(l.text) &&
+        !/(법원|지원)/.test(norm(l.text)) // '부산지방법원 2계'처럼 법원 이름이 따로 줄에 있는 경우 제외
     );
     if (addr) {
       facts.address = addr.text.replace(/\s+/g, ' ').trim();
