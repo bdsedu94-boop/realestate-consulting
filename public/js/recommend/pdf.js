@@ -54,10 +54,12 @@
     return LOGO;
   }
 
-  function secTitle(t, mt = 22) {
+  // 섹션 제목 (보라 막대 + 제목, extra: 오른쪽 배지). 모든 칸을 세로 가운데로 맞춤
+  function secTitle(t, mt = 22, extra = '') {
     return `<table style="border-collapse:collapse;margin:${mt}px 0 12px"><tr>
-    <td style="width:4px;padding:0"><div style="width:4px;height:16px;background:${PURPLE}"></div></td>
-    <td style="padding:0 0 0 8px"><div style="font-size:14.5px;font-weight:700;color:${PURPLE};line-height:16px">${t}</div></td>
+    <td style="width:4px;padding:0;vertical-align:middle"><div style="width:4px;height:16px;background:${PURPLE}"></div></td>
+    <td style="padding:0 0 0 8px;vertical-align:middle"><div style="font-size:14.5px;font-weight:700;color:${PURPLE};line-height:22px">${t}</div></td>
+    ${extra ? `<td style="padding:0 0 0 10px;vertical-align:middle">${extra}</td>` : ''}
   </tr></table>`;
   }
   // 물건 요약: 지역 + 종류(아파트/빌라 등)만. 금액·층·권리는 캡처와 검토 포인트에 있음
@@ -102,7 +104,7 @@
     const transferLabel =
       s.transfer_available === 'Y' ? '전입가능' : s.transfer_available === 'N' ? '전입불가' : '미확인';
     // 캡처에 이미 나오는 정보는 중복 입력하지 않아도 되므로, 6칸이 모두 비어 있으면 숨김
-    const pill = `<span style="display:inline-block;vertical-align:middle;background:${PURPLE};color:#fff;font-size:11.5px;font-weight:700;border-radius:12px;padding:3px 11px;line-height:16px">물건 #${String(idx + 1).padStart(2, '0')}</span>`;
+    const pill = `<span style="display:block;background:${PURPLE};color:#fff;font-size:11.5px;font-weight:700;border-radius:11px;padding:3px 11px;line-height:16px">물건 #${String(idx + 1).padStart(2, '0')}</span>`;
     const bidTxt = num(r.bid_low)
       ? `${man(r.bid_low)}${num(r.bid_high) && num(r.bid_high) !== num(r.bid_low) ? ' ~ ' + man(r.bid_high, '원') : '원'}${num(r.appraisal) ? ` (감정가 ${pct(r.bid_low, r.appraisal)}${num(r.bid_high) && num(r.bid_high) !== num(r.bid_low) ? '~' + pct(r.bid_high, r.appraisal) : ''}%)` : ''}`
       : '';
@@ -148,7 +150,6 @@
                   im => `
       <td style="width:${row.length === 1 ? 100 : 50}%;vertical-align:top;padding:0 ${row.length === 1 ? 0 : 4}px">
         <div style="border:1px solid #e3e3e6;border-radius:6px;overflow:hidden;background:#fff">
-          ${im.caption ? `<div style="font-size:9.5px;color:#888;background:#f6f6f8;padding:5px 8px;border-bottom:1px solid #eee">${esc(im.caption)}</div>` : ''}
           <img src="${im.src}" style="width:100%;display:block">
         </div></td>`
                 )
@@ -221,7 +222,7 @@
       }
       ${caseLine && !imgs.length ? `<div style="font-size:11.5px;color:#777;margin:0 0 10px 2px">${caseLine}</div>` : ''}
       ${kindLine(r)}
-      ${imgHtml ? secTitle(`탱크옥션 물건 정보 &nbsp;${pill}`, 18) + imgHtml : ''}
+      ${imgHtml ? secTitle('탱크옥션 물건 정보', 18, pill) + imgHtml : ''}
       ${reasonsHtml ? secTitle('검토 포인트') + reasonsHtml : ''}
       ${stratHtml}
     </div>
