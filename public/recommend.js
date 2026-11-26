@@ -70,8 +70,9 @@ function shrink(dataUrl,maxW=1600){
 function injectUI(){
   const css=document.createElement('style');
   css.textContent=`
-.rec-line{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:0.5px dashed rgba(0,0,0,0.1);font-size:12px;color:#888}
-.rec-line button{font-size:12px;padding:4px 12px;border-color:${PURPLE};color:${PURPLE}}
+.rec-line{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:12px;color:#888}
+.rec-chips{display:flex;gap:4px}
+.rec-line button{font-size:13px;padding:5px 12px;font-weight:600;white-space:nowrap;border-color:${PURPLE};color:${PURPLE}}
 .rec-line button:hover{background:${PURPLE_BG}}
 .rec-chip{display:inline-block;font-size:12px;padding:2px 7px;border-radius:8px;font-weight:600}
 #recModal .modal{width:min(980px,96vw)}
@@ -178,10 +179,11 @@ function injectUI(){
 async function loadSummary(){
   try{REC_SUMMARY=await recApi('/api/recommendations/summary');}catch(e){REC_SUMMARY={};}
 }
+// 수강생 카드 오른쪽 위: 추천물건 현황 + [추천물건 리포트] 버튼
 function cardLine(d){
   const s=REC_SUMMARY[d.id];
-  const chips=s?REC_STATUS.filter(k=>s[k]).map(k=>`<span class="rec-chip" style="${REC_ST_STYLE[k]}">${k} ${s[k]}</span>`).join(''):'<span>추천물건 없음</span>';
-  return `<div class="rec-line"><span style="font-weight:600;color:#555">🏠 추천물건 ${s?s.total+'건':''}</span>${chips}<span style="flex:1"></span><button onclick="RecReport.open(${d.id})">추천물건 관리 · PDF</button></div>`;
+  const chips=s?REC_STATUS.filter(k=>s[k]).map(k=>`<span class="rec-chip" style="${REC_ST_STYLE[k]}">${k} ${s[k]}</span>`).join(''):'';
+  return `<div class="rec-line"><button onclick="RecReport.open(${d.id})">🏠 추천물건 리포트${s?` ${s.total}건`:''}</button>${chips?`<div class="rec-chips">${chips}</div>`:''}</div>`;
 }
 
 /* ── 모달 열기/닫기 ── */

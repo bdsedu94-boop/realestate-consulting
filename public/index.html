@@ -26,10 +26,8 @@ body{font-family:var(--font);font-size:14px;color:#1a1a1a;background:#f7f6f2;min
 .bid-row{background:#f7f6f2;border-radius:8px;padding:8px 10px;margin-bottom:8px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .bid-row .bl{font-size:12px;color:#888;margin-bottom:2px}
 .bid-row .bv{font-size:14px;font-weight:700;color:#1a1a1a}
-.dir-box{padding:7px 10px;border-radius:8px;font-size:13px;font-weight:700}
 .tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:10px;font-weight:500}
 .flg{display:inline-block;font-size:12px;padding:2px 7px;border-radius:8px;margin:2px 2px 0 0;background:#faeeda;color:#633806;font-weight:500}
-.note-text{font-size:12px;color:#888;margin-top:6px}
 .ltv-info{background:#f7f6f2;border-radius:7px;padding:6px 10px;margin-bottom:8px;font-size:12px;color:#888;display:flex;align-items:center;gap:5px}
 .ltv-info strong{color:#1a1a1a;font-weight:600}
 .bv-badge{font-size:11px;padding:2px 8px;border-radius:8px;background:#eaf3de;color:#27500a;font-weight:600;margin-left:6px;vertical-align:middle}
@@ -1013,7 +1011,6 @@ function render(){
   document.getElementById('cards').innerHTML=students.map(d=>{
     const c=consult(d),cr=d.credit_amount||0,total=d.seed_amount+cr;
     const flags=d.flags||[],hc=HC[d.housing_type]||HC['1주택'];
-    const isM=d.housing_type==='다주택',dBg=isM?'#faeeda':'#eaf3de',dTx=isM?'#633806':'#27500a';
     return `<div class="card">
       <div class="card-head">
         <div class="av">${d.cohort}</div>
@@ -1026,7 +1023,8 @@ function render(){
             ${flags.filter(f=>f!=='전문가확인').map(f=>`<span class="flg">${flb(f)}</span>`).join('')}
           </div>
         </div>
-        <div style="display:flex;align-items:flex-start;gap:8px;flex-shrink:0">
+        <div style="display:flex;align-items:flex-start;gap:14px;flex-shrink:0">
+          ${window.RecReport&&!previewMode?RecReport.cardLine(d):''}
           <div style="text-align:right">
             <div style="font-size:15px;font-weight:700">${fmt(d.seed_amount)}</div>
             ${cr>0?`<div style="font-size:12px;color:#0c447c;margin-top:2px">+신용 ${fmt(cr)}</div><div style="font-size:13px;font-weight:700;color:#0c447c">합산 ${fmt(total)}</div>`:''}
@@ -1051,9 +1049,6 @@ function render(){
         <div class="bl" style="margin-bottom:3px">입찰 가능 금액대</div>
         <div class="bv">${c.bid}</div>
       </div>
-      ${c.primary?`<div class="dir-box" style="background:${dBg};color:${dTx}">→ ${c.primary}</div>`:''}
-      ${d.note?`<div class="note-text">※ ${d.note}</div>`:''}
-      ${window.RecReport&&!previewMode?RecReport.cardLine(d):''}
     </div>`;
   }).join('')||'<p style="color:#aaa;padding:2rem;text-align:center">조건에 맞는 수강생이 없습니다.</p>';
 }
