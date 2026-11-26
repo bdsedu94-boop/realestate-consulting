@@ -12,9 +12,26 @@ const path = require('path');
 
 const STATUSES = ['작성중', '검수완료', '발송완료'];
 const TEXT_FIELDS = [
-  'case_no', 'court', 'sale_date', 'headline', 'prop_type', 'area', 'floor_main', 'floor_sub',
-  'occupancy', 'occupancy_sub', 'rights', 'rights_sub', 'win_rate', 'rent', 'strategy_note',
-  'image_note', 'manager', 'win_rate_auto', 'auto_facts', 'bid_auto'
+  'case_no',
+  'court',
+  'sale_date',
+  'headline',
+  'prop_type',
+  'area',
+  'floor_main',
+  'floor_sub',
+  'occupancy',
+  'occupancy_sub',
+  'rights',
+  'rights_sub',
+  'win_rate',
+  'rent',
+  'strategy_note',
+  'image_note',
+  'manager',
+  'win_rate_auto',
+  'auto_facts',
+  'bid_auto'
 ];
 const NUM_FIELDS = ['appraisal', 'min_price', 'fail_count', 'bid_low', 'bid_high', 'deposit_rate'];
 const MAX_IMAGES = 6;
@@ -50,7 +67,11 @@ function emptyRec() {
   for (const f of TEXT_FIELDS) r[f] = '';
   for (const f of NUM_FIELDS) r[f] = null;
   r.deposit_rate = 10;
-  r.reasons = [{ title: '', body: '' }, { title: '', body: '' }, { title: '', body: '' }];
+  r.reasons = [
+    { title: '', body: '' },
+    { title: '', body: '' },
+    { title: '', body: '' }
+  ];
   r.images = [];
   r.status = '작성중';
   return r;
@@ -58,7 +79,9 @@ function emptyRec() {
 
 /** "2025타경52471" → "2025타경52471" (공백 제거, 표기 통일) */
 function normalizeCaseNo(s) {
-  const m = String(s || '').replace(/\s/g, '').match(/(\d{4})타경(\d+)/);
+  const m = String(s || '')
+    .replace(/\s/g, '')
+    .match(/(\d{4})타경(\d+)/);
   return m ? `${m[1]}타경${m[2]}` : '';
 }
 
@@ -77,7 +100,11 @@ module.exports = function recommendApi({ readDB, writeDB, dataDir }) {
   }
   function removeImageFiles(rec) {
     for (const img of rec.images || []) {
-      try { fs.unlinkSync(path.join(IMG_DIR, img.file)); } catch (e) { /* 이미 없으면 무시 */ }
+      try {
+        fs.unlinkSync(path.join(IMG_DIR, img.file));
+      } catch (e) {
+        /* 이미 없으면 무시 */
+      }
     }
   }
   function nextOrder(db, studentId) {
@@ -131,17 +158,27 @@ module.exports = function recommendApi({ readDB, writeDB, dataDir }) {
   router.post('/recommendations/import', (req, res) => {
     const db = loadDB();
     const items = Array.isArray(req.body?.items) ? req.body.items.slice(0, 3000) : [];
-    let created = 0, skipped = 0;
+    let created = 0,
+      skipped = 0;
     const unmatched = [];
     const now = new Date().toISOString();
     for (const it of items) {
       const cohort = cleanText(it.cohort, 20).trim();
       const name = cleanText(it.name, 50).trim();
       const caseNo = normalizeCaseNo(it.case_no);
-      if (!caseNo) { skipped++; continue; }
+      if (!caseNo) {
+        skipped++;
+        continue;
+      }
       const st = db.students.find(s => s.cohort === cohort && s.name === name);
-      if (!st) { unmatched.push(`${cohort} ${name}`); continue; }
-      if (db.recommendations.some(r => r.student_id === st.id && r.case_no === caseNo)) { skipped++; continue; }
+      if (!st) {
+        unmatched.push(`${cohort} ${name}`);
+        continue;
+      }
+      if (db.recommendations.some(r => r.student_id === st.id && r.case_no === caseNo)) {
+        skipped++;
+        continue;
+      }
       db.recommendations.push({
         ...emptyRec(),
         id: db.nextRecId++,
@@ -172,7 +209,9 @@ module.exports = function recommendApi({ readDB, writeDB, dataDir }) {
     // 이미지 캡션/순서 변경 (파일 자체는 별도 API)
     if (Array.isArray(req.body.images)) {
       const byFile = Object.fromEntries((rec.images || []).map(i => [i.file, i]));
-      const ordered = req.body.images.map(i => byFile[i.file] && { ...byFile[i.file], caption: cleanText(i.caption, 100) }).filter(Boolean);
+      const ordered = req.body.images
+        .map(i => byFile[i.file] && { ...byFile[i.file], caption: cleanText(i.caption, 100) })
+        .filter(Boolean);
       if (ordered.length === (rec.images || []).length) rec.images = ordered;
     }
     if (patch.status === '발송완료' && !rec.sent_at) rec.sent_at = rec.updated_at;
@@ -199,7 +238,8 @@ module.exports = function recommendApi({ readDB, writeDB, dataDir }) {
     const rid = parseInt(req.params.rid);
     const rec = db.recommendations.find(r => r.id === rid);
     if (!rec) return res.status(404).json({ error: '추천물건을 찾을 수 없습니다.' });
-    if ((rec.images || []).length >= MAX_IMAGES) return res.status(400).json({ error: `이미지는 최대 ${MAX_IMAGES}장까지 첨부할 수 있습니다.` });
+    if ((rec.images || []).length >= MAX_IMAGES)
+      return res.status(400).json({ error: `이미지는 최대 ${MAX_IMAGES}장까지 첨부할 수 있습니다.` });
     const m = String(req.body?.dataUrl || '').match(/^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/);
     if (!m) return res.status(400).json({ error: '이미지 형식이 올바르지 않습니다.' });
     const buf = Buffer.from(m[2], 'base64');
@@ -208,7 +248,10 @@ module.exports = function recommendApi({ readDB, writeDB, dataDir }) {
     const ext = m[1] === 'jpeg' ? 'jpg' : m[1];
     const file = `r${rid}_${crypto.randomBytes(8).toString('hex')}.${ext}`;
     fs.writeFileSync(path.join(IMG_DIR, file), buf);
-    rec.images = [...(rec.images || []), { file, caption: cleanText(req.body.caption, 100), source: req.body.source === 'auto' ? 'auto' : 'manual' }];
+    rec.images = [
+      ...(rec.images || []),
+      { file, caption: cleanText(req.body.caption, 100), source: req.body.source === 'auto' ? 'auto' : 'manual' }
+    ];
     rec.updated_at = new Date().toISOString();
     writeDB(db);
     res.status(201).json(rec);

@@ -14,12 +14,14 @@ module.exports = function studentsApi({ readDB, writeDB, onDeleteStudent = () =>
       const db = readDB();
       let list = db.students;
       const { cohort, housing_type, status, search } = req.query;
-      if (cohort)       list = list.filter(s => s.cohort === cohort);
+      if (cohort) list = list.filter(s => s.cohort === cohort);
       if (housing_type) list = list.filter(s => s.housing_type === housing_type);
-      if (status)       list = list.filter(s => s.status === status);
-      if (search)       list = list.filter(s => s.name && s.name.includes(search));
+      if (status) list = list.filter(s => s.status === status);
+      if (search) list = list.filter(s => s.name && s.name.includes(search));
       res.json(list);
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
   });
 
   /* ── 수강생 추가 ── */
@@ -30,7 +32,9 @@ module.exports = function studentsApi({ readDB, writeDB, onDeleteStudent = () =>
       db.students.push(student);
       writeDB(db);
       res.status(201).json(student);
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
   });
 
   /* ── 수강생 수정 ── */
@@ -43,7 +47,9 @@ module.exports = function studentsApi({ readDB, writeDB, onDeleteStudent = () =>
       db.students[idx] = { ...db.students[idx], ...req.body, id };
       writeDB(db);
       res.json(db.students[idx]);
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
   });
 
   /* ── 수강생 삭제 ── */
@@ -57,7 +63,9 @@ module.exports = function studentsApi({ readDB, writeDB, onDeleteStudent = () =>
       onDeleteStudent(db, id);
       writeDB(db);
       res.json({ ok: true });
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
   });
 
   /* ── 기수 목록 ── */
@@ -66,7 +74,9 @@ module.exports = function studentsApi({ readDB, writeDB, onDeleteStudent = () =>
       const db = readDB();
       const cohorts = [...new Set(db.students.map(s => s.cohort))].sort();
       res.json(cohorts);
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
   });
 
   /* ── 통계 ── */
@@ -76,19 +86,30 @@ module.exports = function studentsApi({ readDB, writeDB, onDeleteStudent = () =>
       const s = db.students;
       const total = s.length;
       const avgSeed = total ? Math.round(s.reduce((a, x) => a + (x.seed_amount || 0), 0) / total) : 0;
-      const byHousing = [...new Set(s.map(x => x.housing_type))].map(h => ({ housing_type: h, n: s.filter(x => x.housing_type === h).length }));
+      const byHousing = [...new Set(s.map(x => x.housing_type))].map(h => ({
+        housing_type: h,
+        n: s.filter(x => x.housing_type === h).length
+      }));
       const cohorts = [...new Set(s.map(x => x.cohort))].sort();
       const byCohort = cohorts.map(c => {
         const g = s.filter(x => x.cohort === c);
         const n = h => g.filter(x => h.includes(x.housing_type)).length;
         return {
-          cohort: c, total: g.length, noHouse: n(['생애최초', '무주택']), oneHouse: n(['1주택']), multi: n(['다주택']),
+          cohort: c,
+          total: g.length,
+          noHouse: n(['생애최초', '무주택']),
+          oneHouse: n(['1주택']),
+          multi: n(['다주택']),
           avg_seed: g.length ? Math.round(g.reduce((a, x) => a + (x.seed_amount || 0), 0) / g.length) : 0
         };
       });
-      const avgTotal = total ? Math.round(s.reduce((a, x) => a + (x.seed_amount || 0) + (x.credit_amount || 0), 0) / total) : 0;
+      const avgTotal = total
+        ? Math.round(s.reduce((a, x) => a + (x.seed_amount || 0) + (x.credit_amount || 0), 0) / total)
+        : 0;
       res.json({ total, avgSeed, avgTotal, byHousing, byCohort });
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
   });
 
   /* ── 수강생 일괄 등록 ── */
@@ -117,9 +138,10 @@ module.exports = function studentsApi({ readDB, writeDB, onDeleteStudent = () =>
       db.students.push(...newStudents);
       writeDB(db);
       res.json({ ok: true, inserted: newStudents.length });
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
   });
-
 
   router.post('/seed', (req, res) => {
     try {
@@ -132,7 +154,9 @@ module.exports = function studentsApi({ readDB, writeDB, onDeleteStudent = () =>
       db.nextId = nextId;
       writeDB(db);
       res.json({ ok: true, inserted: students.length });
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
   });
 
   return router;

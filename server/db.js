@@ -15,7 +15,9 @@ module.exports = function createDB(DATA_DIR) {
       if (fs.existsSync(DB_FILE)) {
         return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
       }
-    } catch(e) { console.error('DB 읽기 오류:', e); }
+    } catch (e) {
+      console.error('DB 읽기 오류:', e);
+    }
     return { students: [], nextId: 1 };
   }
 
@@ -23,7 +25,9 @@ module.exports = function createDB(DATA_DIR) {
     try {
       if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
       fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-    } catch(e) { console.error('DB 쓰기 오류:', e); }
+    } catch (e) {
+      console.error('DB 쓰기 오류:', e);
+    }
   }
 
   return { readDB, writeDB };
