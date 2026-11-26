@@ -55,11 +55,13 @@
   }
 
   // 섹션 제목 (보라 막대 + 제목, extra: 오른쪽 배지). 모든 칸을 세로 가운데로 맞춤
-  function secTitle(t, mt = 22, extra = '') {
-    return `<table style="border-collapse:collapse;margin:${mt}px 0 12px"><tr>
+  // right: 같은 줄 오른쪽 끝에 붙는 내용 (있으면 표를 전체 폭으로)
+  function secTitle(t, mt = 22, extra = '', right = '') {
+    return `<table style="border-collapse:collapse;margin:${mt}px 0 12px;${right ? 'width:100%' : ''}"><tr>
     <td style="width:4px;padding:0;vertical-align:middle"><div style="width:4px;height:16px;background:${PURPLE}"></div></td>
-    <td style="padding:0 0 0 8px;vertical-align:middle"><div style="font-size:14.5px;font-weight:700;color:${PURPLE};line-height:22px">${t}</div></td>
-    ${extra ? `<td style="padding:0 0 0 10px;vertical-align:middle">${extra}</td>` : ''}
+    <td style="padding:0 0 0 8px;vertical-align:middle;white-space:nowrap"><div style="font-size:14.5px;font-weight:700;color:${PURPLE};line-height:22px">${t}</div></td>
+    ${extra ? `<td style="padding:0 0 0 10px;vertical-align:middle;white-space:nowrap">${extra}</td>` : ''}
+    ${right ? `<td style="width:100%"></td><td style="padding:0;vertical-align:middle;white-space:nowrap;font-size:12.5px">${right}</td>` : ''}
   </tr></table>`;
   }
   // 물건 요약: 지역 + 종류(아파트/빌라 등)만. 금액·층·권리는 캡처와 검토 포인트에 있음
@@ -100,15 +102,15 @@
       .replace(/^(경상남도|경상북도|전라남도|전라북도|충청남도|충청북도)/, m => m[0] + m[2])
       .replace(/^(경기|강원|제주)도/, '$1');
   }
-  // 리포트 위 표의 셋째 줄: 지역 · 물건 종류 (기수·이름 줄과 같은 모양)
-  function kindRow(r) {
+  // '물건 #01' 줄 오른쪽 끝: 지역 · 물건 종류 (항목 이름 회색 + 값 진하게)
+  function kindRight(r) {
     const reg = regionOf(r),
       kind = kindOf(r);
-    if (!reg && !kind) return '';
-    const L = 'padding:7px 0;color:#888;border-top:1px solid #f0f0f0';
-    const V = 'padding:7px 0;font-weight:600;color:#222;border-top:1px solid #f0f0f0';
-    return `<tr><td style="${L}">지역</td><td style="${V}">${esc(reg || '-')}</td>
-      <td style="${L}">물건 종류</td><td style="${V}">${esc(kind || '-')}</td></tr>`;
+    const item = (l, v, last) =>
+      v
+        ? `<span style="color:#999">${l}</span> <b style="color:#222;${last ? '' : 'margin-right:12px'}">${esc(v)}</b>`
+        : '';
+    return item('지역', reg, !kind) + item('물건 종류', kind, true);
   }
 
   function stratRow(label, value, hl, first) {
@@ -227,7 +229,6 @@
             <td style="width:70px;padding:7px 0;color:#888">이름</td><td style="padding:7px 0;font-weight:600;color:#222">${esc(s.name)}님</td></tr>
         <tr><td style="padding:7px 0;color:#888;border-top:1px solid #f0f0f0">투자금</td><td style="padding:7px 0;font-weight:600;color:#222;border-top:1px solid #f0f0f0">${esc(ctx.seedLine.replace('시드 : ', ''))}</td>
             <td style="padding:7px 0;color:#888;border-top:1px solid #f0f0f0">주택유형</td><td style="padding:7px 0;font-weight:600;color:#222;border-top:1px solid #f0f0f0">${esc(s.housing_type)}${noHouse || oneHouse ? ` (${transferLabel})` : ''}</td></tr>
-        ${kindRow(r)}
       </table>
     </div>
     <div style="padding:0 28px 22px">
@@ -241,7 +242,7 @@
       </tr></table>`
       }
       ${caseLine && !imgs.length ? `<div style="font-size:11.5px;color:#777;margin:0 0 10px 2px">${caseLine}</div>` : ''}
-      ${imgHtml ? secTitle('탱크옥션 물건 정보', 18, pill) + imgHtml : ''}
+      ${imgHtml ? secTitle('탱크옥션 물건 정보', 18, pill, kindRight(r)) + imgHtml : ''}
       ${reasonsHtml ? secTitle('검토 포인트') + reasonsHtml : ''}
       ${stratHtml}
     </div>
