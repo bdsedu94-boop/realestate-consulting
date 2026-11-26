@@ -1,5 +1,5 @@
 // 추천물건 리포트 — 탱크옥션 자동 캡처 (크롬 확장프로그램 '추천물건 캡처 도우미'와 연동)
-// recommend.js 다음에 불러옴. 공통 기능은 RecCore에서 받음.
+// recommend/core.js 다음에 불러옴. 공통 기능은 RecCore에서 받음.
 (function(){
 const R=window.RecCore;
 const {st,num,todayStr,recApi,shrink,reload,readEditor,select,save,calcBid,genReasons}=R;

@@ -1,13 +1,13 @@
 const express = require('express');
 const crypto = require('crypto');
 const fs = require('fs');
-const rules = require('./public/investment-rules');
+const rules = require('../public/js/investment-rules');
 
 // 서버 사이에서만 사용하는 키입니다. 상담 사이트 로그인이나 수강생 DB 접근 권한은 부여하지 않습니다.
 module.exports = function investmentApi(token = process.env.INVESTMENT_SYNC_TOKEN) {
   const router = express.Router();
   const ruleVersion = crypto.createHash('sha256')
-    .update(fs.readFileSync(require.resolve('./public/investment-rules'))).digest('hex');
+    .update(fs.readFileSync(require.resolve('../public/js/investment-rules'))).digest('hex');
   router.use((req, res, next) => {
     res.set('Cache-Control', 'no-store');
     if (!token || token.length < 32) return res.status(503).json({ error: '기준 연결이 준비되지 않았습니다.' });

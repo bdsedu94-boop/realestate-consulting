@@ -1,5 +1,5 @@
 // 추천물건 리포트 — 리포트 PDF 만들기
-// recommend.js 다음에 불러옴. 공통 기능은 RecCore에서 받음.
+// recommend/core.js 다음에 불러옴. 공통 기능은 RecCore에서 받음.
 (function(){
 const R=window.RecCore;
 const {PURPLE,PURPLE_BG,DISCLAIMER,st,esc,escBr,num,man,pct,fmtDate,todayStr,deposit,recApi,reload,select,save,checkRec}=R;

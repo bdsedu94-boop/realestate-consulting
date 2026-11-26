@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const express = require('express');
-const recommendApi = require('../recommend-api');
+const recommendApi = require('../server/recommend-api');
 
 function setup() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rec-'));

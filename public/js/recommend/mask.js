@@ -1,5 +1,5 @@
 // 추천물건 리포트 — 캡처 이미지 다듬기 (자르기 / 모자이크)
-// recommend.js 다음에 불러옴. 공통 기능은 RecCore에서 받음.
+// recommend/core.js 다음에 불러옴. 공통 기능은 RecCore에서 받음.
 (function(){
 const R=window.RecCore;
 const {st,recApi,reload,select,save}=R;

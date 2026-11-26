@@ -1,5 +1,5 @@
 // 탱크옥션 '상세정보' 화면을 PDF로 저장한 경매 정보지를 읽어 물건 리포트 칸을 채웁니다.
-// 브라우저(recommend.js)와 테스트(node)가 함께 사용합니다. PDF 글자 추출은 pdf.js가 하고,
+// 브라우저(infosheet/import.js)와 테스트(node)가 함께 사용합니다. PDF 글자 추출은 pdf.js가 하고,
 // 이 파일은 글자 위치(items)를 받아 줄로 묶고, 물건 칸 값과 캡처할 영역을 찾습니다.
 (function(root,factory){
   if(typeof module==='object'&&module.exports) module.exports=factory();

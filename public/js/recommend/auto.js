@@ -1,5 +1,5 @@
 // 추천물건 리포트 — 추천 사유·권장 입찰가 자동 작성, 발송 전 확인
-// recommend.js 다음에 불러옴. 공통 기능은 RecCore에서 받음.
+// recommend/core.js 다음에 불러옴. 공통 기능은 RecCore에서 받음.
 (function(){
 const R=window.RecCore;
 const {st,num,man,pct,deposit,readEditor,save}=R;

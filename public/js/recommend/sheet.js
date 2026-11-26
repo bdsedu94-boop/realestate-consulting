@@ -1,5 +1,5 @@
 // 추천물건 리포트 — 구글시트 요약 탭 → 추천물건 초안 일괄 생성
-// recommend.js 다음에 불러옴. 공통 기능은 RecCore에서 받음.
+// recommend/core.js 다음에 불러옴. 공통 기능은 RecCore에서 받음.
 (function(){
 const R=window.RecCore;
 const {recApi,loadSummary}=R;

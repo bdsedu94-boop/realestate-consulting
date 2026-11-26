@@ -1,6 +1,6 @@
 // 경매 정보지(탱크옥션 상세정보 PDF) 해석 — 가상의 글자 배치로 검사 (실제 정보지·개인정보는 넣지 않음)
 const test=require('node:test'), assert=require('node:assert');
-const IS=require('../public/infosheet.js');
+const IS=require('../public/js/infosheet/parse.js');
 
 // 한 단어 = 한 글자 조각. w는 글자 수 × 6pt
 const W=(x,y,s,p=1)=>({p,x,y,w:String(s).length*6,h:9,s});

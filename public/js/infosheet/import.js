@@ -1,5 +1,5 @@
 // 경매 정보지 PDF → 물건 자동 작성 (사건 정보·경매정보 캡처·검토 포인트·권장 입찰가)
-// 화면 버튼: 추천물건 관리의 [📄 경매 정보지 PDF로 추가]. 해석은 infosheet.js, 저장·계산은 recommend.js(RecCore).
+// 화면 버튼: 추천물건 관리의 [📄 경매 정보지 PDF로 추가]. 해석은 infosheet/parse.js, 저장·계산은 recommend/core.js(RecCore).
 // 개인정보는 정보지를 올리기 전에 가린 상태여야 합니다 (이 파일은 이름을 가리지 않음).
 (function(){
 'use strict';

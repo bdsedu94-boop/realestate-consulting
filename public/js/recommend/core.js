@@ -4,12 +4,12 @@
  *  금액 단위: 만원 (기존 수강생 데이터와 동일)
  *
  *  기능별 파일 (모두 이 파일 다음에 불러옴, RecCore로 기능을 주고받음)
- *   recommend-auto.js     추천 사유·권장 입찰가 자동 작성, 발송 전 확인
- *   recommend-mask.js     캡처 이미지 다듬기 (자르기 / 모자이크)
- *   recommend-capture.js  탱크옥션 자동 캡처 (크롬 확장프로그램 연동)
- *   recommend-pdf.js      리포트 PDF 만들기 (html2canvas + jsPDF)
- *   recommend-sheet.js    구글시트 요약 탭 → 추천물건 초안 일괄 생성
- *   infosheet-import.js   경매 정보지 PDF → 물건 자동 작성
+ *   recommend/auto.js     추천 사유·권장 입찰가 자동 작성, 발송 전 확인
+ *   recommend/mask.js     캡처 이미지 다듬기 (자르기 / 모자이크)
+ *   recommend/capture.js  탱크옥션 자동 캡처 (크롬 확장프로그램 연동)
+ *   recommend/pdf.js      리포트 PDF 만들기 (html2canvas + jsPDF)
+ *   recommend/sheet.js    구글시트 요약 탭 → 추천물건 초안 일괄 생성
+ *   infosheet/import.js   경매 정보지 PDF → 물건 자동 작성
  * ═══════════════════════════════════════════════════════════════ */
 (function(){
 // 다른 기능 파일과 주고받는 내부 기능 모음

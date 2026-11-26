@@ -3,8 +3,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const express = require('express');
-const rules = require('../public/investment-rules');
-const investmentApi = require('../investment-api');
+const rules = require('../public/js/investment-rules');
+const investmentApi = require('../server/investment-api');
 const input = { housing_type: '무주택', transfer_available: 'Y', investment_purpose: '실거주', seed_amount: 8000, credit_amount: 2000 };
 const token = 'isolated-test-only-connection-token';
 
@@ -25,8 +25,11 @@ test('residence and short-term scenarios keep their reference distinction', () =
 });
 
 test('browser and PDF import the shared rules without redefining them', () => {
-  const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
-  assert.match(html, /src="\/investment-rules\.js"/);
+  // 화면 코드: index.html + public/js/app/*.js (기능별로 나뉜 일반 script)
+  const appDir = path.join(__dirname, '../public/js/app');
+  const html = [fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8'),
+    ...fs.readdirSync(appDir).map(f => fs.readFileSync(path.join(appDir, f), 'utf8'))].join('\n');
+  assert.match(html, /src="\/js\/investment-rules\.js"/);
   assert.match(html, /InvestmentRules\.getReportContext\(d\)/);
   assert.doesNotMatch(html, /function (consult|formatBidNarrative|formatBidNarrativeCSV|tierLabel)\(/);
   assert.match(html, /const BASE=\[\];/, 'student records must remain on the authenticated server');
