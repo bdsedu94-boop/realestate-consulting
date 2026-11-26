@@ -9,7 +9,7 @@
 :root{--font:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic','Pretendard',sans-serif}
 body{font-family:var(--font);font-size:14px;color:#1a1a1a;background:#f7f6f2;min-height:100vh}
 .wrap{max-width:1240px;margin:0 auto;padding:2rem 1.5rem}
-.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:1.25rem}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:1.25rem}
 @media(max-width:760px){.stats{grid-template-columns:repeat(3,1fr)}}
 .stat{border-radius:10px;padding:0.8rem 1rem}
 .stat .slb{font-size:12px;margin-bottom:4px;font-weight:500}
@@ -27,17 +27,11 @@ body{font-family:var(--font);font-size:14px;color:#1a1a1a;background:#f7f6f2;min
 .bid-row .bl{font-size:12px;color:#888;margin-bottom:2px}
 .bid-row .bv{font-size:14px;font-weight:700;color:#1a1a1a}
 .dir-box{padding:7px 10px;border-radius:8px;font-size:13px;font-weight:700}
-.sbadge{display:inline-block;font-size:12px;padding:2px 8px;border-radius:8px;font-weight:600;margin-bottom:5px}
-.s-완료{background:#eaf3de;color:#27500a}
-.s-재상담{background:#faeeda;color:#633806}
-.s-대기{background:#f0ede6;color:#5f5e5a}
 .tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:10px;font-weight:500}
 .flg{display:inline-block;font-size:12px;padding:2px 7px;border-radius:8px;margin:2px 2px 0 0;background:#faeeda;color:#633806;font-weight:500}
 .note-text{font-size:12px;color:#888;margin-top:6px}
 .ltv-info{background:#f7f6f2;border-radius:7px;padding:6px 10px;margin-bottom:8px;font-size:12px;color:#888;display:flex;align-items:center;gap:5px}
 .ltv-info strong{color:#1a1a1a;font-weight:600}
-.consult-note{font-size:12px;color:#0c447c;background:#e6f1fb;border-radius:6px;padding:4px 8px;margin-top:6px}
-.consult-date{font-size:12px;color:#aaa;margin-top:4px}
 .bv-badge{font-size:11px;padding:2px 8px;border-radius:8px;background:#eaf3de;color:#27500a;font-weight:600;margin-left:6px;vertical-align:middle}
 .del-btn-inline,.edit-btn-inline,.pdf-btn-inline{width:30px;height:30px;border:none;background:none;color:#999;font-size:15px;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:0}
 .del-btn-inline:hover{background:#fcebeb;color:#a32d2d}
@@ -95,8 +89,8 @@ button:hover{background:#f0ede6}
 .an-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:700px){.an-grid{grid-template-columns:1fr}}
 .an-kpi{background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:10px;padding:1rem;text-align:center}
-#anKpi{grid-template-columns:repeat(4,1fr)}
-@media(max-width:700px){#anKpi{grid-template-columns:1fr 1fr}}
+#anKpi,#anCharts{grid-template-columns:repeat(3,1fr)}
+@media(max-width:900px){#anKpi,#anCharts{grid-template-columns:1fr}}
 .an-kpi .kv{font-size:24px;font-weight:700;margin-bottom:2px}
 .an-kpi .kl{font-size:11px;color:#888}
 .lay-btn-group{display:flex;border:1px solid rgba(0,0,0,0.15);border-radius:7px;overflow:hidden}
@@ -111,7 +105,7 @@ button:hover{background:#f0ede6}
   <div class="top-bar">
     <div>
       <h1 style="font-size:22px;font-weight:800">수강생 투자 방향성 컨설팅 <span class="bv-badge">v3</span></h1>
-      <p style="font-size:12px;color:#888;margin-top:4px">실시간 팀 공유 · 상담상태관리 · 기수별 분석</p>
+      <p style="font-size:12px;color:#888;margin-top:4px">실시간 팀 공유 · 기수별 분석</p>
     </div>
   </div>
 
@@ -125,12 +119,6 @@ button:hover{background:#f0ede6}
           <option value="1주택">1주택</option>
           <option value="다주택">다주택</option>
           <option value="미기입">미기입</option>
-        </select>
-        <select id="fSt" onchange="loadStudents()">
-          <option value="">전체 상태</option>
-          <option value="대기">상담 대기</option>
-          <option value="완료">상담 완료</option>
-          <option value="재상담">재상담 필요</option>
         </select>
         <input type="text" id="fQ" placeholder="🔍 이름 검색" oninput="debounceLoad()" style="width:150px">
     </div>
@@ -204,8 +192,7 @@ button:hover{background:#f0ede6}
       <div class="an-title">기수별 현황</div>
       <div style="overflow-x:auto"><table class="cohort-table" id="cohortTable"></table></div>
     </div>
-    <div class="an-grid">
-      <div class="an-section"><div class="an-title">상담 상태 분포</div><div id="anStatus"></div></div>
+    <div class="an-grid" id="anCharts">
       <div class="an-section"><div class="an-title">주택 보유 유형 분포</div><div id="anHousing"></div></div>
       <div class="an-section"><div class="an-title">시드 금액대 분포</div><div id="anSeed"></div></div>
       <div class="an-section"><div class="an-title">투자 방향 분포</div><div id="anDir"></div></div>
@@ -249,15 +236,7 @@ button:hover{background:#f0ede6}
           <option value="단타">단타</option>
           <option value="단타+실거주">단타+실거주 (둘 다)</option>
         </select></div>
-      <div><label class="fl">상담 상태</label>
-        <select id="em-status" style="width:100%">
-          <option value="대기">상담 대기</option>
-          <option value="완료">상담 완료</option>
-          <option value="재상담">재상담 필요</option>
-        </select></div>
-      <div><label class="fl">상담일</label><input id="em-date" type="text" placeholder="예: 2025.04" style="width:100%"></div>
       <div><label class="fl">특이사항</label><input id="em-note" type="text" style="width:100%"></div>
-      <div><label class="fl">상담 메모</label><input id="em-cnote" type="text" placeholder="상담 시 주요 내용" style="width:100%"></div>
       <div style="display:none"><label class="fl">플래그</label>
         <div class="chk-grp">
           <label><input type="checkbox" id="em-f1"> 기대출 많음</label>
@@ -318,14 +297,13 @@ async function api(url,method='GET',body=null){
 /* ── 수강생 로드 ── */
 async function loadStudents(){
   const c=document.getElementById('fC').value,h=document.getElementById('fH').value;
-  const st=document.getElementById('fSt').value,q=document.getElementById('fQ').value.trim();
+  const q=document.getElementById('fQ').value.trim();
 
   if(previewMode){
     // 미리보기 모드: 클라이언트 필터링
     let list=BASE.map((d,i)=>({...d,id:i+1}));
     if(c) list=list.filter(s=>s.cohort===c);
     if(h) list=list.filter(s=>s.housing_type===h);
-    if(st) list=list.filter(s=>s.status===st);
     if(q) list=list.filter(s=>s.name&&s.name.includes(q));
     students=list;
     render();
@@ -336,7 +314,7 @@ async function loadStudents(){
   try{
     const params=new URLSearchParams();
     if(c)params.set('cohort',c);if(h)params.set('housing_type',h);
-    if(st)params.set('status',st);if(q)params.set('search',q);
+    if(q)params.set('search',q);
     students=await api('/api/students?'+params);
     if(window.RecReport) await RecReport.loadSummary();
     setSyncBar('sync-ok','마지막 동기화: '+timeStr());
@@ -380,8 +358,7 @@ async function addStudent(){
       seed_amount:seed,credit_amount:parseInt(document.getElementById('fCr').value)||0,
       loan_available:document.getElementById('fL').value,
       transfer_available:document.getElementById('fT').value,
-      note:document.getElementById('fNote').value.trim(),flags,
-      status:'대기',consult_date:'',consult_note:''
+      note:document.getElementById('fNote').value.trim(),flags
     });
     ['fA','fN','fS','fCr','fNote'].forEach(id=>document.getElementById(id).value='');
     ['ff1','ff2','ff3'].forEach(id=>document.getElementById(id).checked=false);
@@ -407,10 +384,7 @@ function openEdit(d){
   document.getElementById('em-l').value=d.loan_available;
   document.getElementById('em-t').value=d.transfer_available;
   document.getElementById('em-purpose').value=d.investment_purpose||'unknown';
-  document.getElementById('em-status').value=d.status||'대기';
-  document.getElementById('em-date').value=d.consult_date||'';
   document.getElementById('em-note').value=d.note||'';
-  document.getElementById('em-cnote').value=d.consult_note||'';
   const f=d.flags||[];
   document.getElementById('em-f1').checked=f.includes('기대출');
   document.getElementById('em-f2').checked=f.includes('전문가확인');
@@ -433,10 +407,7 @@ async function saveEdit(){
     loan_available:document.getElementById('em-l').value,
     transfer_available:document.getElementById('em-t').value,
     investment_purpose:document.getElementById('em-purpose').value,
-    status:document.getElementById('em-status').value,
-    consult_date:document.getElementById('em-date').value.trim(),
     note:document.getElementById('em-note').value.trim(),
-    consult_note:document.getElementById('em-cnote').value.trim(),
     flags
   };
   if(previewMode){
@@ -449,22 +420,6 @@ async function saveEdit(){
     await api('/api/students/'+editId,'PUT',updated);
     closeEdit();await loadStudents();
   }catch(e){alert('수정 실패: '+e.message);}
-}
-
-/* ── 상담 상태 원클릭 변경 ── */
-async function cycleStatus(id,cur){
-  const next=cur==='대기'?'완료':cur==='완료'?'재상담':'대기';
-  if(previewMode){
-    const idx=students.findIndex(st=>st.id===id);
-    if(idx!==-1)students[idx].status=next;
-    render();return;
-  }
-  try{
-    const stu=students.find(st=>st.id===id);
-    if(!stu)return;
-    await api('/api/students/'+id,'PUT',{...stu,status:next});
-    await loadStudents();
-  }catch(e){alert('상태 변경 실패: '+e.message);}
 }
 
 /* ── Excel 업로드 일괄 등록 ── */
@@ -661,8 +616,7 @@ async function importExcel(input){
         loan_available:loan,
         transfer_available:mapTransfer(r[iTransfer]),
         investment_purpose:iPurpose>=0?mapPurpose(r[iPurpose]):'unknown',
-        note, flags:[],
-        status:'대기', consult_date:'', consult_note:''
+        note, flags:[]
       });
     }
 
@@ -1009,7 +963,7 @@ async function downloadAllPDFs(){
 // 수도권 규제·비규제 빌라/APT 표기 기준 (무주택자·1주택자 공통, 주택수와 무관하게 금액 기준 통일)
 function exportCSV(){
   try{
-    const headers=['기수','이름','주택수','투자금(만원)','신용대출(만원)','합산(만원)','대출가능','투자목적','전입가능','특이사항','상담메모','플래그','상담상태','상담일','이주임 확인완료','방향성'];
+    const headers=['기수','이름','주택수','투자금(만원)','신용대출(만원)','합산(만원)','대출가능','투자목적','전입가능','특이사항','플래그','이주임 확인완료','방향성'];
     const rows=students.map(d=>{
       const c=consult(d);
       const cr=d.credit_amount||0;
@@ -1019,9 +973,8 @@ function exportCSV(){
         d.loan_available==='Y'?'가능':d.loan_available==='N'?'불가':'미확인',
         d.investment_purpose==='단타'?'단타':d.investment_purpose==='실거주'?'실거주':d.investment_purpose==='단타+실거주'?'단타+실거주':'미기재',
         d.transfer_available==='Y'?'가능':d.transfer_available==='N'?'불가':'미기재',
-        d.note||'', d.consult_note||'',
+        d.note||'',
         (d.flags||[]).join('/'),
-        d.status||'대기', d.consult_date||'',
         '', // 이주임 확인완료 (수동 입력)
         formatBidNarrativeCSV(d) // 방향성 = 입찰 가능 금액대
       ];
@@ -1043,8 +996,6 @@ function exportCSV(){
 const SC={O:{bg:'#eaf3de',tx:'#27500a'},T:{bg:'#faeeda',tx:'#633806'},X:{bg:'#fcebeb',tx:'#791f1f'},E:{bg:'#ececec',tx:'#555'}};
 const SM={O:'✓',T:'△',X:'✕',E:'⚠'};
 const HC={'생애최초':{bg:'#e6f1fb',tx:'#0c447c'},'무주택':{bg:'#eaf3de',tx:'#27500a'},'1주택':{bg:'#faeeda',tx:'#633806'},'다주택':{bg:'#fcebeb',tx:'#791f1f'},'미기입':{bg:'#ececec',tx:'#555'}};
-const STCLS={'완료':'s-완료','재상담':'s-재상담','대기':'s-대기'};
-const STLBL={'완료':'✓ 상담완료','재상담':'↩ 재상담필요','대기':'· 상담대기'};
 function ll(l){return l==='Y'?'대출가능':l==='N'?'대출불가':'대출미확인';}
 function ynStyle(v){return v==='Y'?'color:#27500a;font-weight:600':v==='N'?'color:#c0392b;font-weight:600':'color:#aaa';}
 function tl(t){return t==='Y'?'전입가능':t==='N'?'전입불가':'전입미기재';}
@@ -1057,21 +1008,16 @@ function render(){
   const no=students.filter(s=>s.housing_type==='무주택').length;
   const on=students.filter(s=>s.housing_type==='1주택').length;
   const mu=students.filter(s=>s.housing_type==='다주택').length;
-  const done=students.filter(s=>s.status==='완료').length;
   const ms=(bg,tx,lb,v)=>`<div class="stat" style="background:${bg}"><div class="slb" style="color:${tx}">${lb}</div><div class="sval" style="color:${tx}">${v}명</div></div>`;
-  document.getElementById('stats').innerHTML=ms('#f0ede6','#5f5e5a','전체',t)+ms('#eaf3de','#27500a','상담완료',done)+ms('#e6f1fb','#0c447c','생애최초',fi)+ms('#eaf3de','#27500a','무주택',no)+ms('#faeeda','#633806','1주택',on)+ms('#fcebeb','#791f1f','다주택',mu);
+  document.getElementById('stats').innerHTML=ms('#f0ede6','#5f5e5a','전체',t)+ms('#e6f1fb','#0c447c','생애최초',fi)+ms('#eaf3de','#27500a','무주택',no)+ms('#faeeda','#633806','1주택',on)+ms('#fcebeb','#791f1f','다주택',mu);
   document.getElementById('cards').innerHTML=students.map(d=>{
     const c=consult(d),cr=d.credit_amount||0,total=d.seed_amount+cr;
     const flags=d.flags||[],hc=HC[d.housing_type]||HC['1주택'];
     const isM=d.housing_type==='다주택',dBg=isM?'#faeeda':'#eaf3de',dTx=isM?'#633806':'#27500a';
-    const st=d.status||'대기';
     return `<div class="card">
       <div class="card-head">
         <div class="av">${d.cohort}</div>
         <div style="flex:1;min-width:0">
-          <div style="margin-bottom:4px">
-            <span class="sbadge ${STCLS[st]}" onclick="cycleStatus(${d.id},'${st}')" style="cursor:pointer" title="클릭: 상태 변경">${STLBL[st]}</span>
-          </div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
             <span style="font-size:15px;font-weight:700">${d.name}</span>
             <span class="tag" style="background:${hc.bg};color:${hc.tx}">${d.housing_type}</span>
@@ -1107,8 +1053,6 @@ function render(){
       </div>
       ${c.primary?`<div class="dir-box" style="background:${dBg};color:${dTx}">→ ${c.primary}</div>`:''}
       ${d.note?`<div class="note-text">※ ${d.note}</div>`:''}
-      ${d.consult_note?`<div class="consult-note">💬 ${d.consult_note}</div>`:''}
-      ${d.consult_date?`<div class="consult-date">상담일: ${d.consult_date}</div>`:''}
       ${window.RecReport&&!previewMode?RecReport.cardLine(d):''}
     </div>`;
   }).join('')||'<p style="color:#aaa;padding:2rem;text-align:center">조건에 맞는 수강생이 없습니다.</p>';
@@ -1118,16 +1062,15 @@ function render(){
 async function renderAnalytics(){
   try{
     const stats=await api('/api/stats');
-    const {total,avgSeed,byStatus,byHousing,byCohort}=stats;
-    const done=(byStatus.find(s=>s.status==='완료')||{n:0}).n;
-    const recon=(byStatus.find(s=>s.status==='재상담')||{n:0}).n;
+    const {total,avgSeed,avgTotal,byHousing,byCohort}=stats;
     const kpi=(v,label,color)=>`<div class="an-kpi"><div class="kv"${color?` style="color:${color}"`:''}>${v}</div><div class="kl">${label}</div></div>`;
     document.getElementById('anKpi').innerHTML=
-      kpi(total,'전체 수강생')+kpi(done,'상담 완료','#27500a')+kpi(recon,'재상담 필요','#633806')+kpi(fmt(avgSeed),'평균 시드');
+      kpi(total+'명','전체 수강생')+kpi(fmt(avgSeed),'평균 시드')+kpi(fmt(avgTotal),'평균 합산 (시드+신용)');
     document.getElementById('cohortTable').innerHTML=
-      '<thead><tr><th>기수</th><th>총원</th><th>상담완료</th><th>재상담</th><th>평균시드</th></tr></thead><tbody>'
+      '<thead><tr><th>기수</th><th>총원</th><th>무주택·생애최초</th><th>1주택</th><th>다주택</th><th>평균시드</th></tr></thead><tbody>'
       +byCohort.map(c=>`<tr><td><strong>${c.cohort}</strong></td><td>${c.total}명</td>`
-        +`<td style="color:#27500a;font-weight:600">${c.done}명</td><td style="color:#633806;font-weight:600">${c.recon}명</td>`
+        +`<td style="color:#27500a;font-weight:600">${c.noHouse}명</td><td style="color:#633806;font-weight:600">${c.oneHouse}명</td>`
+        +`<td style="color:#791f1f;font-weight:600">${c.multi}명</td>`
         +`<td>${fmt(Math.round(c.avg_seed))}</td></tr>`).join('')
       +'</tbody>';
     const mkBars=(data,tot)=>data.map(([lb,bg,tx,cnt])=>{
@@ -1136,8 +1079,6 @@ async function renderAnalytics(){
         +`<div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${bg}"><span style="color:${tx}">${cnt}</span></div></div>`
         +`<div class="br-count" style="color:${tx}">${cnt}명</div></div>`;
     }).join('');
-    const waiting=(byStatus.find(s=>s.status==='대기')||{n:0}).n;
-    document.getElementById('anStatus').innerHTML=mkBars([['상담 완료','#eaf3de','#27500a',done],['재상담 필요','#faeeda','#633806',recon],['상담 대기','#f0ede6','#5f5e5a',waiting]],total);
     const hMap={'생애최초':'#e6f1fb|#0c447c','무주택':'#eaf3de|#27500a','1주택':'#faeeda|#633806','다주택':'#fcebeb|#791f1f'};
     document.getElementById('anHousing').innerHTML=mkBars(byHousing.map(h=>{const[bg,tx]=(hMap[h.housing_type]||'#f0ede6|#5f5e5a').split('|');return[h.housing_type,bg,tx,h.n];}),total);
     const all=await api('/api/students');

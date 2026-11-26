@@ -175,14 +175,18 @@ app.get('/api/stats', (req, res) => {
     const s = db.students;
     const total = s.length;
     const avgSeed = total ? Math.round(s.reduce((a, x) => a + (x.seed_amount || 0), 0) / total) : 0;
-    const byStatus = ['대기','완료','재상담'].map(st => ({ status: st, n: s.filter(x => x.status === st).length }));
     const byHousing = [...new Set(s.map(x => x.housing_type))].map(h => ({ housing_type: h, n: s.filter(x => x.housing_type === h).length }));
     const cohorts = [...new Set(s.map(x => x.cohort))].sort();
     const byCohort = cohorts.map(c => {
       const g = s.filter(x => x.cohort === c);
-      return { cohort: c, total: g.length, done: g.filter(x => x.status === '완료').length, recon: g.filter(x => x.status === '재상담').length, avg_seed: g.length ? Math.round(g.reduce((a, x) => a + (x.seed_amount || 0), 0) / g.length) : 0 };
+      const n = h => g.filter(x => h.includes(x.housing_type)).length;
+      return {
+        cohort: c, total: g.length, noHouse: n(['생애최초', '무주택']), oneHouse: n(['1주택']), multi: n(['다주택']),
+        avg_seed: g.length ? Math.round(g.reduce((a, x) => a + (x.seed_amount || 0), 0) / g.length) : 0
+      };
     });
-    res.json({ total, avgSeed, byStatus, byHousing, byCohort });
+    const avgTotal = total ? Math.round(s.reduce((a, x) => a + (x.seed_amount || 0) + (x.credit_amount || 0), 0) / total) : 0;
+    res.json({ total, avgSeed, avgTotal, byHousing, byCohort });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
