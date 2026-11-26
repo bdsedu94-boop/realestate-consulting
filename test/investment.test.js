@@ -43,8 +43,8 @@ test('browser and PDF import the shared rules without redefining them', () => {
   assert.match(html, /src="\/js\/investment-rules\.js"/);
   assert.match(html, /InvestmentRules\.getReportContext\(d\)/);
   assert.doesNotMatch(html, /function (consult|formatBidNarrative|formatBidNarrativeCSV|tierLabel)\(/);
-  assert.match(html, /const BASE=\[\];/, 'student records must remain on the authenticated server');
-  assert.doesNotMatch(html, /api\('\/api\/seed'/, 'opening the page must not reseed private data');
+  assert.match(html, /const BASE\s*=\s*\[\];/, 'student records must remain on the authenticated server');
+  assert.doesNotMatch(html, /api\(\s*['"]\/api\/seed['"]/, 'opening the page must not reseed private data');
 });
 
 test('API authenticates, validates input, returns shared rules, and grants no student access', async t => {
